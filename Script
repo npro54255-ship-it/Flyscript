@@ -1,0 +1,352 @@
+-- Fly Script for Mobile with GUI
+-- made by gay228
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FlyMobileGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Main Frame (movable)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 250, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+MainFrame.BackgroundTransparency = 0.2
+MainFrame.BorderSizePixel = 2
+MainFrame.BorderColor3 = Color3.fromRGB(100, 100, 255)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- Rounded corners
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 15)
+UICorner.Parent = MainFrame
+
+-- Shadow
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(100, 100, 255)
+UIStroke.Thickness = 2
+UIStroke.Parent = MainFrame
+
+-- Title
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Size = UDim2.new(1, 0, 0, 40)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+TitleLabel.Text = "🛸 Fly Control v1.0"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 20
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Parent = MainFrame
+
+local MadeByLabel = Instance.new("TextLabel")
+MadeByLabel.Name = "MadeByLabel"
+MadeByLabel.Size = UDim2.new(1, 0, 0, 30)
+MadeByLabel.Position = UDim2.new(0, 0, 0, 40)
+MadeByLabel.BackgroundTransparency = 1
+MadeByLabel.Text = "made by gay228"
+MadeByLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+MadeByLabel.TextSize = 18
+MadeByLabel.Font = Enum.Font.Gotham
+MadeByLabel.Parent = MainFrame
+
+-- Controls container
+local ControlsFrame = Instance.new("Frame")
+ControlsFrame.Name = "ControlsFrame"
+ControlsFrame.Size = UDim2.new(1, -20, 0, 150)
+ControlsFrame.Position = UDim2.new(0, 10, 0, 80)
+ControlsFrame.BackgroundTransparency = 1
+ControlsFrame.Parent = MainFrame
+
+-- UP button (+)
+local UpButton = Instance.new("TextButton")
+UpButton.Name = "UpButton"
+UpButton.Size = UDim2.new(0, 100, 0, 100)
+UpButton.Position = UDim2.new(0.5, -50, 0, 10)
+UpButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
+UpButton.Text = "⬆\n+"
+UpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+UpButton.TextSize = 30
+UpButton.Font = Enum.Font.GothamBold
+UpButton.Parent = ControlsFrame
+
+local UpCorner = Instance.new("UICorner")
+UpCorner.CornerRadius = UDim.new(0, 20)
+UpCorner.Parent = UpButton
+
+-- DOWN button (-)
+local DownButton = Instance.new("TextButton")
+DownButton.Name = "DownButton"
+DownButton.Size = UDim2.new(0, 100, 0, 100)
+DownButton.Position = UDim2.new(0.5, -50, 0, 120)
+DownButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+DownButton.Text = "⬇\n-"
+DownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DownButton.TextSize = 30
+DownButton.Font = Enum.Font.GothamBold
+DownButton.Parent = ControlsFrame
+
+local DownCorner = Instance.new("UICorner")
+DownCorner.CornerRadius = UDim.new(0, 20)
+DownCorner.Parent = DownButton
+
+-- Info panel
+local InfoFrame = Instance.new("Frame")
+InfoFrame.Name = "InfoFrame"
+InfoFrame.Size = UDim2.new(1, -20, 0, 60)
+InfoFrame.Position = UDim2.new(0, 10, 1, -70)
+InfoFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+InfoFrame.BackgroundTransparency = 0.3
+InfoFrame.Parent = MainFrame
+
+local InfoCorner = Instance.new("UICorner")
+InfoCorner.CornerRadius = UDim.new(0, 10)
+InfoCorner.Parent = InfoFrame
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Name = "SpeedLabel"
+SpeedLabel.Size = UDim2.new(1, 0, 0.5, 0)
+SpeedLabel.Position = UDim2.new(0, 0, 0, 0)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "Speed: 50"
+SpeedLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+SpeedLabel.TextSize = 16
+SpeedLabel.Font = Enum.Font.Gotham
+SpeedLabel.Parent = InfoFrame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Size = UDim2.new(1, 0, 0.5, 0)
+StatusLabel.Position = UDim2.new(0, 0, 0.5, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Fly: ❌ OFF"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+StatusLabel.TextSize = 16
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.Parent = InfoFrame
+
+-- Flight variables
+local flySpeed = 50
+local isFlying = false
+local flyingConnection = nil
+local bodyVelocity = nil
+
+-- Update speed display
+local function updateSpeedDisplay()
+    SpeedLabel.Text = "Speed: " .. tostring(flySpeed)
+end
+
+-- Update status display
+local function updateStatusDisplay()
+    if isFlying then
+        StatusLabel.Text = "Fly: ✅ ON"
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        StatusLabel.Text = "Fly: ❌ OFF"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
+end
+
+-- Toggle flight
+local function toggleFlight()
+    if isFlying then
+        -- Stop flying
+        if bodyVelocity then
+            bodyVelocity:Destroy()
+            bodyVelocity = nil
+        end
+        if flyingConnection then
+            flyingConnection:Disconnect()
+            flyingConnection = nil
+        end
+        humanoid.PlatformStand = false
+        isFlying = false
+    else
+        -- Start flying
+        humanoid.PlatformStand = true
+        
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+        bodyVelocity.P = 1000
+        bodyVelocity.Parent = rootPart
+        
+        isFlying = true
+        
+        flyingConnection = RunService.Heartbeat:Connect(function()
+            if not bodyVelocity or not bodyVelocity.Parent then return end
+            
+            -- Get movement direction
+            local camera = workspace.CurrentCamera
+            local lookVector = camera.CFrame.LookVector
+            local rightVector = camera.CFrame.RightVector
+            
+            local direction = Vector3.new(0, 0, 0)
+            
+            -- Check keys (for PC)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                direction = direction + lookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                direction = direction - lookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                direction = direction - rightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                direction = direction + rightVector
+            end
+            
+            -- Normalize and apply speed
+            if direction.Magnitude > 0 then
+                direction = direction.Unit * flySpeed
+            end
+            
+            -- Vertical movement (controlled by buttons)
+            bodyVelocity.Velocity = Vector3.new(direction.X, 0, direction.Z)
+        end)
+    end
+    
+    updateStatusDisplay()
+end
+
+-- Change altitude
+local function changeAltitude(up)
+    if not isFlying or not bodyVelocity then return end
+    
+    local currentVelocity = bodyVelocity.Velocity
+    if up then
+        bodyVelocity.Velocity = Vector3.new(currentVelocity.X, flySpeed, currentVelocity.Z)
+    else
+        bodyVelocity.Velocity = Vector3.new(currentVelocity.X, -flySpeed, currentVelocity.Z)
+    end
+    
+    -- Stop vertical movement after 0.3 seconds
+    task.spawn(function()
+        task.wait(0.3)
+        if bodyVelocity and isFlying then
+            bodyVelocity.Velocity = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
+        end
+    end)
+end
+
+-- Button handlers
+UpButton.MouseButton1Click:Connect(function()
+    if not isFlying then
+        toggleFlight()
+    else
+        changeAltitude(true)
+    end
+end)
+
+DownButton.MouseButton1Click:Connect(function()
+    if isFlying then
+        changeAltitude(false)
+    end
+end)
+
+-- Long press for speed change
+local longPressTime = 0.5
+local upPressedTime = 0
+local downPressedTime = 0
+
+UpButton.MouseButton1Down:Connect(function()
+    upPressedTime = tick()
+    
+    task.spawn(function()
+        while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+            local buttonPosition = UpButton.AbsolutePosition
+            local mousePosition = UserInputService:GetMouseLocation()
+            
+            -- Check if mouse is over button
+            if mousePosition.X >= buttonPosition.X and mousePosition.X <= buttonPosition.X + UpButton.AbsoluteSize.X
+               and mousePosition.Y >= buttonPosition.Y and mousePosition.Y <= buttonPosition.Y + UpButton.AbsoluteSize.Y then
+                
+                if tick() - upPressedTime >= longPressTime then
+                    -- Increase speed on long press
+                    flySpeed = math.min(flySpeed + 5, 200)
+                    updateSpeedDisplay()
+                    task.wait(0.1)
+                end
+            else
+                break
+            end
+        end
+    end)
+end)
+
+DownButton.MouseButton1Down:Connect(function()
+    downPressedTime = tick()
+    
+    task.spawn(function()
+        while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+            local buttonPosition = DownButton.AbsolutePosition
+            local mousePosition = UserInputService:GetMouseLocation()
+            
+            if mousePosition.X >= buttonPosition.X and mousePosition.X <= buttonPosition.X + DownButton.AbsoluteSize.X
+               and mousePosition.Y >= buttonPosition.Y and mousePosition.Y <= buttonPosition.Y + DownButton.AbsoluteSize.Y then
+                
+                if tick() - downPressedTime >= longPressTime then
+                    -- Decrease speed on long press
+                    flySpeed = math.max(flySpeed - 5, 10)
+                    updateSpeedDisplay()
+                    task.wait(0.1)
+                end
+            else
+                break
+            end
+        end
+    end)
+end)
+
+-- Close button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 18
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = TitleLabel
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseButton
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+    if isFlying then
+        toggleFlight()
+    end
+end)
+
+-- Initialize
+updateSpeedDisplay()
+updateStatusDisplay()
+
+-- Load notification
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Fly Script Loaded",
+    Text = "made by gay228\nPress + to fly",
+    Duration = 5,
+    Icon = "rbxassetid://4483345998"
+})
+
+print("✅ Fly Script by gay228 loaded!")
+print("🛸 Use + and - buttons to control flight")
