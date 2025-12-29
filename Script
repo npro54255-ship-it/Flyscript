@@ -1,4 +1,4 @@
--- BlackHole Cheat by sherikyt
+-- Ultimate Pull Cheat by sherikyt
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
@@ -7,11 +7,8 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 local config = {
-    force = 5000,
-    radius = 50,
-    distance = 500, -- Increased to cover whole map
-    rotation = 50,
-    pullSpeed = 100
+    force = 10000, -- Maximum force
+    pullSpeed = 200
 }
 
 local state = {
@@ -19,21 +16,21 @@ local state = {
     position = nil,
     parts = {},
     connection = nil,
-    core = nil,
+    marker = nil,
     menuVisible = true
 }
 
 -- Create GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "BlackHoleGUI"
+gui.Name = "PullCheatGUI"
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 -- Main menu
 local menu = Instance.new("Frame")
 menu.Name = "MainMenu"
-menu.Size = UDim2.new(0, 220, 0, 280)
-menu.Position = UDim2.new(0, 10, 0.5, -140)
+menu.Size = UDim2.new(0, 220, 0, 200)
+menu.Position = UDim2.new(0, 10, 0.5, -100)
 menu.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 menu.BackgroundTransparency = 0.1
 menu.Parent = gui
@@ -48,7 +45,7 @@ title.Name = "Title"
 title.Size = UDim2.new(1, -10, 0, 30)
 title.Position = UDim2.new(0, 10, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "BLACK HOLE"
+title.Text = "ULTIMATE PULL"
 title.TextColor3 = Color3.fromRGB(255, 100, 255)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
@@ -105,101 +102,56 @@ local selectBtn = createButton(
     Color3.fromRGB(0, 120, 255)
 )
 
-local blackholeBtn = createButton(
-    "BlackholeBtn",
-    "BLACK HOLE",
+local pullBtn = createButton(
+    "PullBtn",
+    "PULL EVERYTHING",
     UDim2.new(0.05, 0, 0, 105),
-    "🌌",
+    "🌀",
     Color3.fromRGB(150, 0, 255)
 )
-
--- Sliders container
-local slidersFrame = Instance.new("Frame")
-slidersFrame.Name = "SlidersFrame"
-slidersFrame.Size = UDim2.new(0.9, 0, 0, 100)
-slidersFrame.Position = UDim2.new(0.05, 0, 0, 150)
-slidersFrame.BackgroundTransparency = 1
-slidersFrame.Parent = menu
 
 -- Force slider
 local forceLabel = Instance.new("TextLabel")
 forceLabel.Name = "ForceLabel"
-forceLabel.Size = UDim2.new(1, 0, 0, 20)
-forceLabel.Position = UDim2.new(0, 0, 0, 0)
+forceLabel.Size = UDim2.new(0.9, 0, 0, 20)
+forceLabel.Position = UDim2.new(0.05, 0, 0, 150)
 forceLabel.BackgroundTransparency = 1
-forceLabel.Text = "FORCE: " .. config.force
+forceLabel.Text = "PULL FORCE: " .. config.force
 forceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 forceLabel.Font = Enum.Font.Gotham
 forceLabel.TextSize = 11
 forceLabel.TextXAlignment = Enum.TextXAlignment.Left
-forceLabel.Parent = slidersFrame
+forceLabel.Parent = menu
 
 local forceSlider = Instance.new("Frame")
 forceSlider.Name = "ForceSlider"
-forceSlider.Size = UDim2.new(1, 0, 0, 20)
-forceSlider.Position = UDim2.new(0, 0, 0, 20)
+forceSlider.Size = UDim2.new(0.9, 0, 0, 20)
+forceSlider.Position = UDim2.new(0.05, 0, 0, 170)
 forceSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-forceSlider.Parent = slidersFrame
+forceSlider.Parent = menu
 Instance.new("UICorner", forceSlider).CornerRadius = UDim.new(0, 10)
 
 local forceFill = Instance.new("Frame")
 forceFill.Name = "ForceFill"
-forceFill.Size = UDim2.new(config.force / 10000, 0, 1, 0)
-forceFill.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+forceFill.Size = UDim2.new(config.force / 20000, 0, 1, 0)
+forceFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 forceFill.Parent = forceSlider
 Instance.new("UICorner", forceFill).CornerRadius = UDim.new(0, 10)
 
 local forceHandle = Instance.new("TextButton")
 forceHandle.Name = "ForceHandle"
 forceHandle.Size = UDim2.new(0, 20, 0, 20)
-forceHandle.Position = UDim2.new(config.force / 10000, -10, 0, 0)
+forceHandle.Position = UDim2.new(config.force / 20000, -10, 0, 0)
 forceHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 forceHandle.Text = ""
 forceHandle.Parent = forceSlider
 Instance.new("UICorner", forceHandle).CornerRadius = UDim.new(1, 0)
 
--- Radius slider
-local radiusLabel = Instance.new("TextLabel")
-radiusLabel.Name = "RadiusLabel"
-radiusLabel.Size = UDim2.new(1, 0, 0, 20)
-radiusLabel.Position = UDim2.new(0, 0, 0, 50)
-radiusLabel.BackgroundTransparency = 1
-radiusLabel.Text = "RADIUS: " .. config.radius
-radiusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-radiusLabel.Font = Enum.Font.Gotham
-radiusLabel.TextSize = 11
-radiusLabel.TextXAlignment = Enum.TextXAlignment.Left
-radiusLabel.Parent = slidersFrame
-
-local radiusSlider = Instance.new("Frame")
-radiusSlider.Name = "RadiusSlider"
-radiusSlider.Size = UDim2.new(1, 0, 0, 20)
-radiusSlider.Position = UDim2.new(0, 0, 0, 70)
-radiusSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-radiusSlider.Parent = slidersFrame
-Instance.new("UICorner", radiusSlider).CornerRadius = UDim.new(0, 10)
-
-local radiusFill = Instance.new("Frame")
-radiusFill.Name = "RadiusFill"
-radiusFill.Size = UDim2.new(config.radius / 200, 0, 1, 0)
-radiusFill.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
-radiusFill.Parent = radiusSlider
-Instance.new("UICorner", radiusFill).CornerRadius = UDim.new(0, 10)
-
-local radiusHandle = Instance.new("TextButton")
-radiusHandle.Name = "RadiusHandle"
-radiusHandle.Size = UDim2.new(0, 20, 0, 20)
-radiusHandle.Position = UDim2.new(config.radius / 200, -10, 0, 0)
-radiusHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-radiusHandle.Text = ""
-radiusHandle.Parent = radiusSlider
-Instance.new("UICorner", radiusHandle).CornerRadius = UDim.new(1, 0)
-
 -- Status
 local status = Instance.new("TextLabel")
 status.Name = "Status"
 status.Size = UDim2.new(0.9, 0, 0, 30)
-status.Position = UDim2.new(0.05, 0, 0, 260)
+status.Position = UDim2.new(0.05, 0, 0, 200)
 status.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 status.BackgroundTransparency = 0.3
 status.Text = "READY"
@@ -229,32 +181,40 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(1, 0)
 toggleCorner.Parent = toggleBtn
 
--- Black hole functions
+-- Pull functions
 local function createMarker(pos)
-    local oldMarker = Workspace:FindFirstChild("BH_Marker")
-    if oldMarker then
-        oldMarker:Destroy()
+    if state.marker then
+        state.marker:Destroy()
     end
     
     local marker = Instance.new("Part")
-    marker.Name = "BH_Marker"
-    marker.Size = Vector3.new(2, 2, 2)
+    marker.Name = "PullMarker"
+    marker.Size = Vector3.new(3, 3, 3)
     marker.Position = pos
     marker.Anchored = true
     marker.CanCollide = false
-    marker.Color = Color3.fromRGB(0, 200, 255)
+    marker.Material = EnumMaterial.Neon
+    marker.Color = Color3.fromRGB(255, 50, 50)
     marker.Transparency = 0.3
     marker.Parent = Workspace
     
+    local light = Instance.new("PointLight")
+    light.Color = Color3.fromRGB(255, 50, 50)
+    light.Brightness = 5
+    light.Range = 15
+    light.Parent = marker
+    
+    state.marker = marker
     return marker
 end
 
-local function collectParts()
+local function collectAllParts()
     state.parts = {}
+    local count = 0
     
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and not obj.Anchored then
-            if obj.Name == "BH_Marker" then
+            if obj.Name == "PullMarker" then
                 continue
             end
             
@@ -263,64 +223,47 @@ local function collectParts()
             end
             
             table.insert(state.parts, obj)
+            count = count + 1
         end
     end
     
-    return #state.parts
+    return count
 end
 
-local function updatePartPhysics(part)
+local function applyPullForce(part)
     if not part or not part.Parent then return end
     
-    local dist = (part.Position - state.position).Magnitude
+    local velocity = part:FindFirstChild("PullVelocity")
     
-    -- Create physics objects
-    local velocity = part:FindFirstChild("BH_V") or Instance.new("BodyVelocity")
-    local gyro = part:FindFirstChild("BH_G") or Instance.new("BodyGyro")
-    
-    if not part:FindFirstChild("BH_V") then
-        velocity.Name = "BH_V"
+    if not velocity then
+        velocity = Instance.new("BodyVelocity")
+        velocity.Name = "PullVelocity"
         velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         velocity.P = 10000
         velocity.Parent = part
-        
-        gyro.Name = "BH_G"
-        gyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        gyro.P = 10000
-        gyro.Parent = part
     end
     
-    local dir = (state.position - part.Position).Unit
-    local force = config.force * (1 - math.min(dist / 1000, 1))
-    local tangent = dir:Cross(Vector3.new(0, 1, 0)).Unit
-    local orbit = config.rotation * (config.radius / math.max(dist, 1))
+    local direction = (state.position - part.Position).Unit
+    local force = config.force
     
-    -- Different behavior based on distance
-    if dist > config.radius * 2 then
-        -- Pull from far away
-        velocity.Velocity = dir * force * 0.5
-    elseif dist > config.radius then
-        -- Start orbiting
-        velocity.Velocity = dir * force * 0.3 + tangent * orbit
-    else
-        -- Tight orbit close to center
-        velocity.Velocity = tangent * orbit * 2
+    -- Apply straight pull force
+    velocity.Velocity = direction * force
+    
+    -- Stop rotation if any
+    local gyro = part:FindFirstChild("PullGyro")
+    if gyro then
+        gyro:Destroy()
     end
 end
 
-local function toggleBlackHole()
+local function togglePull()
     if not state.position then
         status.Text = "SELECT POSITION FIRST"
         return
     end
     
     if state.active then
-        -- Stop
-        if state.core then
-            state.core:Destroy()
-            state.core = nil
-        end
-        
+        -- Stop pulling
         if state.connection then
             state.connection:Disconnect()
             state.connection = nil
@@ -328,53 +271,43 @@ local function toggleBlackHole()
         
         for _, part in pairs(state.parts) do
             if part and part.Parent then
-                local v = part:FindFirstChild("BH_V")
-                local g = part:FindFirstChild("BH_G")
+                local v = part:FindFirstChild("PullVelocity")
                 if v then v:Destroy() end
+                
+                local g = part:FindFirstChild("PullGyro")
                 if g then g:Destroy() end
             end
         end
         
         state.active = false
         state.parts = {}
-        blackholeBtn.Text = "🌌 BLACK HOLE"
+        pullBtn.Text = "🌀 PULL EVERYTHING"
         status.Text = "STOPPED"
         return
     end
     
-    -- Start
-    local partCount = collectParts()
+    -- Start pulling
+    local partCount = collectAllParts()
     if partCount == 0 then
         status.Text = "NO PARTS FOUND"
         return
     end
     
     state.active = true
-    blackholeBtn.Text = "⏹️ STOP"
+    pullBtn.Text = "⏹️ STOP PULLING"
     
-    -- Create core
-    state.core = Instance.new("Part")
-    state.core.Name = "BH_Core"
-    state.core.Size = Vector3.new(config.radius/10, config.radius/10, config.radius/10)
-    state.core.Position = state.position
-    state.core.Anchored = true
-    state.core.CanCollide = false
-    state.core.Color = Color3.fromRGB(0, 0, 0)
-    state.core.Transparency = 0.3
-    state.core.Parent = Workspace
-    
-    -- Physics loop
+    -- Pull physics loop
     state.connection = RunService.Heartbeat:Connect(function()
         if not state.active then return end
         
         for _, part in pairs(state.parts) do
             if part and part.Parent then
-                updatePartPhysics(part)
+                applyPullForce(part)
             end
         end
     end)
     
-    status.Text = "ACTIVE - PARTS: " .. partCount
+    status.Text = "PULLING - PARTS: " .. partCount
 end
 
 -- Button events
@@ -383,35 +316,36 @@ selectBtn.MouseButton1Click:Connect(function()
     if camera and player.Character then
         local hrp = player.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
-            state.position = hrp.Position + Vector3.new(0, 2, 0)
+            state.position = hrp.Position + Vector3.new(0, 5, 0)
             createMarker(state.position)
             status.Text = "POSITION SET"
         end
     end
 end)
 
-blackholeBtn.MouseButton1Click:Connect(toggleBlackHole)
+pullBtn.MouseButton1Click:Connect(togglePull)
 
 -- Slider dragging
 local dragging = nil
-local function startDrag(slider, handle, minVal, maxVal, updateFunc)
-    handle.MouseButton1Down:Connect(function()
-        dragging = {slider = slider, handle = handle, min = minVal, max = maxVal, update = updateFunc}
-    end)
-end
+forceHandle.MouseButton1Down:Connect(function()
+    dragging = "force"
+end)
 
 RunService.Heartbeat:Connect(function()
-    if dragging then
+    if dragging == "force" then
         local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-        local slider = dragging.slider
+        local slider = forceSlider
         local absPos = slider.AbsolutePosition.X
         local absSize = slider.AbsoluteSize.X
         
         local mouseX = mouse.X
         local relative = math.clamp((mouseX - absPos) / absSize, 0, 1)
         
-        local value = math.floor(dragging.min + relative * (dragging.max - dragging.min))
-        dragging.update(value)
+        local value = math.floor(1000 + relative * 19000) -- 1000 to 20000
+        config.force = value
+        forceLabel.Text = "PULL FORCE: " .. value
+        forceFill.Size = UDim2.new(value / 20000, 0, 1, 0)
+        forceHandle.Position = UDim2.new(value / 20000, -10, 0, 0)
     end
 end)
 
@@ -421,40 +355,25 @@ game:GetService("UserInputService").InputEnded:Connect(function(input)
     end
 end)
 
--- Update functions for sliders
-local function updateForce(value)
-    config.force = value
-    forceLabel.Text = "FORCE: " .. value
-    forceFill.Size = UDim2.new(value / 10000, 0, 1, 0)
-    forceHandle.Position = UDim2.new(value / 10000, -10, 0, 0)
-end
-
-local function updateRadius(value)
-    config.radius = value
-    radiusLabel.Text = "RADIUS: " .. value
-    radiusFill.Size = UDim2.new(value / 200, 0, 1, 0)
-    radiusHandle.Position = UDim2.new(value / 200, -10, 0, 0)
-    
-    if state.core then
-        state.core.Size = Vector3.new(value/10, value/10, value/10)
-    end
-end
-
-startDrag(forceSlider, forceHandle, 100, 10000, updateForce)
-startDrag(radiusSlider, radiusHandle, 10, 200, updateRadius)
-
 -- Toggle menu
 toggleBtn.MouseButton1Click:Connect(function()
     state.menuVisible = not state.menuVisible
     
     if state.menuVisible then
-        menu.Position = UDim2.new(0, 10, 0.5, -140)
+        menu.Position = UDim2.new(0, 10, 0.5, -100)
         toggleBtn.Position = UDim2.new(0, 240, 0.5, -20)
         toggleBtn.Text = "◀"
     else
-        menu.Position = UDim2.new(-1, 0, 0.5, -140)
+        menu.Position = UDim2.new(-1, 0, 0.5, -100)
         toggleBtn.Position = UDim2.new(0, 10, 0.5, -20)
         toggleBtn.Text = "▶"
+    end
+end)
+
+-- Auto refresh parts while active
+RunService.Heartbeat:Connect(function()
+    if state.active then
+        collectAllParts()
     end
 end)
 
@@ -464,14 +383,9 @@ gui.Destroying:Connect(function()
         state.connection:Disconnect()
     end
     
-    local marker = Workspace:FindFirstChild("BH_Marker")
-    if marker then
-        marker:Destroy()
-    end
-    
-    if state.core then
-        state.core:Destroy()
+    if state.marker then
+        state.marker:Destroy()
     end
 end)
 
-print("BlackHole Cheat by sherikyt loaded")
+print("Ultimate Pull Cheat by sherikyt loaded")
