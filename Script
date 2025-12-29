@@ -1,205 +1,238 @@
--- Black Hole by sherikyt
+-- sherikyt BlackHole Mobile Cheat
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local mouse = player:GetMouse()
+local touchEnabled = UserInputService.TouchEnabled
 
 local config = {
-    strength = 5000,
+    force = 5000,
     radius = 50,
-    suckDist = 200
+    distance = 200,
+    rotation = 50
 }
 
-local blackHoleActive = false
-local selectedPos = nil
-local parts = {}
-local holeCore = nil
-local holeEvent = nil
-local menuVisible = true
+local state = {
+    active = false,
+    position = nil,
+    parts = {},
+    connection = nil,
+    core = nil,
+    menuOpen = true
+}
 
--- GUI
+-- Mobile GUI
 local gui = Instance.new("ScreenGui")
-gui.Parent = player.PlayerGui
+gui.Name = "MobileBH"
+gui.Parent = player:WaitForChild("PlayerGui")
 
+-- Main Menu (Больше для касаний)
 local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 250, 0, 200)
-menu.Position = UDim2.new(0, -230, 0.5, -100)
-menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-menu.BackgroundTransparency = 0.1
+menu.Size = UDim2.new(0, 220, 0, 200) -- Больше для мобильных касаний
+menu.Position = UDim2.new(0, 10, 0.5, -100) -- В левом углу экрана
+menu.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+menu.BackgroundTransparency = 0.15
 menu.Parent = gui
-Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
 
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 30, 0, 30)
-toggleBtn.Position = UDim2.new(1, -35, 0.5, -15)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-toggleBtn.Text = "◀"
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 14
-toggleBtn.Parent = menu
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = menu
 
+-- Title (крупнее для мобильного)
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -10, 0, 30)
+title.Size = UDim2.new(1, -20, 0, 40)
 title.Position = UDim2.new(0, 10, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "🌌 Black Hole"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "🌌 BH Mobile"
+title.TextColor3 = Color3.fromRGB(255, 100, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 16
+title.TextSize = 18
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = menu
 
 local creator = Instance.new("TextLabel")
-creator.Size = UDim2.new(1, -10, 0, 20)
-creator.Position = UDim2.new(0, 10, 0, 35)
+creator.Size = UDim2.new(1, -20, 0, 20)
+creator.Position = UDim2.new(0, 10, 0, 45)
 creator.BackgroundTransparency = 1
 creator.Text = "by sherikyt"
 creator.TextColor3 = Color3.fromRGB(180, 180, 220)
 creator.Font = Enum.Font.Gotham
-creator.TextSize = 12
+creator.TextSize = 14
 creator.TextXAlignment = Enum.TextXAlignment.Left
 creator.Parent = menu
 
-local btnContainer = Instance.new("Frame")
-btnContainer.Size = UDim2.new(1, -20, 0, 100)
-btnContainer.Position = UDim2.new(0, 10, 0, 60)
-btnContainer.BackgroundTransparency = 1
-btnContainer.Parent = menu
-
-local function createBtn(name, text, pos, icon)
-    local btn = Instance.new("TextButton")
-    btn.Name = name
-    btn.Size = UDim2.new(1, 0, 0, 40)
-    btn.Position = pos
-    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    btn.Text = icon .. " " .. text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.Parent = btnContainer
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    return btn
+-- Mobile-friendly Buttons (большие для касаний)
+local function createMobileButton(text, icon, position, color)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0.9, 0, 0, 45) -- Выше для касаний
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.Text = icon .. " " .. text
+    button.TextColor3 = Color3.white
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 16 -- Крупнее текст
+    button.Parent = menu
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = button
+    
+    -- Анимация нажатия для мобильного
+    button.MouseButton1Down:Connect(function()
+        button.BackgroundTransparency = 0.5
+    end)
+    
+    button.MouseButton1Up:Connect(function()
+        button.BackgroundTransparency = 0
+    end)
+    
+    return button
 end
 
-local selectBtn = createBtn("SelectPos", "Select Position", UDim2.new(0, 0, 0, 0), "📍")
-local holeBtn = createBtn("MakeHole", "Make Blackhole", UDim2.new(0, 0, 0, 50), "🌌")
+-- Большие кнопки для мобильного
+local selectBtn = createMobileButton("SELECT POSITION", "📍", UDim2.new(0.05, 0, 0, 75), Color3.fromRGB(0, 120, 255))
+local blackholeBtn = createMobileButton("BLACK HOLE", "🌌", UDim2.new(0.05, 0, 0, 130), Color3.fromRGB(150, 0, 255))
 
+-- Toggle button для скрытия меню (больше для мобильного)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleMenu"
+toggleBtn.Size = UDim2.new(0, 60, 0, 60) -- Большой круг для касаний
+toggleBtn.Position = UDim2.new(1, 10, 0.5, -30) -- Правая сторона экрана
+toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+toggleBtn.Text = "◀"
+toggleBtn.TextColor3 = Color3.white
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 24
+toggleBtn.Parent = gui
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(1, 0)
+toggleCorner.Parent = toggleBtn
+
+-- Статус (показывается всегда)
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, -20, 0, 40)
-status.Position = UDim2.new(0, 10, 0, 170)
+status.Position = UDim2.new(0, 10, 1, -45)
 status.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 status.BackgroundTransparency = 0.3
-status.Text = "📍 Position: Not Selected"
-status.TextColor3 = Color3.fromRGB(255, 255, 255)
+status.Text = "🔄 Ready - Tap buttons"
+status.TextColor3 = Color3.white
 status.Font = Enum.Font.Gotham
 status.TextSize = 12
 status.TextWrapped = true
 status.Parent = menu
-Instance.new("UICorner", status).CornerRadius = UDim.new(0, 8)
 
--- Functions
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 8)
+statusCorner.Parent = status
+
+-- Mobile Functions
 local function createMarker(pos)
-    if workspace:FindFirstChild("PosMarker") then
-        workspace.PosMarker:Destroy()
+    if Workspace:FindFirstChild("BH_Marker") then
+        Workspace.BH_Marker:Destroy()
     end
     
     local marker = Instance.new("Part")
-    marker.Name = "PosMarker"
+    marker.Name = "BH_Marker"
     marker.Size = Vector3.new(2, 2, 2)
     marker.Position = pos
     marker.Anchored = true
     marker.CanCollide = false
     marker.Material = EnumMaterial.Neon
     marker.Color = Color3.fromRGB(0, 200, 255)
-    marker.Transparency = 0.3
-    marker.Parent = workspace
-    return marker
+    marker.Transparency = 0.4
+    marker.Parent = Workspace
+    
+    -- Свечение для видимости на мобильном
+    local light = Instance.new("PointLight")
+    light.Brightness = 3
+    light.Range = 15
+    light.Color = marker.Color
+    light.Parent = marker
 end
 
-local function getParts()
-    parts = {}
-    for _, part in pairs(Workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part.Anchored and part.Name ~= "PosMarker" then
-            if not part:IsDescendantOf(player.Character) then
-                if selectedPos then
-                    local dist = (part.Position - selectedPos).Magnitude
-                    if dist <= config.suckDist then
-                        table.insert(parts, part)
+local function collectMobileParts()
+    state.parts = {}
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj.Anchored and obj.Name ~= "BH_Marker" then
+            if not obj:IsDescendantOf(player.Character) then
+                if state.position then
+                    if (obj.Position - state.position).Magnitude <= config.distance then
+                        table.insert(state.parts, obj)
                     end
                 else
-                    table.insert(parts, part)
+                    table.insert(state.parts, obj)
                 end
             end
         end
     end
-    return parts
 end
 
-local function makeBlackHole()
-    if not selectedPos then
-        status.Text = "❌ Select position first!"
+local function toggleBlackHole()
+    if not state.position then
+        status.Text = "⚠️ First select position!"
         return
     end
     
-    if blackHoleActive then
-        if holeCore then holeCore:Destroy() end
-        if holeEvent then holeEvent:Disconnect() end
+    if state.active then
+        -- Stop black hole
+        if state.core then state.core:Destroy() end
+        if state.connection then state.connection:Disconnect() end
         
-        for _, part in pairs(parts) do
-            if part then
-                local v = part:FindFirstChild("BH_Vel")
-                local g = part:FindFirstChild("BH_Gyro")
-                if v then v:Destroy() end
-                if g then g:Destroy() end
-            end
+        for _, part in pairs(state.parts) do
+            local velocity = part:FindFirstChild("BH_Velocity")
+            local gyro = part:FindFirstChild("BH_Gyro")
+            if velocity then velocity:Destroy() end
+            if gyro then gyro:Destroy() end
         end
         
-        parts = {}
-        blackHoleActive = false
-        holeBtn.Text = "🌌 Make Blackhole"
+        state.active = false
+        blackholeBtn.Text = "🌌 BLACK HOLE"
+        status.Text = "⏹️ Stopped"
         return
     end
     
-    local collected = getParts()
-    if #collected == 0 then
-        status.Text = "⚠️ No parts found!"
+    -- Start black hole
+    collectMobileParts()
+    if #state.parts == 0 then
+        status.Text = "❌ No parts found"
         return
     end
     
-    blackHoleActive = true
-    holeBtn.Text = "⏹️ Stop Blackhole"
+    state.active = true
+    blackholeBtn.Text = "⏹️ STOP"
     
-    -- Visual core
-    holeCore = Instance.new("Part")
-    holeCore.Name = "BlackHoleCore"
-    holeCore.Size = Vector3.new(5, 5, 5)
-    holeCore.Position = selectedPos
-    holeCore.Anchored = true
-    holeCore.CanCollide = false
-    holeCore.Color = Color3.fromRGB(0, 0, 0)
-    holeCore.Transparency = 0.3
-    holeCore.Parent = workspace
+    -- Create visual black hole core
+    state.core = Instance.new("Part")
+    state.core.Name = "BH_Core"
+    state.core.Size = Vector3.new(5, 5, 5)
+    state.core.Position = state.position
+    state.core.Anchored = true
+    state.core.CanCollide = false
+    state.core.Color = Color3.fromRGB(0, 0, 0)
+    state.core.Material = EnumMaterial.Neon
+    state.core.Transparency = 0.3
+    state.core.Parent = Workspace
     
-    holeEvent = RunService.Heartbeat:Connect(function()
-        if not blackHoleActive then return end
+    -- Black hole physics
+    state.connection = RunService.Heartbeat:Connect(function()
+        if not state.active then return end
         
-        for _, part in pairs(parts) do
+        for _, part in pairs(state.parts) do
             if part and part.Parent then
-                local dist = (part.Position - selectedPos).Magnitude
+                local distance = (part.Position - state.position).Magnitude
                 
-                if dist <= config.suckDist then
-                    local vel = part:FindFirstChild("BH_Vel") or Instance.new("BodyVelocity")
+                if distance <= config.distance then
+                    local velocity = part:FindFirstChild("BH_Velocity") or Instance.new("BodyVelocity")
                     local gyro = part:FindFirstChild("BH_Gyro") or Instance.new("BodyGyro")
                     
-                    if not part:FindFirstChild("BH_Vel") then
-                        vel.Name = "BH_Vel"
-                        vel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        vel.P = 10000
-                        vel.Parent = part
+                    if not part:FindFirstChild("BH_Velocity") then
+                        velocity.Name = "BH_Velocity"
+                        velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                        velocity.P = 10000
+                        velocity.Parent = part
                         
                         gyro.Name = "BH_Gyro"
                         gyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
@@ -207,16 +240,17 @@ local function makeBlackHole()
                         gyro.Parent = part
                     end
                     
-                    local dir = (selectedPos - part.Position).Unit
-                    local force = config.strength * (1 - dist / config.suckDist)
-                    local tangent = dir:Cross(Vector3.new(0, 1, 0)).Unit
-                    local orbit = 50 * (config.radius / math.max(dist, 1))
+                    local direction = (state.position - part.Position).Unit
+                    local force = config.force * (1 - distance / config.distance)
+                    local tangent = direction:Cross(Vector3.new(0, 1, 0)).Unit
+                    local orbit = config.rotation * (config.radius / math.max(distance, 1))
                     
-                    vel.Velocity = dir * force + tangent * orbit
+                    velocity.Velocity = direction * force + tangent * orbit
                     
-                    if dist < 5 then
-                        part.Transparency = part.Transparency + 0.05
-                        if part.Transparency >= 1 then
+                    -- Всасывание в черную дыру
+                    if distance < config.radius then
+                        part.Transparency = part.Transparency + 0.01
+                        if part.Transparency >= 0.8 then
                             part:Destroy()
                         end
                     end
@@ -225,40 +259,87 @@ local function makeBlackHole()
         end
     end)
     
-    status.Text = "✅ Black Hole Active! Parts: " .. #collected
+    status.Text = "✅ Active - Parts: " .. #state.parts
 end
 
--- Button events
+-- Mobile Events
 selectBtn.MouseButton1Click:Connect(function()
-    selectedPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
-                  player.Character.HumanoidRootPart.Position or mouse.Hit.p
+    -- Для мобильного используем позицию камеры
+    local camera = Workspace.CurrentCamera
+    local screenPos = Vector2.new(0.5, 0.5) -- Центр экрана
+    local ray = camera:ViewportPointToRay(screenPos.X, screenPos.Y)
     
-    createMarker(selectedPos)
-    status.Text = string.format("📍 Selected\nX: %.1f, Y: %.1f, Z: %.1f", 
-        selectedPos.X, selectedPos.Y, selectedPos.Z)
+    local raycastResult = Workspace:Raycast(ray.Origin, ray.Direction * 500)
+    if raycastResult then
+        state.position = raycastResult.Position
+    else
+        state.position = ray.Origin + ray.Direction * 50
+    end
+    
+    createMarker(state.position)
+    status.Text = string.format("📍 Set\nX:%d Y:%d Z:%d", 
+        math.floor(state.position.X), 
+        math.floor(state.position.Y), 
+        math.floor(state.position.Z))
 end)
 
-holeBtn.MouseButton1Click:Connect(makeBlackHole)
+blackholeBtn.MouseButton1Click:Connect(toggleBlackHole)
 
--- Toggle menu
+-- Toggle menu for mobile
 toggleBtn.MouseButton1Click:Connect(function()
-    menuVisible = not menuVisible
-    if menuVisible then
-        menu.Position = UDim2.new(0, -230, 0.5, -100)
+    state.menuOpen = not state.menuOpen
+    
+    if state.menuOpen then
+        menu.Position = UDim2.new(0, 10, 0.5, -100)
         toggleBtn.Text = "◀"
+        toggleBtn.Position = UDim2.new(0, 240, 0.5, -30)
     else
-        menu.Position = UDim2.new(0, -250, 0.5, -100)
+        menu.Position = UDim2.new(-1, 0, 0.5, -100)
         toggleBtn.Text = "▶"
+        toggleBtn.Position = UDim2.new(0, 10, 0.5, -30)
     end
 end)
+
+-- Mobile-specific touch handling
+if touchEnabled then
+    -- Добавляем долгое нажатие для выбора позиции
+    local touchStartTime = 0
+    
+    UserInputService.TouchStarted:Connect(function(touch, processed)
+        if processed then return end
+        
+        touchStartTime = tick()
+        
+        -- Долгое нажатие (2 секунды) для выбора позиции
+        task.spawn(function()
+            task.wait(2)
+            if tick() - touchStartTime >= 2 then
+                -- Долгое нажатие - выбираем позицию
+                local camera = Workspace.CurrentCamera
+                local ray = camera:ViewportPointToRay(touch.Position.X, touch.Position.Y)
+                
+                local raycastResult = Workspace:Raycast(ray.Origin, ray.Direction * 500)
+                if raycastResult then
+                    state.position = raycastResult.Position
+                    createMarker(state.position)
+                    status.Text = string.format("📍 Long press\nX:%d Y:%d", 
+                        math.floor(state.position.X), 
+                        math.floor(state.position.Y))
+                end
+            end
+        end)
+    end)
+end
 
 -- Cleanup
 gui.Destroying:Connect(function()
-    if holeEvent then holeEvent:Disconnect() end
-    if workspace:FindFirstChild("PosMarker") then
-        workspace.PosMarker:Destroy()
-    end
-    if holeCore then holeCore:Destroy() end
+    if state.connection then state.connection:Disconnect() end
+    if Workspace:FindFirstChild("BH_Marker") then Workspace.BH_Marker:Destroy() end
+    if state.core then state.core:Destroy() end
 end)
 
-print("Black Hole by sherikyt loaded!")
+-- Initial mobile message
+status.Text = "📱 Mobile Ready\nTap buttons to use"
+
+print("sherikyt BlackHole Mobile Cheat loaded")
+print("For mobile: Tap SELECT, then BLACK HOLE")
