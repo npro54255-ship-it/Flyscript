@@ -1,320 +1,264 @@
--- 🌌 Black Hole System by sherikyt
+-- Black Hole by sherikyt
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
--- Конфигурация
 local config = {
-    BlackHoleStrength = 5000, -- Сила притяжения
-    RotationSpeed = 50, -- Скорость вращения
-    BlackHoleRadius = 50, -- Радиус черной дыры
-    SuckDistance = 200, -- Дистанция всасывания
-    VisualEffects = true, -- Визуальные эффекты
-    AutoCollectParts = true -- Автосбор деталей
+    strength = 5000,
+    radius = 50,
+    suckDist = 200
 }
 
--- Состояние
 local blackHoleActive = false
-local selectedPosition = nil
-local blackHoleParts = {}
-local orbitingParts = {}
-local blackHoleCore = nil
-local blackHoleEvent = nil
-local isMenuOpen = true
+local selectedPos = nil
+local parts = {}
+local holeCore = nil
+local holeEvent = nil
+local menuVisible = true
 
--- Создание красивого меню
+-- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "BlackHoleGUI"
 gui.Parent = player.PlayerGui
-gui.ResetOnSpawn = false
 
--- Контейнер меню
-local menuContainer = Instance.new("Frame")
-menuContainer.Name = "MenuContainer"
-menuContainer.Size = UDim2.new(0, 300, 0, 400)
-menuContainer.Position = UDim2.new(0, -280, 0.5, -200)
-menuContainer.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-menuContainer.BackgroundTransparency = 0.15
-menuContainer.ClipsDescendants = true
-menuContainer.Parent = gui
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(0, 250, 0, 200)
+menu.Position = UDim2.new(0, -230, 0.5, -100)
+menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+menu.BackgroundTransparency = 0.1
+menu.Parent = gui
+Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
 
--- Скругленные углы
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 15)
-corner.Parent = menuContainer
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 30, 0, 30)
+toggleBtn.Position = UDim2.new(1, -35, 0.5, -15)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+toggleBtn.Text = "◀"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.Parent = menu
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
 
--- Глянцевый эффект
-local shine = Instance.new("Frame")
-shine.Name = "Shine"
-shine.Size = UDim2.new(1, 0, 0.1, 0)
-shine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-shine.BackgroundTransparency = 0.9
-shine.BorderSizePixel = 0
-shine.Parent = menuContainer
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -10, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "🌌 Black Hole"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = menu
 
--- Заголовок
-local titleBar = Instance.new("Frame")
-titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 50)
-titleBar.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
-titleBar.BackgroundTransparency = 0.3
-titleBar.Parent = menuContainer
+local creator = Instance.new("TextLabel")
+creator.Size = UDim2.new(1, -10, 0, 20)
+creator.Position = UDim2.new(0, 10, 0, 35)
+creator.BackgroundTransparency = 1
+creator.Text = "by sherikyt"
+creator.TextColor3 = Color3.fromRGB(180, 180, 220)
+creator.Font = Enum.Font.Gotham
+creator.TextSize = 12
+creator.TextXAlignment = Enum.TextXAlignment.Left
+creator.Parent = menu
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 15)
-titleCorner.Parent = titleBar
+local btnContainer = Instance.new("Frame")
+btnContainer.Size = UDim2.new(1, -20, 0, 100)
+btnContainer.Position = UDim2.new(0, 10, 0, 60)
+btnContainer.BackgroundTransparency = 1
+btnContainer.Parent = menu
 
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Name = "Title"
-titleLabel.Size = UDim2.new(1, -50, 1, 0)
-titleLabel.Position = UDim2.new(0, 15, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "🌌 Black Hole System"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 20
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = titleBar
-
--- Кнопка скрытия/показа меню
-local toggleButton = Instance.new("TextButton")
-toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0, 40, 0, 40)
-toggleButton.Position = UDim2.new(1, -45, 0.5, -20)
-toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-toggleButton.Text = "◀"
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 18
-toggleButton.Parent = menuContainer
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(1, 0)
-toggleCorner.Parent = toggleButton
-
--- Автор
-local creatorLabel = Instance.new("TextLabel")
-creatorLabel.Name = "Creator"
-creatorLabel.Size = UDim2.new(1, -20, 0, 25)
-creatorLabel.Position = UDim2.new(0, 10, 0, 55)
-creatorLabel.BackgroundTransparency = 1
-creatorLabel.Text = "by sherikyt"
-creatorLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
-creatorLabel.Font = Enum.Font.GothamSemibold
-creatorLabel.TextSize = 14
-creatorLabel.TextXAlignment = Enum.TextXAlignment.Left
-creatorLabel.Parent = menuContainer
-
--- Контейнер для кнопок
-local buttonsContainer = Instance.new("Frame")
-buttonsContainer.Name = "ButtonsContainer"
-buttonsContainer.Size = UDim2.new(1, -20, 0, 200)
-buttonsContainer.Position = UDim2.new(0, 10, 0, 90)
-buttonsContainer.BackgroundTransparency = 1
-buttonsContainer.Parent = menuContainer
-
--- Функция создания красивых кнопок
-local function createFancyButton(name, text, position, icon, color)
-    local button = Instance.new("TextButton")
-    button.Name = name
-    button.Size = UDim2.new(1, 0, 0, 60)
-    button.Position = position
-    button.BackgroundColor3 = color
-    button.BackgroundTransparency = 0.2
-    button.Text = ""
-    button.AutoButtonColor = true
-    button.Parent = buttonsContainer
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 10)
-    btnCorner.Parent = button
-    
-    local btnStroke = Instance.new("UIStroke")
-    btnStroke.Color = Color3.fromRGB(255, 255, 255)
-    btnStroke.Thickness = 2
-    btnStroke.Transparency = 0.5
-    btnStroke.Parent = button
-    
-    -- Иконка
-    local iconLabel = Instance.new("TextLabel")
-    iconLabel.Name = "Icon"
-    iconLabel.Size = UDim2.new(0, 40, 1, 0)
-    iconLabel.BackgroundTransparency = 1
-    iconLabel.Text = icon
-    iconLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    iconLabel.Font = Enum.Font.GothamBold
-    iconLabel.TextSize = 24
-    iconLabel.Parent = button
-    
-    -- Текст
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Name = "Text"
-    textLabel.Size = UDim2.new(1, -50, 1, 0)
-    textLabel.Position = UDim2.new(0, 45, 0, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.Text = text
-    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textLabel.Font = Enum.Font.GothamBold
-    textLabel.TextSize = 16
-    textLabel.TextXAlignment = Enum.TextXAlignment.Left
-    textLabel.Parent = button
-    
-    -- Анимация при наведении
-    button.MouseEnter:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {
-            BackgroundTransparency = 0.1,
-            BackgroundColor3 = color:Lerp(Color3.fromRGB(255, 255, 255), 0.1)
-        }):Play()
-        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 3}):Play()
-    end)
-    
-    button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {
-            BackgroundTransparency = 0.2,
-            BackgroundColor3 = color
-        }):Play()
-        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 2}):Play()
-    end)
-    
-    return button
+local function createBtn(name, text, pos, icon)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    btn.Text = icon .. " " .. text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.Parent = btnContainer
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    return btn
 end
 
--- Кнопка Select Position
-local selectPosBtn = createFancyButton(
-    "SelectPosition",
-    "SELECT POSITION",
-    UDim2.new(0, 0, 0, 0),
-    "📍",
-    Color3.fromRGB(0, 120, 255)
-)
+local selectBtn = createBtn("SelectPos", "Select Position", UDim2.new(0, 0, 0, 0), "📍")
+local holeBtn = createBtn("MakeHole", "Make Blackhole", UDim2.new(0, 0, 0, 50), "🌌")
 
--- Кнопка Make Blackhole
-local blackholeBtn = createFancyButton(
-    "MakeBlackhole",
-    "MAKE BLACKHOLE",
-    UDim2.new(0, 0, 0, 70),
-    "🌌",
-    Color3.fromRGB(150, 0, 255)
-)
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -20, 0, 40)
+status.Position = UDim2.new(0, 10, 0, 170)
+status.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+status.BackgroundTransparency = 0.3
+status.Text = "📍 Position: Not Selected"
+status.TextColor3 = Color3.fromRGB(255, 255, 255)
+status.Font = Enum.Font.Gotham
+status.TextSize = 12
+status.TextWrapped = true
+status.Parent = menu
+Instance.new("UICorner", status).CornerRadius = UDim.new(0, 8)
 
--- Индикатор выбранной позиции
-local positionIndicator = Instance.new("TextLabel")
-positionIndicator.Name = "PositionIndicator"
-positionIndicator.Size = UDim2.new(1, -20, 0, 50)
-positionIndicator.Position = UDim2.new(0, 10, 0, 300)
-positionIndicator.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-positionIndicator.BackgroundTransparency = 0.3
-positionIndicator.Text = "📍 Position: Not Selected"
-positionIndicator.TextColor3 = Color3.fromRGB(255, 255, 255)
-positionIndicator.Font = Enum.Font.Gotham
-positionIndicator.TextSize = 14
-positionIndicator.TextWrapped = true
-positionIndicator.Parent = menuContainer
-
-local indicatorCorner = Instance.new("UICorner")
-indicatorCorner.CornerRadius = UDim.new(0, 10)
-indicatorCorner.Parent = positionIndicator
-
--- Слайдер для радиуса
-local radiusContainer = Instance.new("Frame")
-radiusContainer.Name = "RadiusContainer"
-radiusContainer.Size = UDim2.new(1, -20, 0, 80)
-radiusContainer.Position = UDim2.new(0, 10, 0, 360)
-radiusContainer.BackgroundTransparency = 1
-radiusContainer.Parent = menuContainer
-
-local radiusLabel = Instance.new("TextLabel")
-radiusLabel.Name = "RadiusLabel"
-radiusLabel.Size = UDim2.new(1, 0, 0, 25)
-radiusLabel.BackgroundTransparency = 1
-radiusLabel.Text = "🌐 Black Hole Radius: " .. config.BlackHoleRadius
-radiusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-radiusLabel.Font = Enum.Font.GothamSemibold
-radiusLabel.TextSize = 14
-radiusLabel.TextXAlignment = Enum.TextXAlignment.Left
-radiusLabel.Parent = radiusContainer
-
-local radiusSlider = Instance.new("Frame")
-radiusSlider.Name = "RadiusSlider"
-radiusSlider.Size = UDim2.new(1, 0, 0, 30)
-radiusSlider.Position = UDim2.new(0, 0, 0, 30)
-radiusSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-radiusSlider.Parent = radiusContainer
-
-local sliderCorner = Instance.new("UICorner")
-sliderCorner.CornerRadius = UDim.new(0, 15)
-sliderCorner.Parent = radiusSlider
-
-local sliderFill = Instance.new("Frame")
-sliderFill.Name = "SliderFill"
-sliderFill.Size = UDim2.new((config.BlackHoleRadius - 10) / 190, 0, 1, 0)
-sliderFill.BackgroundColor3 = Color3.fromRGB(150, 0, 255)
-sliderFill.Parent = radiusSlider
-
-local fillCorner = Instance.new("UICorner")
-fillCorner.CornerRadius = UDim.new(0, 15)
-fillCorner.Parent = sliderFill
-
-local sliderHandle = Instance.new("TextButton")
-sliderHandle.Name = "SliderHandle"
-sliderHandle.Size = UDim2.new(0, 20, 0, 20)
-sliderHandle.Position = UDim2.new((config.BlackHoleRadius - 10) / 190, -10, 0.5, -10)
-sliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-sliderHandle.Text = ""
-sliderHandle.Parent = radiusSlider
-
-local handleCorner = Instance.new("UICorner")
-handleCorner.CornerRadius = UDim.new(1, 0)
-handleCorner.Parent = sliderHandle
-
--- Функции
-local function updateRadiusDisplay()
-    radiusLabel.Text = "🌐 Black Hole Radius: " .. config.BlackHoleRadius
-    sliderFill.Size = UDim2.new((config.BlackHoleRadius - 10) / 190, 0, 1, 0)
-    sliderHandle.Position = UDim2.new((config.BlackHoleRadius - 10) / 190, -10, 0.5, -10)
-end
-
-local function createMarker(position)
-    -- Удаляем старый маркер если есть
-    if workspace:FindFirstChild("PositionMarker") then
-        workspace.PositionMarker:Destroy()
+-- Functions
+local function createMarker(pos)
+    if workspace:FindFirstChild("PosMarker") then
+        workspace.PosMarker:Destroy()
     end
     
-    -- Создаем новый маркер
     local marker = Instance.new("Part")
-    marker.Name = "PositionMarker"
+    marker.Name = "PosMarker"
     marker.Size = Vector3.new(2, 2, 2)
-    marker.Position = position
+    marker.Position = pos
     marker.Anchored = true
     marker.CanCollide = false
     marker.Material = EnumMaterial.Neon
     marker.Color = Color3.fromRGB(0, 200, 255)
     marker.Transparency = 0.3
+    marker.Parent = workspace
+    return marker
+end
+
+local function getParts()
+    parts = {}
+    for _, part in pairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part.Anchored and part.Name ~= "PosMarker" then
+            if not part:IsDescendantOf(player.Character) then
+                if selectedPos then
+                    local dist = (part.Position - selectedPos).Magnitude
+                    if dist <= config.suckDist then
+                        table.insert(parts, part)
+                    end
+                else
+                    table.insert(parts, part)
+                end
+            end
+        end
+    end
+    return parts
+end
+
+local function makeBlackHole()
+    if not selectedPos then
+        status.Text = "❌ Select position first!"
+        return
+    end
     
-    -- Свечение
-    local glow = Instance.new("SurfaceLight")
-    glow.Brightness = 2
-    glow.Range = 10
-    glow.Color = Color3.fromRGB(0, 150, 255)
-    glow.Parent = marker
+    if blackHoleActive then
+        if holeCore then holeCore:Destroy() end
+        if holeEvent then holeEvent:Disconnect() end
+        
+        for _, part in pairs(parts) do
+            if part then
+                local v = part:FindFirstChild("BH_Vel")
+                local g = part:FindFirstChild("BH_Gyro")
+                if v then v:Destroy() end
+                if g then g:Destroy() end
+            end
+        end
+        
+        parts = {}
+        blackHoleActive = false
+        holeBtn.Text = "🌌 Make Blackhole"
+        return
+    end
     
-    -- Партиклы
-    local particles = Instance.new("ParticleEmitter")
-    particles.Color = ColorSequence.new(Color3.fromRGB(0, 150, 255))
-    particles.Size = NumberSequence.new(0.5)
-    particles.Transparency = NumberSequence.new(0.5)
-    particles.Lifetime = NumberRange.new(1)
-    particles.Rate = 20
-    particles.Speed = NumberRange.new(2)
-    particles.Parent = marker
+    local collected = getParts()
+    if #collected == 0 then
+        status.Text = "⚠️ No parts found!"
+        return
+    end
     
-    -- Анимация пульсации
-    local pulseConnection
-    pulseConnection = RunService.Heartbeat:Connect(function(delta)
-        local pulse = math.sin(tick() * 3) * 0.1 + 1
-        marker.Size = Vector3.new
+    blackHoleActive = true
+    holeBtn.Text = "⏹️ Stop Blackhole"
+    
+    -- Visual core
+    holeCore = Instance.new("Part")
+    holeCore.Name = "BlackHoleCore"
+    holeCore.Size = Vector3.new(5, 5, 5)
+    holeCore.Position = selectedPos
+    holeCore.Anchored = true
+    holeCore.CanCollide = false
+    holeCore.Color = Color3.fromRGB(0, 0, 0)
+    holeCore.Transparency = 0.3
+    holeCore.Parent = workspace
+    
+    holeEvent = RunService.Heartbeat:Connect(function()
+        if not blackHoleActive then return end
+        
+        for _, part in pairs(parts) do
+            if part and part.Parent then
+                local dist = (part.Position - selectedPos).Magnitude
+                
+                if dist <= config.suckDist then
+                    local vel = part:FindFirstChild("BH_Vel") or Instance.new("BodyVelocity")
+                    local gyro = part:FindFirstChild("BH_Gyro") or Instance.new("BodyGyro")
+                    
+                    if not part:FindFirstChild("BH_Vel") then
+                        vel.Name = "BH_Vel"
+                        vel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                        vel.P = 10000
+                        vel.Parent = part
+                        
+                        gyro.Name = "BH_Gyro"
+                        gyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                        gyro.P = 10000
+                        gyro.Parent = part
+                    end
+                    
+                    local dir = (selectedPos - part.Position).Unit
+                    local force = config.strength * (1 - dist / config.suckDist)
+                    local tangent = dir:Cross(Vector3.new(0, 1, 0)).Unit
+                    local orbit = 50 * (config.radius / math.max(dist, 1))
+                    
+                    vel.Velocity = dir * force + tangent * orbit
+                    
+                    if dist < 5 then
+                        part.Transparency = part.Transparency + 0.05
+                        if part.Transparency >= 1 then
+                            part:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    
+    status.Text = "✅ Black Hole Active! Parts: " .. #collected
+end
+
+-- Button events
+selectBtn.MouseButton1Click:Connect(function()
+    selectedPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
+                  player.Character.HumanoidRootPart.Position or mouse.Hit.p
+    
+    createMarker(selectedPos)
+    status.Text = string.format("📍 Selected\nX: %.1f, Y: %.1f, Z: %.1f", 
+        selectedPos.X, selectedPos.Y, selectedPos.Z)
+end)
+
+holeBtn.MouseButton1Click:Connect(makeBlackHole)
+
+-- Toggle menu
+toggleBtn.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    if menuVisible then
+        menu.Position = UDim2.new(0, -230, 0.5, -100)
+        toggleBtn.Text = "◀"
+    else
+        menu.Position = UDim2.new(0, -250, 0.5, -100)
+        toggleBtn.Text = "▶"
+    end
+end)
+
+-- Cleanup
+gui.Destroying:Connect(function()
+    if holeEvent then holeEvent:Disconnect() end
+    if workspace:FindFirstChild("PosMarker") then
+        workspace.PosMarker:Destroy()
+    end
+    if holeCore then holeCore:Destroy() end
+end)
+
+print("Black Hole by sherikyt loaded!")
