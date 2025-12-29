@@ -5,360 +5,131 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
 
 local config = {
     maxCameras = 5,
     cameraFOV = 70,
-    moveSpeed = 10,
-    zoomSpeed = 5,
-    panSpeed = 50
+    panSpeed = 50,
+    zoomSpeed = 5
 }
 
 local state = {
-    cameras = {}, -- Table of camera objects
+    cameras = {},
     currentCamera = nil,
     cameraIndex = 0,
     isMonitoring = false,
-    menuVisible = true,
     zoomLevel = 1
 }
 
--- Create GUI
+-- Simple GUI without complex UI
 local gui = Instance.new("ScreenGui")
-gui.Name = "CameraSystemGUI"
-gui.ResetOnSpawn = false
-gui.Parent = playerGui
+gui.Parent = player:WaitForChild("PlayerGui")
 
--- Main menu
-local menu = Instance.new("Frame")
-menu.Name = "MainMenu"
-menu.Size = UDim2.new(0, 250, 0, 350)
-menu.Position = UDim2.new(0, 10, 0.5, -175)
-menu.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-menu.BackgroundTransparency = 0.1
-menu.Parent = gui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = menu
-
--- Title
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Size = UDim2.new(1, -10, 0, 30)
-title.Position = UDim2.new(0, 10, 0, 5)
-title.BackgroundTransparency = 1
-title.Text = "📹 SECURITY CAMERAS"
-title.TextColor3 = Color3.fromRGB(255, 100, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = menu
-
-local creator = Instance.new("TextLabel")
-creator.Name = "Creator"
-creator.Size = UDim2.new(1, -10, 0, 20)
-creator.Position = UDim2.new(0, 10, 0, 35)
-creator.BackgroundTransparency = 1
-creator.Text = "by sherikyt"
-creator.TextColor3 = Color3.fromRGB(180, 180, 220)
-creator.Font = Enum.Font.Gotham
-creator.TextSize = 12
-creator.TextXAlignment = Enum.TextXAlignment.Left
-creator.Parent = menu
-
--- Function to create button
-local function createButton(name, text, position, icon, color)
-    local button = Instance.new("TextButton")
-    button.Name = name
-    button.Size = UDim2.new(0.9, 0, 0, 40)
-    button.Position = position
-    button.BackgroundColor3 = color
-    button.Text = icon .. " " .. text
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 13
-    button.TextWrapped = true
-    button.Parent = menu
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 8)
-    btnCorner.Parent = button
-    
-    button.MouseButton1Down:Connect(function()
-        button.BackgroundTransparency = 0.3
-    end)
-    
-    button.MouseButton1Up:Connect(function()
-        button.BackgroundTransparency = 0
-    end)
-    
-    return button
-end
-
--- Create buttons
-local placeBtn = createButton(
-    "PlaceBtn",
-    "PLACE CAMERA",
-    UDim2.new(0.05, 0, 0, 60),
-    "📷",
-    Color3.fromRGB(0, 120, 255)
-)
-
-local monitorBtn = createButton(
-    "MonitorBtn",
-    "MONITOR MODE",
-    UDim2.new(0.05, 0, 0, 110),
-    "👁️",
-    Color3.fromRGB(150, 0, 255)
-)
-
-local clearBtn = createButton(
-    "ClearBtn",
-    "CLEAR ALL",
-    UDim2.new(0.05, 0, 0, 160),
-    "🗑️",
-    Color3.fromRGB(255, 50, 50)
-)
-
--- Camera list
-local camerasLabel = Instance.new("TextLabel")
-camerasLabel.Name = "CamerasLabel"
-camerasLabel.Size = UDim2.new(0.9, 0, 0, 25)
-camerasLabel.Position = UDim2.new(0.05, 0, 0, 210)
-camerasLabel.BackgroundTransparency = 1
-camerasLabel.Text = "CAMERAS: 0/" .. config.maxCameras
-camerasLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-camerasLabel.Font = Enum.Font.GothamBold
-camerasLabel.TextSize = 12
-camerasLabel.TextXAlignment = Enum.TextXAlignment.Left
-camerasLabel.Parent = menu
-
-local camerasList = Instance.new("TextLabel")
-camerasList.Name = "CamerasList"
-camerasList.Size = UDim2.new(0.9, 0, 0, 60)
-camerasList.Position = UDim2.new(0.05, 0, 0, 235)
-camerasList.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-camerasList.BackgroundTransparency = 0.3
-camerasList.Text = "No cameras placed"
-camerasList.TextColor3 = Color3.fromRGB(200, 200, 200)
-camerasList.Font = Enum.Font.Gotham
-camerasList.TextSize = 11
-camerasList.TextWrapped = true
-camerasList.TextXAlignment = Enum.TextXAlignment.Left
-camerasList.Parent = menu
-
-local camerasCorner = Instance.new("UICorner")
-camerasCorner.CornerRadius = UDim.new(0, 8)
-camerasCorner.Parent = camerasList
-
--- Status
+-- Status label
 local status = Instance.new("TextLabel")
-status.Name = "Status"
-status.Size = UDim2.new(0.9, 0, 0, 30)
-status.Position = UDim2.new(0.05, 0, 0, 310)
-status.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+status.Size = UDim2.new(0, 200, 0, 50)
+status.Position = UDim2.new(0, 10, 0, 10)
+status.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 status.BackgroundTransparency = 0.3
-status.Text = "READY TO PLACE CAMERAS"
+status.Text = "Cameras: 0/5\nPress P to place\nM to monitor"
 status.TextColor3 = Color3.fromRGB(255, 255, 255)
 status.Font = Enum.Font.Gotham
-status.TextSize = 11
+status.TextSize = 12
 status.TextWrapped = true
-status.Parent = menu
+status.Parent = gui
 
-local statusCorner = Instance.new("UICorner")
-statusCorner.CornerRadius = UDim.new(0, 8)
-statusCorner.Parent = status
+Instance.new("UICorner", status).CornerRadius = UDim.new(0, 8)
 
--- Toggle menu button
-local menuToggleBtn = Instance.new("TextButton")
-menuToggleBtn.Name = "MenuToggleBtn"
-menuToggleBtn.Size = UDim2.new(0, 40, 0, 40)
-menuToggleBtn.Position = UDim2.new(0, 270, 0.5, -20)
-menuToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-menuToggleBtn.Text = "◀"
-menuToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-menuToggleBtn.Font = Enum.Font.GothamBold
-menuToggleBtn.TextSize = 18
-menuToggleBtn.Parent = gui
+-- Monitor overlay (hidden)
+local monitorOverlay = Instance.new("Frame")
+monitorOverlay.Size = UDim2.new(1, 0, 1, 0)
+monitorOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+monitorOverlay.BackgroundTransparency = 0.95
+monitorOverlay.Visible = false
+monitorOverlay.Parent = gui
 
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(1, 0)
-toggleCorner.Parent = menuToggleBtn
-
--- Monitor GUI (hidden by default)
-local monitorGui = Instance.new("Frame")
-monitorGui.Name = "MonitorGui"
-monitorGui.Size = UDim2.new(1, 0, 1, 0)
-monitorGui.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-monitorGui.BackgroundTransparency = 0.1
-monitorGui.Visible = false
-monitorGui.Parent = gui
-
--- Camera info overlay (top right)
-local cameraInfo = Instance.new("Frame")
-cameraInfo.Name = "CameraInfo"
-cameraInfo.Size = UDim2.new(0, 200, 0, 80)
-cameraInfo.Position = UDim2.new(1, -210, 0, 10)
+local cameraInfo = Instance.new("TextLabel")
+cameraInfo.Size = UDim2.new(0, 300, 0, 60)
+cameraInfo.Position = UDim2.new(1, -310, 0, 10)
 cameraInfo.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 cameraInfo.BackgroundTransparency = 0.7
-cameraInfo.Parent = monitorGui
+cameraInfo.Text = "Camera 0\nWASD: Move | QE: Zoom\n←→: Switch | R: Reset"
+cameraInfo.TextColor3 = Color3.fromRGB(255, 255, 255)
+cameraInfo.Font = Enum.Font.Gotham
+cameraInfo.TextSize = 14
+cameraInfo.TextWrapped = true
+cameraInfo.Parent = monitorOverlay
 
-local infoCorner = Instance.new("UICorner")
-infoCorner.CornerRadius = UDim.new(0, 10)
-infoCorner.Parent = cameraInfo
+Instance.new("UICorner", cameraInfo).CornerRadius = UDim.new(0, 8)
 
-local cameraTitle = Instance.new("TextLabel")
-cameraTitle.Name = "CameraTitle"
-cameraTitle.Size = UDim2.new(1, -10, 0, 30)
-cameraTitle.Position = UDim2.new(0, 10, 0, 5)
-cameraTitle.BackgroundTransparency = 1
-cameraTitle.Text = "CAMERA 0"
-cameraTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-cameraTitle.Font = Enum.Font.GothamBold
-cameraTitle.TextSize = 18
-cameraTitle.TextXAlignment = Enum.TextXAlignment.Left
-cameraTitle.Parent = cameraInfo
-
-local cameraPosition = Instance.new("TextLabel")
-cameraPosition.Name = "CameraPosition"
-cameraPosition.Size = UDim2.new(1, -10, 0, 20)
-cameraPosition.Position = UDim2.new(0, 10, 0, 35)
-cameraPosition.BackgroundTransparency = 1
-cameraPosition.Text = "X:0 Y:0 Z:0"
-cameraPosition.TextColor3 = Color3.fromRGB(200, 200, 200)
-cameraPosition.Font = Enum.Font.Gotham
-cameraPosition.TextSize = 12
-cameraPosition.TextXAlignment = Enum.TextXAlignment.Left
-cameraPosition.Parent = cameraInfo
-
-local cameraControls = Instance.new("TextLabel")
-cameraControls.Name = "CameraControls"
-cameraControls.Size = UDim2.new(1, -10, 0, 20)
-cameraControls.Position = UDim2.new(0, 10, 0, 55)
-cameraControls.BackgroundTransparency = 1
-cameraControls.Text = "WASD: Move | QE: Zoom | ←→: Switch"
-cameraControls.TextColor3 = Color3.fromRGB(150, 150, 255)
-cameraControls.Font = Enum.Font.Gotham
-cameraControls.TextSize = 11
-cameraControls.TextXAlignment = Enum.TextXAlignment.Left
-cameraControls.Parent = cameraInfo
-
--- SIMPLIFIED Camera creation - Just a marker in air
-local function createCameraVisual(position, index)
-    -- Create simple camera marker (just a floating part)
-    local cameraPart = Instance.new("Part")
-    cameraPart.Name = "SecurityCamera_" .. index
-    cameraPart.Size = Vector3.new(2, 2, 2)
-    cameraPart.Position = position
-    cameraPart.Anchored = true
-    cameraPart.CanCollide = false
-    cameraPart.Transparency = 0.7
-    cameraPart.Color = Color3.fromRGB(0, 100, 255)
-    cameraPart.Material = EnumMaterial.Neon
-    
-    -- Add a simple light
-    local light = Instance.new("PointLight")
-    light.Color = Color3.fromRGB(0, 100, 255)
-    light.Brightness = 2
-    light.Range = 10
-    light.Parent = cameraPart
-    
-    -- Add a billboard gui for camera number
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "CameraBillboard"
-    billboard.Size = UDim2.new(0, 100, 0, 100)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = cameraPart
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = "📷 " .. index
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 14
-    label.Parent = billboard
-    
-    cameraPart.Parent = Workspace
+-- SUPER SIMPLE Camera creation - Just store position
+local function createCamera(position, index)
+    -- Create a simple marker part
+    local marker = Instance.new("Part")
+    marker.Name = "CameraMarker_" .. index
+    marker.Size = Vector3.new(1, 1, 1)
+    marker.Position = position
+    marker.Anchored = true
+    marker.CanCollide = false
+    marker.Transparency = 0.7
+    marker.Color = Color3.fromRGB(0, 150, 255)
+    marker.Parent = Workspace
     
     -- Store camera data
     local cameraData = {
-        part = cameraPart,
         position = position,
+        marker = marker,
         index = index,
         rotation = Vector2.new(0, 0),
-        offset = Vector3.new(0, 0, -10),
         fov = config.cameraFOV
     }
     
     return cameraData
 end
 
-local function updateCamerasList()
+local function updateStatus()
     local count = #state.cameras
-    camerasLabel.Text = "CAMERAS: " .. count .. "/" .. config.maxCameras
-    
-    if count == 0 then
-        camerasList.Text = "No cameras placed"
+    if state.isMonitoring then
+        status.Text = string.format("Monitoring\nCamera %d/%d\n←→ to switch", 
+            state.cameraIndex, count)
     else
-        local listText = ""
-        for i, cam in ipairs(state.cameras) do
-            listText = listText .. "📷 Camera " .. i .. "\n"
-        end
-        camerasList.Text = listText
+        status.Text = string.format("Cameras: %d/%d\nP: Place camera\nM: Monitor mode", 
+            count, config.maxCameras)
     end
 end
 
 local function placeCamera()
     if #state.cameras >= config.maxCameras then
-        status.Text = "MAX CAMERAS REACHED (" .. config.maxCameras .. ")"
+        print("Max cameras reached")
         return
     end
     
     local character = player.Character
-    if not character then
-        status.Text = "NO CHARACTER FOUND"
-        return
-    end
+    if not character then return end
     
     local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then
-        status.Text = "CANNOT FIND HUMANOIDROOTPART"
-        return
-    end
+    if not hrp then return end
     
-    -- Place camera 20 units above character
-    local cameraPosition = hrp.Position + Vector3.new(0, 20, 0)
+    -- Place camera 15 units above and 5 units in front
+    local offset = hrp.CFrame.LookVector * 5 + Vector3.new(0, 15, 0)
+    local position = hrp.Position + offset
+    
     local index = #state.cameras + 1
+    local cameraData = createCamera(position, index)
     
-    -- Simple creation without pcall
-    local cameraData = createCameraVisual(cameraPosition, index)
-    
-    if cameraData then
-        table.insert(state.cameras, cameraData)
-        status.Text = "📷 CAMERA " .. index .. " PLACED"
-        updateCamerasList()
-    else
-        status.Text = "ERROR PLACING CAMERA"
-    end
+    table.insert(state.cameras, cameraData)
+    print("Camera placed at:", position)
+    updateStatus()
 end
 
 local function clearAllCameras()
-    for i, cam in ipairs(state.cameras) do
-        if cam.part then
-            cam.part:Destroy()
+    for _, cam in ipairs(state.cameras) do
+        if cam.marker then
+            cam.marker:Destroy()
         end
     end
-    
     state.cameras = {}
-    state.currentCamera = nil
-    state.cameraIndex = 0
-    
-    updateCamerasList()
-    status.Text = "ALL CAMERAS CLEARED"
+    updateStatus()
 end
 
 local function switchCamera(direction)
@@ -378,26 +149,25 @@ local function switchCamera(direction)
     
     state.currentCamera = state.cameras[state.cameraIndex]
     
-    -- Update camera info
-    if state.currentCamera and state.isMonitoring then
-        cameraTitle.Text = "📷 CAMERA " .. state.cameraIndex
-        local pos = state.currentCamera.position
-        cameraPosition.Text = string.format("X:%d Y:%d Z:%d", 
-            math.floor(pos.X), math.floor(pos.Y), math.floor(pos.Z))
+    if state.currentCamera then
+        cameraInfo.Text = string.format("Camera %d/%d\nWASD: Move | QE: Zoom\n←→: Switch | R: Reset",
+            state.cameraIndex, #state.cameras)
         
-        -- Update camera lights
+        -- Update marker colors
         for i, cam in ipairs(state.cameras) do
-            local light = cam.part:FindFirstChild("PointLight")
-            if light then
-                light.Brightness = (i == state.cameraIndex) and 5 or 2
+            if cam.marker then
+                cam.marker.Color = (i == state.cameraIndex) and 
+                    Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 150, 255)
             end
         end
     end
+    
+    updateStatus()
 end
 
 local function startMonitoring()
     if #state.cameras == 0 then
-        status.Text = "NO CAMERAS TO MONITOR"
+        print("No cameras to monitor")
         return
     end
     
@@ -405,52 +175,39 @@ local function startMonitoring()
     state.cameraIndex = 1
     state.currentCamera = state.cameras[1]
     
-    -- Switch to Scriptable camera
-    local camera = Workspace.CurrentCamera
-    camera.CameraType = Enum.CameraType.Scriptable
+    -- Switch camera type
+    Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+    monitorOverlay.Visible = true
     
-    -- Show monitor GUI
-    monitorGui.Visible = true
-    monitorBtn.Text = "⏹️ EXIT MONITOR"
-    
-    -- Update camera info
-    cameraTitle.Text = "📷 CAMERA " .. state.cameraIndex
-    local pos = state.currentCamera.position
-    cameraPosition.Text = string.format("X:%d Y:%d Z:%d", 
-        math.floor(pos.X), math.floor(pos.Y), math.floor(pos.Z))
-    
-    -- Turn on light for current camera
+    -- Update markers
     for i, cam in ipairs(state.cameras) do
-        local light = cam.part:FindFirstChild("PointLight")
-        if light then
-            light.Brightness = (i == state.cameraIndex) and 5 or 2
+        if cam.marker then
+            cam.marker.Color = (i == 1) and 
+                Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 150, 255)
         end
     end
     
-    status.Text = "MONITORING MODE ACTIVE"
+    cameraInfo.Text = string.format("Camera 1/%d\nWASD: Move | QE: Zoom\n←→: Switch | R: Reset",
+        #state.cameras)
+    
+    updateStatus()
 end
 
 local function stopMonitoring()
     state.isMonitoring = false
-    state.currentCamera = nil
     
     -- Return to normal camera
-    local camera = Workspace.CurrentCamera
-    camera.CameraType = Enum.CameraType.Custom
+    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    monitorOverlay.Visible = false
     
-    -- Hide monitor GUI
-    monitorGui.Visible = false
-    monitorBtn.Text = "👁️ MONITOR MODE"
-    
-    -- Reset all camera lights
+    -- Reset marker colors
     for _, cam in ipairs(state.cameras) do
-        local light = cam.part:FindFirstChild("PointLight")
-        if light then
-            light.Brightness = 2
+        if cam.marker then
+            cam.marker.Color = Color3.fromRGB(0, 150, 255)
         end
     end
     
-    status.Text = "EXITED MONITOR MODE"
+    updateStatus()
 end
 
 local function toggleMonitoring()
@@ -461,7 +218,7 @@ local function toggleMonitoring()
     end
 end
 
--- Camera movement in monitor mode
+-- Camera control loop
 local monitorConnection
 local function setupMonitorControls()
     if monitorConnection then
@@ -472,28 +229,28 @@ local function setupMonitorControls()
         if not state.isMonitoring or not state.currentCamera then return end
         
         local camera = Workspace.CurrentCamera
-        
-        -- Calculate camera position based on offset and rotation
         local camData = state.currentCamera
-        local basePos = camData.position
         
-        -- Apply rotation to offset
+        -- Calculate camera position with offset based on rotation
+        local basePos = camData.position
         local yaw = camData.rotation.X
         local pitch = camData.rotation.Y
         
-        local offset = camData.offset * state.zoomLevel
+        -- Calculate offset from rotation
+        local distance = 15 * state.zoomLevel
+        local offset = Vector3.new(
+            math.sin(yaw) * math.cos(pitch) * distance,
+            math.sin(pitch) * distance,
+            math.cos(yaw) * math.cos(pitch) * distance
+        )
         
-        -- Rotate offset based on yaw and pitch
-        local rotCFrame = CFrame.fromEulerAnglesYXZ(pitch, yaw, 0)
-        local rotatedOffset = rotCFrame:PointToWorldSpace(offset)
+        local cameraPos = basePos + offset
         
-        local cameraPos = basePos + rotatedOffset
-        
-        -- Set camera position and look at base position
+        -- Set camera
         camera.CFrame = CFrame.new(cameraPos, basePos)
         camera.FieldOfView = camData.fov / state.zoomLevel
         
-        -- Handle keyboard controls
+        -- Handle controls
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then
             camData.rotation = Vector2.new(
                 camData.rotation.X - delta * config.panSpeed,
@@ -519,7 +276,7 @@ local function setupMonitorControls()
             )
         end
         
-        -- Zoom controls
+        -- Zoom
         if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
             state.zoomLevel = math.min(state.zoomLevel + delta * config.zoomSpeed, 5)
         end
@@ -529,53 +286,41 @@ local function setupMonitorControls()
     end)
 end
 
--- Button events
-placeBtn.MouseButton1Click:Connect(placeCamera)
-monitorBtn.MouseButton1Click:Connect(toggleMonitoring)
-clearBtn.MouseButton1Click:Connect(clearAllCameras)
-
--- Camera switching in monitor mode
+-- Keyboard controls
 UserInputService.InputBegan:Connect(function(input, processed)
-    if not state.isMonitoring or processed then return end
+    if processed then return end
     
-    if input.KeyCode == Enum.KeyCode.Right then
-        switchCamera("next")
-    elseif input.KeyCode == Enum.KeyCode.Left then
-        switchCamera("prev")
-    elseif input.KeyCode == Enum.KeyCode.R then
-        -- Reset camera rotation and zoom
-        if state.currentCamera then
-            state.currentCamera.rotation = Vector2.new(0, 0)
-            state.zoomLevel = 1
+    if input.KeyCode == Enum.KeyCode.P then
+        placeCamera()
+        
+    elseif input.KeyCode == Enum.KeyCode.M then
+        toggleMonitoring()
+        
+    elseif input.KeyCode == Enum.KeyCode.C then
+        clearAllCameras()
+        
+    elseif state.isMonitoring then
+        if input.KeyCode == Enum.KeyCode.Right then
+            switchCamera("next")
+        elseif input.KeyCode == Enum.KeyCode.Left then
+            switchCamera("prev")
+        elseif input.KeyCode == Enum.KeyCode.R then
+            -- Reset current camera
+            if state.currentCamera then
+                state.currentCamera.rotation = Vector2.new(0, 0)
+                state.zoomLevel = 1
+            end
         end
     end
 end)
 
--- Toggle menu
-menuToggleBtn.MouseButton1Click:Connect(function()
-    state.menuVisible = not state.menuVisible
-    
-    if state.menuVisible then
-        menu.Position = UDim2.new(0, 10, 0.5, -175)
-        menuToggleBtn.Position = UDim2.new(0, 270, 0.5, -20)
-        menuToggleBtn.Text = "◀"
-    else
-        menu.Position = UDim2.new(-1, 0, 0.5, -175)
-        menuToggleBtn.Position = UDim2.new(0, 10, 0.5, -20)
-        menuToggleBtn.Text = "▶"
-    end
-end)
-
--- Setup monitor controls
+-- Initialize
 setupMonitorControls()
+updateStatus()
 
--- Cleanup
-gui.Destroying:Connect(function()
-    if monitorConnection then
-        monitorConnection:Disconnect()
-    end
-    clearAllCameras()
-end)
-
-print("Security Camera System by sherikyt loaded")
-print("Place up to 5 cameras and monitor them!")
+print("Camera System by sherikyt loaded")
+print("Controls:")
+print("P - Place camera (max 5)")
+print("M - Toggle monitor mode")
+print("C - Clear all cameras")
+print("In monitor: WASD to move, QE to zoom, ←→ to switch")
