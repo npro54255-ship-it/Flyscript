@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local TS = game:GetService("TweenService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
@@ -14,78 +15,158 @@ local flySpeed = 50
 local isFlying = false
 local flightCon
 local flyBV, flyBG
+local isDraggingButtons = false
+local originalBtnPositions = {}
 
--- UI Creation
+-- UI Creation Function
 local function createElement(type, props)
     local element = Instance.new(type)
     for prop, value in pairs(props) do
-        if prop ~= "Parent" then
-            if typeof(value) == "Color3" then
-                element[prop] = value
-            else
-                element[prop] = value
-            end
-        end
+        element[prop] = value
     end
-    element.Parent = props.Parent
     return element
 end
 
--- Main UI
+-- Backgrounds
+local backgrounds = {
+    {
+        name = "Default",
+        color = Color3.fromRGB(30, 30, 45),
+        transparency = 0.1
+    },
+    {
+        name = "Space",
+        color = Color3.fromRGB(10, 10, 30),
+        transparency = 0.05,
+        image = "rbxassetid://10859305527"
+    },
+    {
+        name = "Cyberpunk",
+        color = Color3.fromRGB(20, 10, 40),
+        transparency = 0.1,
+        gradient = {
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 255))
+        }
+    },
+    {
+        name = "Nature",
+        color = Color3.fromRGB(20, 40, 20),
+        transparency = 0.1,
+        image = "rbxassetid://10859310099"
+    },
+    {
+        name = "Sunset",
+        color = Color3.fromRGB(45, 20, 30),
+        transparency = 0.05,
+        gradient = {
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 0)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 100))
+        }
+    }
+}
+
+local currentBackground = 1
+
+-- Main GUI
 local gui = createElement("ScreenGui", {
-    Name = "FlightUI",
-    Parent = player.PlayerGui
+    Name = "FlightGUI",
+    Parent = player.PlayerGui,
+    ResetOnSpawn = false
 })
 
-local main = createElement("Frame", {
-    Name = "Main",
-    Size = UDim2.new(0, 350, 0, 280),
-    Position = UDim2.new(0.5, -175, 0.5, -140),
-    BackgroundColor3 = Color3.fromRGB(30, 30, 45),
-    BackgroundTransparency = 0.1,
-    Parent = gui
+-- Minimized Window
+local minimizedWindow = createElement("Frame", {
+    Name = "MinimizedWindow",
+    Size = UDim2.new(0, 50, 0, 50),
+    Position = UDim2.new(0, 20, 0.5, -25),
+    BackgroundColor3 = Color3.fromRGB(40, 40, 60),
+    BackgroundTransparency = 0.2,
+    Visible = false
+})
+minimizedWindow.Parent = gui
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 10),
+    Parent = minimizedWindow
 })
 
-createElement("UICorner", {CornerRadius = UDim.new(0, 15), Parent = main})
+local minimizedIcon = createElement("TextButton", {
+    Name = "MinimizedIcon",
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundTransparency = 1,
+    Text = "🛸",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 24,
+    Parent = minimizedWindow
+})
 
--- Header with drag arrow
-local header = createElement("Frame", {
-    Name = "Header",
+-- Main Flight Window
+local flightWindow = createElement("Frame", {
+    Name = "FlightWindow",
+    Size = UDim2.new(0, 400, 0, 350),
+    Position = UDim2.new(0.5, -200, 0.5, -175),
+    BackgroundColor3 = backgrounds[currentBackground].color,
+    BackgroundTransparency = backgrounds[currentBackground].transparency,
+    ClipsDescendants = true
+})
+flightWindow.Parent = gui
+
+-- Apply background image or gradient
+if backgrounds[currentBackground].image then
+    local bgImage = createElement("ImageLabel", {
+        Image = backgrounds[currentBackground].image,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        ScaleType = Enum.ScaleType.Crop
+    })
+    bgImage.Parent = flightWindow
+end
+
+if backgrounds[currentBackground].gradient then
+    local gradient = createElement("UIGradient", {
+        Color = ColorSequence.new(backgrounds[currentBackground].gradient),
+        Rotation = 45
+    })
+    gradient.Parent = flightWindow
+end
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 15),
+    Parent = flightWindow
+})
+
+-- Flight Window Header
+local flightHeader = createElement("Frame", {
+    Name = "FlightHeader",
     Size = UDim2.new(1, 0, 0, 40),
     BackgroundColor3 = Color3.fromRGB(40, 40, 60),
-    Parent = main
+    BackgroundTransparency = 0.3
+})
+flightHeader.Parent = flightWindow
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 15),
+    Parent = flightHeader
 })
 
-createElement("UICorner", {CornerRadius = UDim.new(0, 15), Parent = header})
-
-local title = createElement("TextLabel", {
-    Name = "Title",
-    Size = UDim2.new(0.8, 0, 1, 0),
+local flightTitle = createElement("TextLabel", {
+    Name = "FlightTitle",
+    Size = UDim2.new(0.7, 0, 1, 0),
+    Position = UDim2.new(0, 10, 0, 0),
     BackgroundTransparency = 1,
     Text = "🛸 Flight Control",
     TextColor3 = Color3.fromRGB(255, 255, 255),
     Font = Enum.Font.GothamBold,
     TextSize = 18,
     TextXAlignment = Enum.TextXAlignment.Left,
-    Parent = header
+    Parent = flightHeader
 })
 
--- Drag arrow in top right
-local dragArrow = createElement("TextButton", {
-    Name = "DragArrow",
-    Size = UDim2.new(0, 40, 0, 40),
-    Position = UDim2.new(1, -40, 0, 0),
-    BackgroundTransparency = 1,
-    Text = "⇲",
-    TextColor3 = Color3.fromRGB(255, 255, 255),
-    Font = Enum.Font.GothamBold,
-    TextSize = 24,
-    Parent = header
-})
-
-local creator = createElement("TextLabel", {
-    Name = "Creator",
-    Size = UDim2.new(1, -20, 0, 20),
+local flightCreator = createElement("TextLabel", {
+    Name = "FlightCreator",
+    Size = UDim2.new(0.7, 0, 0, 20),
     Position = UDim2.new(0, 10, 0, 45),
     BackgroundTransparency = 1,
     Text = "by sherikyt",
@@ -93,19 +174,59 @@ local creator = createElement("TextLabel", {
     Font = Enum.Font.Gotham,
     TextSize = 14,
     TextXAlignment = Enum.TextXAlignment.Left,
-    Parent = main
+    Parent = flightWindow
 })
 
--- Speed display
-local speedFrame = createElement("Frame", {
-    Name = "SpeedFrame",
+-- Close button
+local closeBtn = createElement("TextButton", {
+    Name = "CloseBtn",
+    Size = UDim2.new(0, 30, 0, 30),
+    Position = UDim2.new(1, -35, 0, 5),
+    BackgroundColor3 = Color3.fromRGB(255, 80, 80),
+    Text = "✕",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 18
+})
+closeBtn.Parent = flightHeader
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(1, 0),
+    Parent = closeBtn
+})
+
+-- Settings button
+local settingsBtn = createElement("TextButton", {
+    Name = "SettingsBtn",
+    Size = UDim2.new(0, 30, 0, 30),
+    Position = UDim2.new(1, -70, 0, 5),
+    BackgroundColor3 = Color3.fromRGB(80, 80, 100),
+    Text = "⚙️",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 16
+})
+settingsBtn.Parent = flightHeader
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(1, 0),
+    Parent = settingsBtn
+})
+
+-- Speed Display
+local speedDisplay = createElement("Frame", {
+    Name = "SpeedDisplay",
     Size = UDim2.new(0.9, 0, 0, 50),
     Position = UDim2.new(0.05, 0, 0, 75),
     BackgroundColor3 = Color3.fromRGB(40, 40, 60),
-    Parent = main
+    BackgroundTransparency = 0.3
 })
+speedDisplay.Parent = flightWindow
 
-createElement("UICorner", {CornerRadius = UDim.new(0, 10), Parent = speedFrame})
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 10),
+    Parent = speedDisplay
+})
 
 local speedText = createElement("TextLabel", {
     Name = "SpeedText",
@@ -115,85 +236,339 @@ local speedText = createElement("TextLabel", {
     TextColor3 = Color3.fromRGB(255, 255, 255),
     Font = Enum.Font.GothamBold,
     TextSize = 22,
-    Parent = speedFrame
+    Parent = speedDisplay
 })
 
--- Control buttons
-local btnContainer = createElement("Frame", {
-    Name = "BtnContainer",
-    Size = UDim2.new(0.9, 0, 0, 120),
+-- Flight Controls Container
+local controlsContainer = createElement("Frame", {
+    Name = "ControlsContainer",
+    Size = UDim2.new(0.9, 0, 0, 150),
     Position = UDim2.new(0.05, 0, 0, 140),
-    BackgroundTransparency = 1,
-    Parent = main
+    BackgroundTransparency = 1
 })
+controlsContainer.Parent = flightWindow
 
-local btnLayout = createElement("UIGridLayout", {
-    CellSize = UDim2.new(0.45, 0, 0.45, 0),
-    CellPadding = UDim2.new(0.05, 0, 0.05, 0),
-    Parent = btnContainer
-})
-
--- Flight control buttons
-local buttons = {
-    {name = "UpBtn", text = "⬆️", action = "up"},
-    {name = "DownBtn", text = "⬇️", action = "down"},
-    {name = "ForwardBtn", text = "⬆️", action = "forward"},
-    {name = "BackBtn", text = "⬇️", action = "back"},
-    {name = "LeftBtn", text = "⬅️", action = "left"},
-    {name = "RightBtn", text = "➡️", action = "right"},
-    {name = "IncreaseBtn", text = "+", action = "increase"},
-    {name = "DecreaseBtn", text = "-", action = "decrease"},
-    {name = "FlyToggle", text = "🛸 FLY", action = "toggle"}
+-- Flight Control Buttons (QWERTY layout)
+local controlButtons = {
+    {
+        name = "W",
+        text = "W",
+        position = UDim2.new(0.33, 0, 0, 0),
+        action = "forward"
+    },
+    {
+        name = "A",
+        text = "A",
+        position = UDim2.new(0, 0, 0.5, 0),
+        action = "left"
+    },
+    {
+        name = "S",
+        text = "S",
+        position = UDim2.new(0.33, 0, 0.5, 0),
+        action = "back"
+    },
+    {
+        name = "D",
+        text = "D",
+        position = UDim2.new(0.66, 0, 0.5, 0),
+        action = "right"
+    },
+    {
+        name = "Space",
+        text = "↑",
+        position = UDim2.new(0.33, 0, 1, -40),
+        action = "up"
+    },
+    {
+        name = "Ctrl",
+        text = "↓",
+        position = UDim2.new(0.66, 0, 1, -40),
+        action = "down"
+    }
 }
 
-local controlBtns = {}
+local flightBtns = {}
 
-for _, btnInfo in pairs(buttons) do
+for _, btnData in ipairs(controlButtons) do
     local btn = createElement("TextButton", {
-        Name = btnInfo.name,
-        Size = UDim2.new(0, 70, 0, 40),
+        Name = btnData.name,
+        Size = UDim2.new(0, 40, 0, 40),
+        Position = btnData.position,
         BackgroundColor3 = Color3.fromRGB(60, 60, 80),
-        Text = btnInfo.text,
+        Text = btnData.text,
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
-        TextSize = 16,
-        Parent = btnContainer
+        TextSize = 16
+    })
+    btn.Parent = controlsContainer
+    
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = btn
     })
     
-    createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = btn})
-    
-    btn.MouseButton1Down:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
-    end)
-    
-    btn.MouseButton1Up:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    end)
-    
-    controlBtns[btnInfo.action] = btn
+    originalBtnPositions[btn] = btnData.position
+    flightBtns[btnData.action] = btn
 end
 
--- Status indicator
-local status = createElement("Frame", {
-    Name = "Status",
-    Size = UDim2.new(0, 12, 0, 12),
-    Position = UDim2.new(0.05, 0, 0, 270),
-    BackgroundColor3 = Color3.fromRGB(255, 50, 50),
-    Parent = main
+-- Control Buttons (bottom row)
+local controlRow = createElement("Frame", {
+    Name = "ControlRow",
+    Size = UDim2.new(0.9, 0, 0, 50),
+    Position = UDim2.new(0.05, 0, 0, 300),
+    BackgroundTransparency = 1
+})
+controlRow.Parent = flightWindow
+
+-- Increase Speed
+local increaseBtn = createElement("TextButton", {
+    Name = "IncreaseBtn",
+    Size = UDim2.new(0, 80, 0, 40),
+    Position = UDim2.new(0, 0, 0, 5),
+    BackgroundColor3 = Color3.fromRGB(40, 180, 40),
+    Text = "+",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 24,
+    Parent = controlRow
 })
 
-createElement("UICorner", {CornerRadius = UDim.new(1, 0), Parent = status})
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 8),
+    Parent = increaseBtn
+})
 
--- Flight system
-local function updateStatus()
+-- Decrease Speed
+local decreaseBtn = createElement("TextButton", {
+    Name = "DecreaseBtn",
+    Size = UDim2.new(0, 80, 0, 40),
+    Position = UDim2.new(0.3, 0, 0, 5),
+    BackgroundColor3 = Color3.fromRGB(220, 40, 40),
+    Text = "-",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 24,
+    Parent = controlRow
+})
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 8),
+    Parent = decreaseBtn
+})
+
+-- Fly Toggle
+local flyToggleBtn = createElement("TextButton", {
+    Name = "FlyToggleBtn",
+    Size = UDim2.new(0, 120, 0, 40),
+    Position = UDim2.new(0.6, 0, 0, 5),
+    BackgroundColor3 = Color3.fromRGB(60, 100, 220),
+    Text = "🛸 FLY",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 16,
+    Parent = controlRow
+})
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 8),
+    Parent = flyToggleBtn
+})
+
+-- Settings Window
+local settingsWindow = createElement("Frame", {
+    Name = "SettingsWindow",
+    Size = UDim2.new(0, 350, 0, 300),
+    Position = UDim2.new(0.5, -175, 0.5, -150),
+    BackgroundColor3 = Color3.fromRGB(35, 35, 50),
+    BackgroundTransparency = 0.1,
+    Visible = false,
+    ClipsDescendants = true
+})
+settingsWindow.Parent = gui
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 15),
+    Parent = settingsWindow
+})
+
+-- Settings Header
+local settingsHeader = createElement("Frame", {
+    Name = "SettingsHeader",
+    Size = UDim2.new(1, 0, 0, 40),
+    BackgroundColor3 = Color3.fromRGB(45, 45, 65),
+    BackgroundTransparency = 0.3,
+    Parent = settingsWindow
+})
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 15),
+    Parent = settingsHeader
+})
+
+local settingsTitle = createElement("TextLabel", {
+    Name = "SettingsTitle",
+    Size = UDim2.new(0.7, 0, 1, 0),
+    Position = UDim2.new(0, 10, 0, 0),
+    BackgroundTransparency = 1,
+    Text = "⚙️ Settings",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 18,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    Parent = settingsHeader
+})
+
+-- Close Settings button
+local closeSettingsBtn = createElement("TextButton", {
+    Name = "CloseSettingsBtn",
+    Size = UDim2.new(0, 30, 0, 30),
+    Position = UDim2.new(1, -35, 0, 5),
+    BackgroundColor3 = Color3.fromRGB(80, 80, 100),
+    Text = "←",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 18,
+    Parent = settingsHeader
+})
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(1, 0),
+    Parent = closeSettingsBtn
+})
+
+-- Settings Content
+local settingsContent = createElement("Frame", {
+    Name = "SettingsContent",
+    Size = UDim2.new(1, -20, 1, -60),
+    Position = UDim2.new(0, 10, 0, 50),
+    BackgroundTransparency = 1,
+    Parent = settingsWindow
+})
+
+-- Background Selector
+local bgLabel = createElement("TextLabel", {
+    Name = "BgLabel",
+    Size = UDim2.new(1, 0, 0, 30),
+    BackgroundTransparency = 1,
+    Text = "🎨 Select Background:",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 16,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    Parent = settingsContent
+})
+
+local bgContainer = createElement("Frame", {
+    Name = "BgContainer",
+    Size = UDim2.new(1, 0, 0, 100),
+    Position = UDim2.new(0, 0, 0, 35),
+    BackgroundColor3 = Color3.fromRGB(40, 40, 60),
+    BackgroundTransparency = 0.3,
+    Parent = settingsContent
+})
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 10),
+    Parent = bgContainer
+})
+
+local bgButtons = {}
+for i, bg in ipairs(backgrounds) do
+    local bgBtn = createElement("TextButton", {
+        Name = "BgBtn" .. i,
+        Size = UDim2.new(0.18, 0, 0, 80),
+        Position = UDim2.new(0.05 + (i-1) * 0.2, 0, 0.1, 0),
+        BackgroundColor3 = bg.color,
+        Text = bg.name,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        Parent = bgContainer
+    })
+    
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = bgBtn
+    })
+    
+    if i == currentBackground then
+        local selection = createElement("Frame", {
+            Size = UDim2.new(1, 4, 1, 4),
+            Position = UDim2.new(0, -2, 0, -2),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundTransparency = 0.7,
+            Parent = bgBtn
+        })
+        
+        createElement("UICorner", {
+            CornerRadius = UDim.new(0, 10),
+            Parent = selection
+        })
+    end
+    
+    bgButtons[i] = bgBtn
+end
+
+-- Button Dragging Toggle
+local dragToggleContainer = createElement("Frame", {
+    Name = "DragToggleContainer",
+    Size = UDim2.new(1, 0, 0, 60),
+    Position = UDim2.new(0, 0, 0, 150),
+    BackgroundTransparency = 1,
+    Parent = settingsContent
+})
+
+local dragLabel = createElement("TextLabel", {
+    Name = "DragLabel",
+    Size = UDim2.new(0.7, 0, 0, 30),
+    BackgroundTransparency = 1,
+    Text = "🎮 Rearrange Buttons:",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 16,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    Parent = dragToggleContainer
+})
+
+local dragToggleBtn = createElement("TextButton", {
+    Name = "DragToggleBtn",
+    Size = UDim2.new(0, 60, 0, 30),
+    Position = UDim2.new(0.7, 0, 0, 0),
+    BackgroundColor3 = Color3.fromRGB(80, 80, 100),
+    Text = "OFF",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 14,
+    Parent = dragToggleContainer
+})
+
+createElement("UICorner", {
+    CornerRadius = UDim.new(0, 8),
+    Parent = dragToggleBtn
+})
+
+local dragInfo = createElement("TextLabel", {
+    Name = "DragInfo",
+    Size = UDim2.new(1, 0, 0, 30),
+    Position = UDim2.new(0, 0, 0, 30),
+    BackgroundTransparency = 1,
+    Text = "Toggle to drag buttons, toggle off to reset",
+    TextColor3 = Color3.fromRGB(200, 200, 200),
+    Font = Enum.Font.Gotham,
+    TextSize = 12,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    Parent = dragToggleContainer
+})
+
+-- Flight System
+local function updateFlightStatus()
     if isFlying then
-        status.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
-        controlBtns.toggle.Text = "🛸 ON"
-        controlBtns.toggle.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+        flyToggleBtn.Text = "🛸 FLYING"
+        flyToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
     else
-        status.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        controlBtns.toggle.Text = "🛸 OFF"
-        controlBtns.toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+        flyToggleBtn.Text = "🛸 FLY"
+        flyToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
     end
 end
 
@@ -202,8 +577,9 @@ local function startFlying()
     
     humanoid.PlatformStand = true
     isFlying = true
-    updateStatus()
+    updateFlightStatus()
     
+    -- Create flight controls
     flyBG = Instance.new("BodyGyro")
     flyBG.Name = "FlightGyro"
     flyBG.P = 10000
@@ -214,59 +590,60 @@ local function startFlying()
     
     flyBV = Instance.new("BodyVelocity")
     flyBV.Name = "FlightVelocity"
-    flyBV.Velocity = Vector3.zero
+    flyBV.Velocity = Vector3.new(0, 0, 0)
     flyBV.MaxForce = Vector3.new(100000, 100000, 100000)
     flyBV.P = 1250
     flyBV.Parent = hrp
     
+    -- Flight loop
     flightCon = RS.Heartbeat:Connect(function()
         if not isFlying or not flyBG or not flyBV or not hrp then return end
         
-        local moveDir = Vector3.zero
         local camera = workspace.CurrentCamera
-        local lookVec = camera.CFrame.LookVector
-        local rightVec = camera.CFrame.RightVector
+        local moveDirection = Vector3.new(0, 0, 0)
+        local lookVector = camera.CFrame.LookVector
+        local rightVector = camera.CFrame.RightVector
         
-        -- Button controls
+        -- Check which buttons are being held
         local activeControls = {}
-        for _, btn in pairs(controlBtns) do
-            if btn:IsA("TextButton") then
-                activeControls[btn.Name] = btn:IsActive()
+        for action, btn in pairs(flightBtns) do
+            if btn:IsA("GuiButton") then
+                activeControls[action] = btn.Active
             end
         end
         
-        -- Get movement from buttons
-        if controlBtns.forward and controlBtns.forward:IsActive() then
-            moveDir = moveDir + lookVec
+        -- Apply movement based on active buttons
+        if flightBtns.forward and flightBtns.forward.Active then
+            moveDirection = moveDirection + lookVector
         end
-        if controlBtns.back and controlBtns.back:IsActive() then
-            moveDir = moveDir - lookVec
+        if flightBtns.back and flightBtns.back.Active then
+            moveDirection = moveDirection - lookVector
         end
-        if controlBtns.right and controlBtns.right:IsActive() then
-            moveDir = moveDir + rightVec
+        if flightBtns.right and flightBtns.right.Active then
+            moveDirection = moveDirection + rightVector
         end
-        if controlBtns.left and controlBtns.left:IsActive() then
-            moveDir = moveDir - rightVec
+        if flightBtns.left and flightBtns.left.Active then
+            moveDirection = moveDirection - rightVector
         end
-        if controlBtns.up and controlBtns.up:IsActive() then
-            moveDir = moveDir + Vector3.new(0, 1, 0)
+        if flightBtns.up and flightBtns.up.Active then
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)
         end
-        if controlBtns.down and controlBtns.down:IsActive() then
-            moveDir = moveDir - Vector3.new(0, 1, 0)
-        end
-        
-        if moveDir.Magnitude > 0 then
-            moveDir = moveDir.Unit
+        if flightBtns.down and flightBtns.down.Active then
+            moveDirection = moveDirection - Vector3.new(0, 1, 0)
         end
         
-        flyBV.Velocity = moveDir * flySpeed
-        flyBG.CFrame = CFrame.new(hrp.Position, hrp.Position + lookVec)
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit
+        end
+        
+        flyBV.Velocity = moveDirection * flySpeed
+        flyBG.CFrame = CFrame.new(hrp.Position, hrp.Position + lookVector)
     end)
 end
 
 local function stopFlying()
     isFlying = false
-    updateStatus()
+    updateFlightStatus()
     
     if flightCon then
         flightCon:Disconnect()
@@ -287,76 +664,68 @@ local function toggleFlying()
     end
 end
 
--- Button actions
-controlBtns.toggle.MouseButton1Click:Connect(toggleFlying)
+-- Button Press/Release tracking for flight controls
+for action, btn in pairs(flightBtns) do
+    btn.MouseButton1Down:Connect(function()
+        btn.Active = true
+        btn.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+    end)
+    
+    btn.MouseButton1Up:Connect(function()
+        btn.Active = false
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        btn.Active = false
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    end)
+end
 
-controlBtns.increase.MouseButton1Click:Connect(function()
+-- Speed Controls
+increaseBtn.MouseButton1Click:Connect(function()
     flySpeed = math.min(flySpeed + 10, 200)
     speedText.Text = "SPEED: " .. flySpeed
 end)
 
-controlBtns.decrease.MouseButton1Click:Connect(function()
+decreaseBtn.MouseButton1Click:Connect(function()
     flySpeed = math.max(flySpeed - 10, 10)
     speedText.Text = "SPEED: " .. flySpeed
 end)
 
--- Make buttons toggleable for flight controls
-local activeButtons = {}
-for action, btn in pairs(controlBtns) do
-    if action ~= "toggle" and action ~= "increase" and action ~= "decrease" then
-        btn.MouseButton1Down:Connect(function()
-            if isFlying then
-                activeButtons[action] = true
-            end
-        end)
+-- Fly Toggle
+flyToggleBtn.MouseButton1Click:Connect(toggleFlying)
+
+-- Window Management
+closeBtn.MouseButton1Click:Connect(function()
+    flightWindow.Visible = false
+    minimizedWindow.Visible = true
+end)
+
+minimizedIcon.MouseButton1Click:Connect(function()
+    flightWindow.Visible = true
+    minimizedWindow.Visible = false
+end)
+
+-- Settings Management
+settingsBtn.MouseButton1Click:Connect(function()
+    settingsWindow.Visible = true
+end)
+
+closeSettingsBtn.MouseButton1Click:Connect(function()
+    settingsWindow.Visible = false
+end)
+
+-- Background Selection
+for i, bgBtn in ipairs(bgButtons) do
+    bgBtn.MouseButton1Click:Connect(function()
+        currentBackground = i
         
-        btn.MouseButton1Up:Connect(function()
-            activeButtons[action] = nil
-        end)
+        -- Update flight window background
+        flightWindow.BackgroundColor3 = backgrounds[i].color
+        flightWindow.BackgroundTransparency = backgrounds[i].transparency
         
-        btn.MouseLeave:Connect(function()
-            activeButtons[action] = nil
-        end)
-    end
-end
-
--- Dragging functionality
-local dragging = false
-local dragStart, frameStart
-
-dragArrow.MouseButton1Down:Connect(function()
-    dragging = true
-    dragStart = Vector2.new(UIS:GetMouseLocation().X, UIS:GetMouseLocation().Y)
-    frameStart = Vector2.new(main.Position.X.Offset, main.Position.Y.Offset)
-end)
-
-UIS.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local mousePos = Vector2.new(input.Position.X, input.Position.Y)
-        local delta = mousePos - dragStart
-        main.Position = UDim2.new(0, frameStart.X + delta.X, 0, frameStart.Y + delta.Y)
-    end
-end)
-
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
--- Handle character changes
-player.CharacterAdded:Connect(function(newChar)
-    char = newChar
-    humanoid = char:WaitForChild("Humanoid")
-    hrp = char:WaitForChild("HumanoidRootPart")
-    stopFlying()
-end)
-
-humanoid.Died:Connect(stopFlying)
-
--- Initial status
-updateStatus()
-
-print("✨ Flight System by sherikyt loaded!")
-print("🛸 Use buttons to control flight")
-print("⇲ Drag arrow to move UI")
+        -- Clear existing background effects
+        for _, child in ipairs(flightWindow:GetChildren()) do
+            if child:IsA("ImageLabel") or child:IsA("UIGradient") then
+                chil
