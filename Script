@@ -1,505 +1,466 @@
--- Mobile Fly & Mark System by sherikyt
+-- Camera Control v4.0 by sherikyt
+-- Compact & Powerful
+
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local camera = Workspace.CurrentCamera
+local mouse = player:GetMouse()
 
-local config = {
-    maxMarkers = 5,
-    flySpeed = 25,
-    cameraFOV = 70
-}
+-- Config
+local MAX_MARKS = 10
+local FLY_SPEED = 25
+local ROTATE_SPEED = 0.003
 
-local state = {
-    markers = {},
-    currentMarkerIndex = 0,
-    isViewing = false,
-    isFlying = false,
-    flyPosition = Vector3.new(0, 0, 0),
-    viewAngle = Vector2.new(0, 0),
-    zoomLevel = 1
-}
+-- State
+local marks = {}
+local freeCam = false
+local viewMode = false
+local currentMark = 0
+local camYaw = 0
+local camPitch = 0
+local moveInput = {W=false,A=false,S=false,D=false,Q=false,E=false}
+local gui
 
--- Simple GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "FlyMarkSystem"
-gui.Parent = playerGui
-
--- Status display
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(0, 250, 0, 80)
-status.Position = UDim2.new(0, 10, 0, 10)
-status.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-status.BackgroundTransparency = 0.3
-status.Text = "Fly & Mark System\nby sherikyt\nMarkers: 0/5"
-status.TextColor3 = Color3.fromRGB(255, 255, 255)
-status.Font = Enum.Font.Gotham
-status.TextSize = 14
-status.TextWrapped = true
-status.Parent = gui
-
-local statusCorner = Instance.new("UICorner")
-statusCorner.CornerRadius = UDim.new(0, 10)
-statusCorner.Parent = status
-
--- Main buttons
-local function createSimpleButton(name, text, position, color)
-    local button = Instance.new("TextButton")
-    button.Name = name
-    button.Size = UDim2.new(0, 120, 0, 50)
-    button.Position = position
-    button.BackgroundColor3 = color
-    button.Text = text
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 14
-    button.TextWrapped = true
-    button.Parent = gui
+-- Create Minimal UI
+local function createUI()
+    local ui = Instance.new("ScreenGui")
+    ui.Name = "CamControl"
+    ui.Parent = player:WaitForChild("PlayerGui")
     
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 10)
-    btnCorner.Parent = button
+    -- Main Panel
+    local main = Instance.new("Frame")
+    main.Name = "MainPanel"
+    main.Size = UDim2.new(0, 300, 0, 200)
+    main.Position = UDim2.new(0.02, 0, 0.3, 0)
+    main.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    main.BackgroundTransparency = 0.05
+    main.BorderSizePixel = 0
     
-    return button
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+    
+    -- Header
+    local header = Instance.new("TextLabel")
+    header.Size = UDim2.new(1, 0, 0, 40)
+    header.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    header.Text = "📸 CAMERA CONTROL v4.0\n<font size='12'>by sherikyt</font>"
+    header.TextColor3 = Color3.white
+    header.Font = Enum.Font.GothamBold
+    header.TextSize = 16
+    header.RichText = true
+    header.Parent = main
+    
+    Instance.new("UICorner", header).CornerRadius = UDim.new(0, 12, 0, 0)
+    
+    -- Status
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(0.9, 0, 0, 40)
+    status.Position = UDim2.new(0.05, 0, 0.25, 0)
+    status.BackgroundTransparency = 1
+    status.Text = "📍 MARKS: 0/10 | SPEED: "..FLY_SPEED
+    status.TextColor3 = Color3.fromRGB(180, 180, 255)
+    status.Font = Enum.Font.Gotham
+    status.TextSize = 14
+    status.Parent = main
+    
+    -- Buttons (2x2 grid)
+    local btnData = {
+        {name="Free", text="FREE CAM", color=Color3.fromRGB(70, 130, 200), pos=UDim2.new(0.05,0,0.5,0)},
+        {name="Mark", text="PLACE MARK", color=Color3.fromRGB(60, 200, 100), pos=UDim2.new(0.55,0,0.5,0)},
+        {name="View", text="VIEW MARKS", color=Color3.fromRGB(255, 165, 50), pos=UDim2.new(0.05,0,0.75,0)},
+        {name="Clear", text="CLEAR ALL", color=Color3.fromRGB(220, 60, 60), pos=UDim2.new(0.55,0,0.75,0)}
+    }
+    
+    for _, data in pairs(btnData) do
+        local btn = Instance.new("TextButton")
+        btn.Name = data.name
+        btn.Size = UDim2.new(0.4, 0, 0.2, 0)
+        btn.Position = data.pos
+        btn.BackgroundColor3 = data.color
+        btn.Text = data.text
+        btn.TextColor3 = Color3.white
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 12
+        btn.AutoButtonColor = false
+        
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+        
+        -- Button effects
+        btn.MouseButton1Down:Connect(function()
+            btn.BackgroundColor3 = data.color * 0.7
+        end)
+        
+        btn.MouseButton1Up:Connect(function()
+            btn.BackgroundColor3 = data.color
+        end)
+        
+        btn.Parent = main
+    end
+    
+    -- Control Panel (shown during flight/view)
+    local control = Instance.new("Frame")
+    control.Name = "ControlPanel"
+    control.Size = UDim2.new(0, 300, 0, 150)
+    control.Position = UDim2.new(0.02, 0, 0.6, 0)
+    control.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
+    control.BackgroundTransparency = 0.1
+    control.BorderSizePixel = 0
+    control.Visible = false
+    
+    Instance.new("UICorner", control).CornerRadius = UDim.new(0, 12)
+    
+    local controlTitle = Instance.new("TextLabel")
+    controlTitle.Size = UDim2.new(1, 0, 0, 30)
+    controlTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
+    controlTitle.Text = "CONTROLS ACTIVE"
+    controlTitle.TextColor3 = Color3.white
+    controlTitle.Font = Enum.Font.GothamBold
+    controlTitle.TextSize = 14
+    controlTitle.Parent = control
+    
+    local exitBtn = Instance.new("TextButton")
+    exitBtn.Size = UDim2.new(0.8, 0, 0, 35)
+    exitBtn.Position = UDim2.new(0.1, 0, 0.8, 0)
+    exitBtn.BackgroundColor3 = Color3.fromRGB(220, 70, 70)
+    exitBtn.Text = "EXIT MODE"
+    exitBtn.TextColor3 = Color3.white
+    exitBtn.Font = Enum.Font.GothamBold
+    exitBtn.TextSize = 14
+    exitBtn.AutoButtonColor = false
+    exitBtn.Parent = control
+    
+    Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 8)
+    
+    local markInfo = Instance.new("TextLabel")
+    markInfo.Name = "MarkInfo"
+    markInfo.Size = UDim2.new(1, 0, 0, 40)
+    markInfo.Position = UDim2.new(0, 0, 0.3, 0)
+    markInfo.BackgroundTransparency = 1
+    markInfo.Text = ""
+    markInfo.TextColor3 = Color3.fromRGB(180, 180, 255)
+    markInfo.Font = Enum.Font.Gotham
+    markInfo.TextSize = 14
+    markInfo.Parent = control
+    
+    -- Navigation buttons for view mode
+    local navFrame = Instance.new("Frame")
+    navFrame.Size = UDim2.new(1, 0, 0, 30)
+    navFrame.Position = UDim2.new(0, 0, 0.5, 0)
+    navFrame.BackgroundTransparency = 1
+    navFrame.Visible = false
+    navFrame.Parent = control
+    
+    local prevBtn = Instance.new("TextButton")
+    prevBtn.Name = "Prev"
+    prevBtn.Size = UDim2.new(0.3, 0, 1, 0)
+    prevBtn.Position = UDim2.new(0.1, 0, 0, 0)
+    prevBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+    prevBtn.Text = "◀ PREV"
+    prevBtn.TextColor3 = Color3.white
+    prevBtn.Font = Enum.Font.GothamBold
+    prevBtn.TextSize = 12
+    prevBtn.Visible = false
+    prevBtn.AutoButtonColor = false
+    prevBtn.Parent = navFrame
+    
+    local nextBtn = Instance.new("TextButton")
+    nextBtn.Name = "Next"
+    nextBtn.Size = UDim2.new(0.3, 0, 1, 0)
+    nextBtn.Position = UDim2.new(0.6, 0, 0, 0)
+    nextBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+    nextBtn.Text = "NEXT ▶"
+    nextBtn.TextColor3 = Color3.white
+    nextBtn.Font = Enum.Font.GothamBold
+    nextBtn.TextSize = 12
+    nextBtn.Visible = false
+    nextBtn.AutoButtonColor = false
+    nextBtn.Parent = navFrame
+    
+    control.Parent = ui
+    main.Parent = ui
+    
+    return ui, main, control, status
 end
 
-local flyBtn = createSimpleButton("FlyBtn", "FREE CAMERA", UDim2.new(0, 10, 0, 100), Color3.fromRGB(0, 150, 255))
-local markBtn = createSimpleButton("MarkBtn", "PLACE MARK", UDim2.new(0, 140, 0, 100), Color3.fromRGB(255, 180, 0))
-local viewBtn = createSimpleButton("ViewBtn", "VIEW MARKS", UDim2.new(0, 10, 0, 160), Color3.fromRGB(150, 0, 255))
-local clearBtn = createSimpleButton("ClearBtn", "CLEAR ALL", UDim2.new(0, 140, 0, 160), Color3.fromRGB(255, 50, 50))
-local exitBtn = createSimpleButton("ExitBtn", "EXIT", UDim2.new(0, 10, 0, 220), Color3.fromRGB(100, 100, 100))
+-- Initialize
+gui, main, control, status = createUI()
 
--- Hide exit button initially
-exitBtn.Visible = false
-
--- Fly controls (shown when flying)
-local flyControls = Instance.new("Frame")
-flyControls.Size = UDim2.new(1, 0, 0, 150)
-flyControls.Position = UDim2.new(0, 0, 1, -150)
-flyControls.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-flyControls.BackgroundTransparency = 0.7
-flyControls.Visible = false
-flyControls.Parent = gui
-
--- Fly control buttons
-local function createFlyButton(text, position)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 70, 0, 70)
-    btn.Position = position
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 20
-    btn.Parent = flyControls
-    
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-    
-    return btn
+-- Core Functions
+local function updateStatus()
+    status.Text = "📍 MARKS: "..#marks.."/"..MAX_MARKS.." | SPEED: "..FLY_SPEED
 end
 
--- Movement buttons
-local flyUp = createFlyButton("⬆", UDim2.new(0.5, -35, 0, 10))
-local flyDown = createFlyButton("⬇", UDim2.new(0.5, -35, 1, -80))
-local flyLeft = createFlyButton("⬅", UDim2.new(0.2, -35, 0.5, -35))
-local flyRight = createFlyButton("➡", UDim2.new(0.8, -35, 0.5, -35))
-local flyForward = createFlyButton("F", UDim2.new(0.35, -35, 0.3, -35))
-local flyBack = createFlyButton("B", UDim2.new(0.65, -35, 0.3, -35))
-
--- View controls (shown when viewing marks)
-local viewControls = Instance.new("Frame")
-viewControls.Size = UDim2.new(1, 0, 0, 150)
-viewControls.Position = UDim2.new(0, 0, 1, -150)
-viewControls.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-viewControls.BackgroundTransparency = 0.7
-viewControls.Visible = false
-viewControls.Parent = gui
-
--- View control buttons
-local viewPrev = createSimpleButton("ViewPrev", "⬅ PREV", UDim2.new(0.1, 0, 0, 20), Color3.fromRGB(80, 80, 100))
-viewPrev.Parent = viewControls
-viewPrev.Size = UDim2.new(0, 100, 0, 60)
-
-local viewNext = createSimpleButton("ViewNext", "NEXT ➡", UDim2.new(0.9, -100, 0, 20), Color3.fromRGB(80, 80, 100))
-viewNext.Parent = viewControls
-viewNext.Size = UDim2.new(0, 100, 0, 60)
-
-local viewUp = createSimpleButton("ViewUp", "UP", UDim2.new(0.35, -50, 0, 20), Color3.fromRGB(80, 80, 100))
-viewUp.Parent = viewControls
-viewUp.Size = UDim2.new(0, 100, 0, 60)
-
-local viewDown = createSimpleButton("ViewDown", "DOWN", UDim2.new(0.65, -50, 0, 20), Color3.fromRGB(80, 80, 100))
-viewDown.Parent = viewControls
-viewDown.Size = UDim2.new(0, 100, 0, 60)
-
--- Marker functions
-local function createMarker(position, index)
+local function createMarker(pos)
+    if #marks >= MAX_MARKS then 
+        warn("Max markers reached!")
+        return 
+    end
+    
+    local color = Color3.fromHSV(#marks/MAX_MARKS, 1, 1)
     local marker = Instance.new("Part")
-    marker.Name = "Mark_" .. index
-    marker.Size = Vector3.new(2, 2, 2)
-    marker.Position = position
+    marker.Name = "CamMark"
+    marker.Size = Vector3.new(2, 3, 2)
+    marker.Position = pos
     marker.Anchored = true
     marker.CanCollide = false
-    marker.Transparency = 0.5
-    marker.Color = Color3.fromRGB(0, 150, 255)
+    marker.Material = EnumMaterial.Neon
+    marker.Color = color
+    marker.Transparency = 0.3
+    
+    -- Number label
+    local billboard = Instance.new("BillboardGui", marker)
+    billboard.Size = UDim2.new(0, 50, 0, 50)
+    billboard.AlwaysOnTop = true
+    
+    local label = Instance.new("TextLabel", billboard)
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = tostring(#marks + 1)
+    label.TextColor3 = Color3.white
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 24
+    
     marker.Parent = Workspace
+    marks[#marks + 1] = {position = pos, part = marker}
     
-    -- Add light
-    local light = Instance.new("PointLight")
-    light.Color = Color3.fromRGB(0, 150, 255)
-    light.Brightness = 2
-    light.Range = 10
-    light.Parent = marker
-    
+    updateStatus()
     return marker
 end
 
-local function updateStatus()
-    local count = #state.markers
-    if state.isFlying then
-        status.Text = string.format("FLYING MODE\nMarkers: %d/5\nPlace marks anywhere", count)
-    elseif state.isViewing then
-        status.Text = string.format("VIEWING MODE\nMarker: %d/%d\nMove camera with buttons", 
-            state.currentMarkerIndex, count)
+local function clearMarks()
+    for _, mark in ipairs(marks) do
+        if mark.part then mark.part:Destroy() end
+    end
+    marks = {}
+    currentMark = 0
+    updateStatus()
+end
+
+local function viewMark(index)
+    if #marks == 0 or index < 1 or index > #marks then return end
+    
+    currentMark = index
+    local mark = marks[index]
+    camera.CFrame = CFrame.new(mark.position + Vector3.new(0, 5, 10), mark.position)
+    
+    control.MarkInfo.Text = "MARK "..index.."/"..#marks
+    control.Parent.Prev.Visible = index > 1
+    control.Parent.Next.Visible = index < #marks
+end
+
+local function toggleFreeCam()
+    freeCam = not freeCam
+    viewMode = false
+    
+    if freeCam then
+        camera.CameraType = Enum.CameraType.Scriptable
+        camYaw = 0
+        camPitch = 0
+        
+        main.Visible = false
+        control.Visible = true
+        controlTitle.Text = "🛸 FREE CAMERA MODE"
+        control.MarkInfo.Text = "WASD=Move, QE=UpDown, RMB=Rotate"
     else
-        status.Text = string.format("Fly & Mark System\nby sherikyt\nMarkers: %d/5", count)
+        camera.CameraType = Enum.CameraType.Custom
+        main.Visible = true
+        control.Visible = false
     end
 end
 
-local function placeMarker()
-    if #state.markers >= config.maxMarkers then
-        status.Text = "MAX 5 MARKERS REACHED"
-        return
-    end
+local function toggleViewMode()
+    if #marks == 0 then return end
     
-    local camera = Workspace.CurrentCamera
-    local position = camera.CFrame.Position
-    local index = #state.markers + 1
+    viewMode = not viewMode
+    freeCam = false
     
-    createMarker(position, index)
-    
-    table.insert(state.markers, {
-        position = position,
-        index = index
-    })
-    
-    updateStatus()
-end
-
-local function clearAllMarkers()
-    for _, part in pairs(Workspace:GetChildren()) do
-        if string.find(part.Name, "Mark_") then
-            part:Destroy()
-        end
-    end
-    state.markers = {}
-    state.currentMarkerIndex = 0
-    updateStatus()
-end
-
--- Flying system
-local function startFlying()
-    if state.isFlying then return end
-    
-    state.isFlying = true
-    local camera = Workspace.CurrentCamera
-    state.flyPosition = camera.CFrame.Position
-    
-    -- Switch camera
-    camera.CameraType = Enum.CameraType.Scriptable
-    
-    -- Show/hide UI
-    flyControls.Visible = true
-    exitBtn.Visible = true
-    flyBtn.Visible = false
-    markBtn.Visible = false
-    viewBtn.Visible = false
-    clearBtn.Visible = false
-    
-    updateStatus()
-end
-
-local function stopFlying()
-    if not state.isFlying then return end
-    
-    state.isFlying = false
-    
-    -- Return camera
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-    
-    -- Show/hide UI
-    flyControls.Visible = false
-    exitBtn.Visible = false
-    flyBtn.Visible = true
-    markBtn.Visible = true
-    viewBtn.Visible = true
-    clearBtn.Visible = true
-    
-    updateStatus()
-end
-
--- Viewing system
-local function startViewing()
-    if #state.markers == 0 then
-        status.Text = "NO MARKERS PLACED"
-        return
-    end
-    
-    state.isViewing = true
-    state.currentMarkerIndex = 1
-    state.viewAngle = Vector2.new(0, 0)
-    state.zoomLevel = 1
-    
-    -- Switch camera
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
-    
-    -- Show/hide UI
-    viewControls.Visible = true
-    exitBtn.Visible = true
-    flyBtn.Visible = false
-    markBtn.Visible = false
-    viewBtn.Visible = false
-    clearBtn.Visible = false
-    
-    updateStatus()
-end
-
-local function stopViewing()
-    state.isViewing = false
-    
-    -- Return camera
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-    
-    -- Show/hide UI
-    viewControls.Visible = false
-    exitBtn.Visible = false
-    flyBtn.Visible = true
-    markBtn.Visible = true
-    viewBtn.Visible = true
-    clearBtn.Visible = true
-    
-    updateStatus()
-end
-
-local function switchMarker(direction)
-    if #state.markers == 0 then return end
-    
-    if direction == "next" then
-        state.currentMarkerIndex = state.currentMarkerIndex + 1
-        if state.currentMarkerIndex > #state.markers then
-            state.currentMarkerIndex = 1
-        end
-    elseif direction == "prev" then
-        state.currentMarkerIndex = state.currentMarkerIndex - 1
-        if state.currentMarkerIndex < 1 then
-            state.currentMarkerIndex = #state.markers
-        end
-    end
-    
-    updateStatus()
-end
-
--- Flying movement
-local flyDirections = {
-    forward = false,
-    back = false,
-    left = false,
-    right = false,
-    up = false,
-    down = false
-}
-
--- Button press events
-flyForward.MouseButton1Down:Connect(function()
-    flyDirections.forward = true
-end)
-flyForward.MouseButton1Up:Connect(function()
-    flyDirections.forward = false
-end)
-
-flyBack.MouseButton1Down:Connect(function()
-    flyDirections.back = true
-end)
-flyBack.MouseButton1Up:Connect(function()
-    flyDirections.back = false
-end)
-
-flyLeft.MouseButton1Down:Connect(function()
-    flyDirections.left = true
-end)
-flyLeft.MouseButton1Up:Connect(function()
-    flyDirections.left = false
-end)
-
-flyRight.MouseButton1Down:Connect(function()
-    flyDirections.right = true
-end)
-flyRight.MouseButton1Up:Connect(function()
-    flyDirections.right = false
-end)
-
-flyUp.MouseButton1Down:Connect(function()
-    flyDirections.up = true
-end)
-flyUp.MouseButton1Up:Connect(function()
-    flyDirections.up = false
-end)
-
-flyDown.MouseButton1Down:Connect(function()
-    flyDirections.down = true
-end)
-flyDown.MouseButton1Up:Connect(function()
-    flyDirections.down = false
-end)
-
--- Main button events
-flyBtn.MouseButton1Click:Connect(startFlying)
-markBtn.MouseButton1Click:Connect(placeMarker)
-viewBtn.MouseButton1Click:Connect(startViewing)
-clearBtn.MouseButton1Click:Connect(clearAllMarkers)
-exitBtn.MouseButton1Click:Connect(function()
-    if state.isFlying then
-        stopFlying()
-    elseif state.isViewing then
-        stopViewing()
-    end
-end)
-
--- Viewing controls
-viewPrev.MouseButton1Click:Connect(function()
-    switchMarker("prev")
-end)
-
-viewNext.MouseButton1Click:Connect(function()
-    switchMarker("next")
-end)
-
-viewUp.MouseButton1Click:Connect(function()
-    state.viewAngle = Vector2.new(
-        state.viewAngle.X,
-        state.viewAngle.Y - 0.2
-    )
-end)
-
-viewDown.MouseButton1Click:Connect(function()
-    state.viewAngle = Vector2.new(
-        state.viewAngle.X,
-        state.viewAngle.Y + 0.2
-    )
-end)
-
--- Main game loop
-local connection
-connection = RunService.Heartbeat:Connect(function(delta)
-    if state.isFlying then
-        local camera = Workspace.CurrentCamera
+    if viewMode then
+        camera.CameraType = Enum.CameraType.Scriptable
+        viewMark(1)
         
-        -- Calculate movement
-        local move = Vector3.new(0, 0, 0)
-        
-        if flyDirections.forward then
-            move = move + camera.CFrame.LookVector
-        end
-        if flyDirections.back then
-            move = move - camera.CFrame.LookVector
-        end
-        if flyDirections.right then
-            move = move + camera.CFrame.RightVector
-        end
-        if flyDirections.left then
-            move = move - camera.CFrame.RightVector
-        end
-        if flyDirections.up then
-            move = move + Vector3.new(0, 1, 0)
-        end
-        if flyDirections.down then
-            move = move - Vector3.new(0, 1, 0)
-        end
-        
-        -- Apply movement
-        if move.Magnitude > 0 then
-            move = move.Unit * config.flySpeed * delta
-            state.flyPosition = state.flyPosition + move
-        end
-        
-        -- Update camera
-        camera.CFrame = CFrame.new(state.flyPosition, 
-            state.flyPosition + camera.CFrame.LookVector)
-        camera.FieldOfView = config.cameraFOV
-        
-    elseif state.isViewing and #state.markers > 0 then
-        local camera = Workspace.CurrentCamera
-        local markData = state.markers[state.currentMarkerIndex]
-        
-        if markData then
-            -- Calculate camera position based on angle and zoom
-            local basePos = markData.position
-            local yaw = state.viewAngle.X
-            local pitch = state.viewAngle.Y
-            local distance = 10 * state.zoomLevel
-            
-            -- Calculate offset
-            local offset = Vector3.new(
-                math.sin(yaw) * math.cos(pitch) * distance,
-                math.sin(pitch) * distance,
-                math.cos(yaw) * math.cos(pitch) * distance
-            )
-            
-            local cameraPos = basePos + offset
-            
-            -- Set camera to look at marker
-            camera.CFrame = CFrame.new(cameraPos, basePos)
-            camera.FieldOfView = config.cameraFOV / state.zoomLevel
-        end
+        main.Visible = false
+        control.Visible = true
+        controlTitle.Text = "👁️ VIEWING MARKS"
+        control.Parent.Visible = true
+        control.Parent.Parent.Visible = true
+    else
+        camera.CameraType = Enum.CameraType.Custom
+        main.Visible = true
+        control.Visible = false
+    end
+end
+
+-- Button Events
+main.Free.MouseButton1Click:Connect(toggleFreeCam)
+
+main.Mark.MouseButton1Click:Connect(function()
+    if freeCam then
+        createMarker(camera.CFrame.Position)
     end
 end)
 
--- Mobile touch for rotation in viewing mode
-local touchStart = nil
-local originalAngle = nil
+main.View.MouseButton1Click:Connect(toggleViewMode)
 
-UserInputService.TouchStarted:Connect(function(touch)
-    if not state.isViewing then return end
-    
-    touchStart = touch.Position
-    originalAngle = state.viewAngle
+main.Clear.MouseButton1Click:Connect(clearMarks)
+
+control.ExitBtn.MouseButton1Click:Connect(function()
+    if freeCam then toggleFreeCam() 
+    elseif viewMode then toggleViewMode() end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if not state.isViewing or not touchStart or input.UserInputType ~= Enum.UserInputType.Touch then
-        return
+control.Parent.Prev.MouseButton1Click:Connect(function()
+    if currentMark > 1 then viewMark(currentMark - 1) end
+end)
+
+control.Parent.Next.MouseButton1Click:Connect(function()
+    if currentMark < #marks then viewMark(currentMark + 1) end
+end)
+
+-- Keyboard Input
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F then
+        toggleFreeCam()
+    elseif input.KeyCode == Enum.KeyCode.M and freeCam then
+        createMarker(camera.CFrame.Position)
+    elseif input.KeyCode == Enum.KeyCode.V then
+        toggleViewMode()
+    elseif input.KeyCode == Enum.KeyCode.C then
+        clearMarks()
+    elseif input.KeyCode == Enum.KeyCode.LeftBracket then
+        FLY_SPEED = math.max(5, FLY_SPEED - 5)
+        updateStatus()
+    elseif input.KeyCode == Enum.KeyCode.RightBracket then
+        FLY_SPEED = math.min(50, FLY_SPEED + 5)
+        updateStatus()
     end
     
-    local delta = input.Position - touchStart
-    local sensitivity = 0.01
-    
-    state.viewAngle = Vector2.new(
-        originalAngle.X - delta.X * sensitivity,
-        originalAngle.Y - delta.Y * sensitivity
-    )
+    if freeCam then
+        if input.KeyCode == Enum.KeyCode.W then moveInput.W = true
+        elseif input.KeyCode == Enum.KeyCode.A then moveInput.A = true
+        elseif input.KeyCode == Enum.KeyCode.S then moveInput.S = true
+        elseif input.KeyCode == Enum.KeyCode.D then moveInput.D = true
+        elseif input.KeyCode == Enum.KeyCode.Q then moveInput.Q = true
+        elseif input.KeyCode == Enum.KeyCode.E then moveInput.E = true
+        end
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        touchStart = nil
-        originalAngle = nil
+    if freeCam then
+        if input.KeyCode == Enum.KeyCode.W then moveInput.W = false
+        elseif input.KeyCode == Enum.KeyCode.A then moveInput.A = false
+        elseif input.KeyCode == Enum.KeyCode.S then moveInput.S = false
+        elseif input.KeyCode == Enum.KeyCode.D then moveInput.D = false
+        elseif input.KeyCode == Enum.KeyCode.Q then moveInput.Q = false
+        elseif input.KeyCode == Enum.KeyCode.E then moveInput.E = false
+        end
     end
 end)
 
--- Cleanup
-gui.Destroying:Connect(function()
-    if connection then
-        connection:Disconnect()
+-- Mouse Input
+local lastMousePos
+
+UserInputService.InputChanged:Connect(function(input)
+    if freeCam and input.UserInputType == Enum.UserInputType.MouseMovement then
+        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            if not lastMousePos then
+                lastMousePos = input.Position
+                return
+            end
+            
+            local delta = input.Position - lastMousePos
+            camYaw = camYaw - delta.X * ROTATE_SPEED
+            camPitch = camPitch - delta.Y * ROTATE_SPEED
+            camPitch = math.clamp(camPitch, -1.5, 1.5)
+            
+            lastMousePos = input.Position
+        else
+            lastMousePos = nil
+        end
     end
-    clearAllMarkers()
 end)
 
-updateStatus()
+-- Mouse wheel for speed
+mouse.WheelForward:Connect(function()
+    if freeCam then
+        FLY_SPEED = math.min(FLY_SPEED + 5, 50)
+        updateStatus()
+    end
+end)
 
-print("Mobile Fly & Mark System loaded")
-print("FREE CAMERA - Fly with camera")
-print("PLACE MARK - Save position as marker")
-print("VIEW MARKS - View saved markers with camera control")
+mouse.WheelBackward:Connect(function()
+    if freeCam then
+        FLY_SPEED = math.max(FLY_SPEED - 5, 5)
+        updateStatus()
+    end
+end)
+
+-- Main Update Loop
+RunService.Heartbeat:Connect(function(delta)
+    if freeCam then
+        -- Create rotation from angles
+        local rotation = CFrame.fromOrientation(camPitch, camYaw, 0)
+        
+        -- Calculate movement
+        local move = Vector3.new(0, 0, 0)
+        if moveInput.W then move = move + Vector3.new(0, 0, -1) end
+        if moveInput.S then move = move + Vector3.new(0, 0, 1) end
+        if moveInput.D then move = move + Vector3.new(1, 0, 0) end
+        if moveInput.A then move = move + Vector3.new(-1, 0, 0) end
+        if moveInput.E then move = move + Vector3.new(0, 1, 0) end
+        if moveInput.Q then move = move + Vector3.new(0, -1, 0) end
+        
+        -- Apply movement
+        if move.Magnitude > 0 then
+            move = move.Unit * FLY_SPEED * delta
+            local rotatedMove = rotation:VectorToWorldSpace(move)
+            camera.CFrame = rotation + camera.CFrame.Position + rotatedMove
+        else
+            camera.CFrame = rotation + camera.CFrame.Position
+        end
+        
+        camera.FieldOfView = 70
+        
+    elseif viewMode and #marks > 0 then
+        -- Smooth orbiting around marker
+        local mark = marks[currentMark]
+        if mark then
+            local time = tick()
+            local radius = 15
+            local height = 5
+            
+            local x = math.cos(time * 0.5) * radius
+            local z = math.sin(time * 0.5) * radius
+            
+            local targetPos = mark.position + Vector3.new(x, height, z)
+            camera.CFrame = camera.CFrame:Lerp(
+                CFrame.new(targetPos, mark.position),
+                5 * delta
+            )
+            
+            camera.FieldOfView = 60
+        end
+    end
+end)
+
+-- Notification
+local notify = Instance.new("ScreenGui", player.PlayerGui)
+local note = Instance.new("TextLabel", notify)
+note.Size = UDim2.new(0, 250, 0, 60)
+note.Position = UDim2.new(0.5, -125, 0.1, 0)
+note.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
+note.Text = "📸 Camera Control v4.0 loaded!\nby sherikyt | F/M/V/C keys"
+note.TextColor3 = Color3.white
+note.Font = Enum.Font.GothamBold
+note.TextSize = 14
+
+Instance.new("UICorner", note).CornerRadius = UDim.new(0, 10)
+
+task.wait(3)
+notify:Destroy()
+
+print("Camera Control v4.0 by sherikyt - Ready!")
