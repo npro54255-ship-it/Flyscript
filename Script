@@ -245,60 +245,48 @@ cameraControls.TextSize = 11
 cameraControls.TextXAlignment = Enum.TextXAlignment.Left
 cameraControls.Parent = cameraInfo
 
--- Camera functions
+-- SIMPLIFIED Camera creation - Just a marker in air
 local function createCameraVisual(position, index)
-    -- Create main camera model as a Model
-    local cameraModel = Instance.new("Model")
-    cameraModel.Name = "SecurityCamera_" .. index
+    -- Create simple camera marker (just a floating part)
+    local cameraPart = Instance.new("Part")
+    cameraPart.Name = "SecurityCamera_" .. index
+    cameraPart.Size = Vector3.new(2, 2, 2)
+    cameraPart.Position = position
+    cameraPart.Anchored = true
+    cameraPart.CanCollide = false
+    cameraPart.Transparency = 0.7
+    cameraPart.Color = Color3.fromRGB(0, 100, 255)
+    cameraPart.Material = EnumMaterial.Neon
     
-    -- Base part
-    local base = Instance.new("Part")
-    base.Name = "Base"
-    base.Size = Vector3.new(1, 0.2, 1)
-    base.Position = position
-    base.Anchored = true
-    base.CanCollide = false
-    base.Material = EnumMaterial.Metal
-    base.Color = Color3.fromRGB(50, 50, 50)
-    base.Parent = cameraModel
-    
-    -- Camera body
-    local body = Instance.new("Part")
-    body.Name = "Body"
-    body.Size = Vector3.new(0.5, 0.5, 0.5)
-    body.Position = position + Vector3.new(0, 0.6, 0)
-    body.Anchored = true
-    body.CanCollide = false
-    body.Material = EnumMaterial.Metal
-    body.Color = Color3.fromRGB(30, 30, 30)
-    body.Parent = cameraModel
-    
-    -- Camera lens
-    local lens = Instance.new("Part")
-    lens.Name = "Lens"
-    lens.Size = Vector3.new(0.2, 0.2, 0.2)
-    lens.Position = position + Vector3.new(0, 0.6, 0.3)
-    lens.Anchored = true
-    lens.CanCollide = false
-    lens.Material = EnumMaterial.Glass
-    lens.Color = Color3.fromRGB(0, 100, 255)
-    lens.Transparency = 0.3
-    lens.Parent = cameraModel
-    
-    -- Light to indicate active camera
+    -- Add a simple light
     local light = Instance.new("PointLight")
-    light.Name = "CameraLight"
     light.Color = Color3.fromRGB(0, 100, 255)
-    light.Brightness = 0
-    light.Range = 5
-    light.Parent = body
+    light.Brightness = 2
+    light.Range = 10
+    light.Parent = cameraPart
     
-    cameraModel.PrimaryPart = base
-    cameraModel.Parent = Workspace
+    -- Add a billboard gui for camera number
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "CameraBillboard"
+    billboard.Size = UDim2.new(0, 100, 0, 100)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = cameraPart
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "📷 " .. index
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
+    label.Parent = billboard
+    
+    cameraPart.Parent = Workspace
     
     -- Store camera data
     local cameraData = {
-        model = cameraModel,
+        part = cameraPart,
         position = position,
         index = index,
         rotation = Vector2.new(0, 0),
@@ -342,28 +330,26 @@ local function placeCamera()
         return
     end
     
-    local cameraPosition = hrp.Position + Vector3.new(0, 5, 0)
+    -- Place camera 20 units above character
+    local cameraPosition = hrp.Position + Vector3.new(0, 20, 0)
     local index = #state.cameras + 1
     
-    local success, cameraData = pcall(function()
-        return createCameraVisual(cameraPosition, index)
-    end)
+    -- Simple creation without pcall
+    local cameraData = createCameraVisual(cameraPosition, index)
     
-    if success and cameraData then
+    if cameraData then
         table.insert(state.cameras, cameraData)
         status.Text = "📷 CAMERA " .. index .. " PLACED"
         updateCamerasList()
-        print("Camera " .. index .. " placed at:", cameraPosition)
     else
         status.Text = "ERROR PLACING CAMERA"
-        print("Error placing camera:", cameraData)
     end
 end
 
 local function clearAllCameras()
     for i, cam in ipairs(state.cameras) do
-        if cam.model then
-            cam.model:Destroy()
+        if cam.part then
+            cam.part:Destroy()
         end
     end
     
@@ -401,9 +387,9 @@ local function switchCamera(direction)
         
         -- Update camera lights
         for i, cam in ipairs(state.cameras) do
-            local light = cam.model.Body:FindFirstChild("CameraLight")
+            local light = cam.part:FindFirstChild("PointLight")
             if light then
-                light.Brightness = (i == state.cameraIndex) and 3 or 0
+                light.Brightness = (i == state.cameraIndex) and 5 or 2
             end
         end
     end
@@ -435,9 +421,9 @@ local function startMonitoring()
     
     -- Turn on light for current camera
     for i, cam in ipairs(state.cameras) do
-        local light = cam.model.Body:FindFirstChild("CameraLight")
+        local light = cam.part:FindFirstChild("PointLight")
         if light then
-            light.Brightness = (i == state.cameraIndex) and 3 or 0
+            light.Brightness = (i == state.cameraIndex) and 5 or 2
         end
     end
     
@@ -456,11 +442,11 @@ local function stopMonitoring()
     monitorGui.Visible = false
     monitorBtn.Text = "👁️ MONITOR MODE"
     
-    -- Turn off all camera lights
+    -- Reset all camera lights
     for _, cam in ipairs(state.cameras) do
-        local light = cam.model.Body:FindFirstChild("CameraLight")
+        local light = cam.part:FindFirstChild("PointLight")
         if light then
-            light.Brightness = 0
+            light.Brightness = 2
         end
     end
     
