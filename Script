@@ -1,36 +1,34 @@
--- Ultimate Pull Cheat by sherikyt
+-- ShiftLock Cheat by sherikyt
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local config = {
-    force = 10000, -- Maximum force
-    pullSpeed = 200
-}
-
 local state = {
-    active = false,
-    position = nil,
-    parts = {},
-    connection = nil,
-    marker = nil,
-    menuVisible = true
+    shiftLockEnabled = false,
+    originalCameraType = nil,
+    originalMouseBehavior = nil,
+    mouseLocked = false,
+    menuVisible = true,
+    sensitivity = 0.5,
+    fov = 70,
+    smoothness = 0.8
 }
 
 -- Create GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "PullCheatGUI"
+gui.Name = "ShiftLockGUI"
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 -- Main menu
 local menu = Instance.new("Frame")
 menu.Name = "MainMenu"
-menu.Size = UDim2.new(0, 220, 0, 200)
-menu.Position = UDim2.new(0, 10, 0.5, -100)
+menu.Size = UDim2.new(0, 220, 0, 300)
+menu.Position = UDim2.new(0, 10, 0.5, -150)
 menu.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 menu.BackgroundTransparency = 0.1
 menu.Parent = gui
@@ -45,7 +43,7 @@ title.Name = "Title"
 title.Size = UDim2.new(1, -10, 0, 30)
 title.Position = UDim2.new(0, 10, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "ULTIMATE PULL"
+title.Text = "SHIFT LOCK PRO"
 title.TextColor3 = Color3.fromRGB(255, 100, 255)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
@@ -68,13 +66,13 @@ creator.Parent = menu
 local function createButton(name, text, position, icon, color)
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0.9, 0, 0, 35)
+    button.Size = UDim2.new(0.9, 0, 0, 40)
     button.Position = position
     button.BackgroundColor3 = color
     button.Text = icon .. " " .. text
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.Font = Enum.Font.GothamBold
-    button.TextSize = 12
+    button.TextSize = 13
     button.TextWrapped = true
     button.Parent = menu
     
@@ -94,67 +92,112 @@ local function createButton(name, text, position, icon, color)
 end
 
 -- Create buttons
-local selectBtn = createButton(
-    "SelectBtn",
-    "SELECT POSITION",
+local toggleBtn = createButton(
+    "ToggleBtn",
+    "TOGGLE SHIFT LOCK",
     UDim2.new(0.05, 0, 0, 60),
-    "📍",
+    "🎮",
     Color3.fromRGB(0, 120, 255)
 )
 
-local pullBtn = createButton(
-    "PullBtn",
-    "PULL EVERYTHING",
-    UDim2.new(0.05, 0, 0, 105),
-    "🌀",
-    Color3.fromRGB(150, 0, 255)
+local resetBtn = createButton(
+    "ResetBtn",
+    "RESET CAMERA",
+    UDim2.new(0.05, 0, 0, 110),
+    "🔄",
+    Color3.fromRGB(60, 60, 80)
 )
 
--- Force slider
-local forceLabel = Instance.new("TextLabel")
-forceLabel.Name = "ForceLabel"
-forceLabel.Size = UDim2.new(0.9, 0, 0, 20)
-forceLabel.Position = UDim2.new(0.05, 0, 0, 150)
-forceLabel.BackgroundTransparency = 1
-forceLabel.Text = "PULL FORCE: " .. config.force
-forceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-forceLabel.Font = Enum.Font.Gotham
-forceLabel.TextSize = 11
-forceLabel.TextXAlignment = Enum.TextXAlignment.Left
-forceLabel.Parent = menu
+-- Settings container
+local settingsFrame = Instance.new("Frame")
+settingsFrame.Name = "SettingsFrame"
+settingsFrame.Size = UDim2.new(0.9, 0, 0, 120)
+settingsFrame.Position = UDim2.new(0.05, 0, 0, 160)
+settingsFrame.BackgroundTransparency = 1
+settingsFrame.Parent = menu
 
-local forceSlider = Instance.new("Frame")
-forceSlider.Name = "ForceSlider"
-forceSlider.Size = UDim2.new(0.9, 0, 0, 20)
-forceSlider.Position = UDim2.new(0.05, 0, 0, 170)
-forceSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-forceSlider.Parent = menu
-Instance.new("UICorner", forceSlider).CornerRadius = UDim.new(0, 10)
+-- Sensitivity slider
+local sensLabel = Instance.new("TextLabel")
+sensLabel.Name = "SensLabel"
+sensLabel.Size = UDim2.new(1, 0, 0, 20)
+sensLabel.Position = UDim2.new(0, 0, 0, 0)
+sensLabel.BackgroundTransparency = 1
+sensLabel.Text = "SENSITIVITY: " .. state.sensitivity
+sensLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+sensLabel.Font = Enum.Font.Gotham
+sensLabel.TextSize = 11
+sensLabel.TextXAlignment = Enum.TextXAlignment.Left
+sensLabel.Parent = settingsFrame
 
-local forceFill = Instance.new("Frame")
-forceFill.Name = "ForceFill"
-forceFill.Size = UDim2.new(config.force / 20000, 0, 1, 0)
-forceFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-forceFill.Parent = forceSlider
-Instance.new("UICorner", forceFill).CornerRadius = UDim.new(0, 10)
+local sensSlider = Instance.new("Frame")
+sensSlider.Name = "SensSlider"
+sensSlider.Size = UDim2.new(1, 0, 0, 20)
+sensSlider.Position = UDim2.new(0, 0, 0, 20)
+sensSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+sensSlider.Parent = settingsFrame
+Instance.new("UICorner", sensSlider).CornerRadius = UDim.new(0, 10)
 
-local forceHandle = Instance.new("TextButton")
-forceHandle.Name = "ForceHandle"
-forceHandle.Size = UDim2.new(0, 20, 0, 20)
-forceHandle.Position = UDim2.new(config.force / 20000, -10, 0, 0)
-forceHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-forceHandle.Text = ""
-forceHandle.Parent = forceSlider
-Instance.new("UICorner", forceHandle).CornerRadius = UDim.new(1, 0)
+local sensFill = Instance.new("Frame")
+sensFill.Name = "SensFill"
+sensFill.Size = UDim2.new(state.sensitivity, 0, 1, 0)
+sensFill.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+sensFill.Parent = sensSlider
+Instance.new("UICorner", sensFill).CornerRadius = UDim.new(0, 10)
+
+local sensHandle = Instance.new("TextButton")
+sensHandle.Name = "SensHandle"
+sensHandle.Size = UDim2.new(0, 20, 0, 20)
+sensHandle.Position = UDim2.new(state.sensitivity, -10, 0, 0)
+sensHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+sensHandle.Text = ""
+sensHandle.Parent = sensSlider
+Instance.new("UICorner", sensHandle).CornerRadius = UDim.new(1, 0)
+
+-- FOV slider
+local fovLabel = Instance.new("TextLabel")
+fovLabel.Name = "FovLabel"
+fovLabel.Size = UDim2.new(1, 0, 0, 20)
+fovLabel.Position = UDim2.new(0, 0, 0, 50)
+fovLabel.BackgroundTransparency = 1
+fovLabel.Text = "FOV: " .. state.fov
+fovLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovLabel.Font = Enum.Font.Gotham
+fovLabel.TextSize = 11
+fovLabel.TextXAlignment = Enum.TextXAlignment.Left
+fovLabel.Parent = settingsFrame
+
+local fovSlider = Instance.new("Frame")
+fovSlider.Name = "FovSlider"
+fovSlider.Size = UDim2.new(1, 0, 0, 20)
+fovSlider.Position = UDim2.new(0, 0, 0, 70)
+fovSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+fovSlider.Parent = settingsFrame
+Instance.new("UICorner", fovSlider).CornerRadius = UDim.new(0, 10)
+
+local fovFill = Instance.new("Frame")
+fovFill.Name = "FovFill"
+fovFill.Size = UDim2.new((state.fov - 50) / 50, 0, 1, 0)
+fovFill.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
+fovFill.Parent = fovSlider
+Instance.new("UICorner", fovFill).CornerRadius = UDim.new(0, 10)
+
+local fovHandle = Instance.new("TextButton")
+fovHandle.Name = "FovHandle"
+fovHandle.Size = UDim2.new(0, 20, 0, 20)
+fovHandle.Position = UDim2.new((state.fov - 50) / 50, -10, 0, 0)
+fovHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+fovHandle.Text = ""
+fovHandle.Parent = fovSlider
+Instance.new("UICorner", fovHandle).CornerRadius = UDim.new(1, 0)
 
 -- Status
 local status = Instance.new("TextLabel")
 status.Name = "Status"
 status.Size = UDim2.new(0.9, 0, 0, 30)
-status.Position = UDim2.new(0.05, 0, 0, 200)
+status.Position = UDim2.new(0.05, 0, 0, 290)
 status.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 status.BackgroundTransparency = 0.3
-status.Text = "READY"
+status.Text = "SHIFT LOCK: OFF"
 status.TextColor3 = Color3.fromRGB(255, 255, 255)
 status.Font = Enum.Font.Gotham
 status.TextSize = 11
@@ -165,187 +208,215 @@ local statusCorner = Instance.new("UICorner")
 statusCorner.CornerRadius = UDim.new(0, 8)
 statusCorner.Parent = status
 
--- Toggle button
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Name = "ToggleBtn"
-toggleBtn.Size = UDim2.new(0, 40, 0, 40)
-toggleBtn.Position = UDim2.new(0, 240, 0.5, -20)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-toggleBtn.Text = "◀"
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 18
-toggleBtn.Parent = gui
+-- Toggle menu button
+local menuToggleBtn = Instance.new("TextButton")
+menuToggleBtn.Name = "MenuToggleBtn"
+menuToggleBtn.Size = UDim2.new(0, 40, 0, 40)
+menuToggleBtn.Position = UDim2.new(0, 240, 0.5, -20)
+menuToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+menuToggleBtn.Text = "◀"
+menuToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+menuToggleBtn.Font = Enum.Font.GothamBold
+menuToggleBtn.TextSize = 18
+menuToggleBtn.Parent = gui
 
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(1, 0)
-toggleCorner.Parent = toggleBtn
+toggleCorner.Parent = menuToggleBtn
 
--- Pull functions
-local function createMarker(pos)
-    if state.marker then
-        state.marker:Destroy()
-    end
-    
-    local marker = Instance.new("Part")
-    marker.Name = "PullMarker"
-    marker.Size = Vector3.new(3, 3, 3)
-    marker.Position = pos
-    marker.Anchored = true
-    marker.CanCollide = false
-    marker.Material = EnumMaterial.Neon
-    marker.Color = Color3.fromRGB(255, 50, 50)
-    marker.Transparency = 0.3
-    marker.Parent = Workspace
-    
-    local light = Instance.new("PointLight")
-    light.Color = Color3.fromRGB(255, 50, 50)
-    light.Brightness = 5
-    light.Range = 15
-    light.Parent = marker
-    
-    state.marker = marker
-    return marker
-end
+-- Crosshair
+local crosshair = Instance.new("Frame")
+crosshair.Name = "Crosshair"
+crosshair.Size = UDim2.new(0, 20, 0, 20)
+crosshair.Position = UDim2.new(0.5, -10, 0.5, -10)
+crosshair.BackgroundTransparency = 1
+crosshair.Visible = false
+crosshair.Parent = gui
 
-local function collectAllParts()
-    state.parts = {}
-    local count = 0
+local crossH = Instance.new("Frame")
+crossH.Name = "CrossH"
+crossH.Size = UDim2.new(0, 20, 0, 2)
+crossH.Position = UDim2.new(0, 0, 0.5, -1)
+crossH.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+crossH.BorderSizePixel = 0
+crossH.Parent = crosshair
+
+local crossV = Instance.new("Frame")
+crossV.Name = "CrossV"
+crossV.Size = UDim2.new(0, 2, 0, 20)
+crossV.Position = UDim2.new(0.5, -1, 0, 0)
+crossV.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+crossV.BorderSizePixel = 0
+crossV.Parent = crosshair
+
+-- Shift lock variables
+local camera = Workspace.CurrentCamera
+local mouse = player:GetMouse()
+local lastMousePos = Vector2.new(0, 0)
+local yaw = 0
+local pitch = 0
+local shiftLockConnection = nil
+
+-- Shift lock functions
+local function enableShiftLock()
+    if state.shiftLockEnabled then return end
     
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and not obj.Anchored then
-            if obj.Name == "PullMarker" then
-                continue
-            end
-            
-            if player.Character and obj:IsDescendantOf(player.Character) then
-                continue
-            end
-            
-            table.insert(state.parts, obj)
-            count = count + 1
+    state.originalCameraType = camera.CameraType
+    state.originalMouseBehavior = UserInputService.MouseBehavior
+    
+    state.shiftLockEnabled = true
+    camera.CameraType = Enum.CameraType.Scriptable
+    
+    -- Initialize camera angles
+    local character = player.Character
+    if character then
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local cf = hrp.CFrame
+            local look = cf.LookVector
+            yaw = math.atan2(look.Z, look.X)
+            pitch = math.asin(look.Y)
         end
     end
     
-    return count
-end
-
-local function applyPullForce(part)
-    if not part or not part.Parent then return end
+    crosshair.Visible = true
+    status.Text = "SHIFT LOCK: ON"
+    toggleBtn.Text = "⏹️ DISABLE SHIFT LOCK"
     
-    local velocity = part:FindFirstChild("PullVelocity")
-    
-    if not velocity then
-        velocity = Instance.new("BodyVelocity")
-        velocity.Name = "PullVelocity"
-        velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        velocity.P = 10000
-        velocity.Parent = part
-    end
-    
-    local direction = (state.position - part.Position).Unit
-    local force = config.force
-    
-    -- Apply straight pull force
-    velocity.Velocity = direction * force
-    
-    -- Stop rotation if any
-    local gyro = part:FindFirstChild("PullGyro")
-    if gyro then
-        gyro:Destroy()
-    end
-end
-
-local function togglePull()
-    if not state.position then
-        status.Text = "SELECT POSITION FIRST"
-        return
-    end
-    
-    if state.active then
-        -- Stop pulling
-        if state.connection then
-            state.connection:Disconnect()
-            state.connection = nil
-        end
+    -- Mouse lock logic
+    shiftLockConnection = RunService.RenderStepped:Connect(function(delta)
+        if not state.shiftLockEnabled then return end
         
-        for _, part in pairs(state.parts) do
-            if part and part.Parent then
-                local v = part:FindFirstChild("PullVelocity")
-                if v then v:Destroy() end
-                
-                local g = part:FindFirstChild("PullGyro")
-                if g then g:Destroy() end
-            end
-        end
+        local character = player.Character
+        if not character then return end
         
-        state.active = false
-        state.parts = {}
-        pullBtn.Text = "🌀 PULL EVERYTHING"
-        status.Text = "STOPPED"
-        return
-    end
-    
-    -- Start pulling
-    local partCount = collectAllParts()
-    if partCount == 0 then
-        status.Text = "NO PARTS FOUND"
-        return
-    end
-    
-    state.active = true
-    pullBtn.Text = "⏹️ STOP PULLING"
-    
-    -- Pull physics loop
-    state.connection = RunService.Heartbeat:Connect(function()
-        if not state.active then return end
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
         
-        for _, part in pairs(state.parts) do
-            if part and part.Parent then
-                applyPullForce(part)
-            end
+        -- Get mouse delta
+        local mouseDelta = Vector2.new(mouse.Delta.X, mouse.Delta.Y)
+        
+        -- Apply sensitivity
+        yaw = yaw - mouseDelta.X * state.sensitivity * 0.01
+        pitch = pitch - mouseDelta.Y * state.sensitivity * 0.01
+        
+        -- Clamp pitch
+        pitch = math.clamp(pitch, -math.pi/2 + 0.1, math.pi/2 - 0.1)
+        
+        -- Calculate camera position (offset from character)
+        local offset = Vector3.new(0, 2, -10)
+        
+        -- Rotate offset based on yaw
+        local rotCF = CFrame.fromEulerAnglesYXZ(0, yaw, 0)
+        offset = rotCF:PointToWorldSpace(offset)
+        
+        -- Set camera position and look direction
+        local cameraPos = hrp.Position + offset
+        local lookDir = Vector3.new(math.cos(yaw) * math.cos(pitch), math.sin(pitch), math.sin(yaw) * math.cos(pitch))
+        
+        camera.CFrame = CFrame.new(cameraPos, cameraPos + lookDir)
+        camera.FieldOfView = state.fov
+        
+        -- Lock mouse to center
+        if mouseDelta.Magnitude > 0 then
+            mouse.TargetFilter = Workspace
+            mouseBehavior = Enum.MouseBehavior.LockCenter
         end
     end)
+end
+
+local function disableShiftLock()
+    if not state.shiftLockEnabled then return end
     
-    status.Text = "PULLING - PARTS: " .. partCount
+    state.shiftLockEnabled = false
+    
+    if shiftLockConnection then
+        shiftLockConnection:Disconnect()
+        shiftLockConnection = nil
+    end
+    
+    camera.CameraType = state.originalCameraType or Enum.CameraType.Custom
+    UserInputService.MouseBehavior = state.originalMouseBehavior or Enum.MouseBehavior.Default
+    
+    crosshair.Visible = false
+    status.Text = "SHIFT LOCK: OFF"
+    toggleBtn.Text = "🎮 ENABLE SHIFT LOCK"
+end
+
+local function toggleShiftLock()
+    if state.shiftLockEnabled then
+        disableShiftLock()
+    else
+        enableShiftLock()
+    end
+end
+
+local function resetCamera()
+    disableShiftLock()
+    
+    if camera then
+        camera.CameraType = Enum.CameraType.Custom
+        camera.FieldOfView = 70
+    end
+    
+    status.Text = "CAMERA RESET"
 end
 
 -- Button events
-selectBtn.MouseButton1Click:Connect(function()
-    local camera = Workspace.CurrentCamera
-    if camera and player.Character then
-        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            state.position = hrp.Position + Vector3.new(0, 5, 0)
-            createMarker(state.position)
-            status.Text = "POSITION SET"
-        end
-    end
-end)
-
-pullBtn.MouseButton1Click:Connect(togglePull)
+toggleBtn.MouseButton1Click:Connect(toggleShiftLock)
+resetBtn.MouseButton1Click:Connect(resetCamera)
 
 -- Slider dragging
 local dragging = nil
-forceHandle.MouseButton1Down:Connect(function()
-    dragging = "force"
+
+local function updateSensitivity(value)
+    state.sensitivity = math.clamp(value, 0.1, 2)
+    sensLabel.Text = "SENSITIVITY: " .. string.format("%.1f", state.sensitivity)
+    sensFill.Size = UDim2.new(state.sensitivity / 2, 0, 1, 0)
+    sensHandle.Position = UDim2.new(state.sensitivity / 2, -10, 0, 0)
+end
+
+local function updateFOV(value)
+    state.fov = math.clamp(value, 50, 100)
+    fovLabel.Text = "FOV: " .. state.fov
+    fovFill.Size = UDim2.new((state.fov - 50) / 50, 0, 1, 0)
+    fovHandle.Position = UDim2.new((state.fov - 50) / 50, -10, 0, 0)
+    
+    if camera then
+        camera.FieldOfView = state.fov
+    end
+end
+
+sensHandle.MouseButton1Down:Connect(function()
+    dragging = "sens"
+end)
+
+fovHandle.MouseButton1Down:Connect(function()
+    dragging = "fov"
 end)
 
 RunService.Heartbeat:Connect(function()
-    if dragging == "force" then
-        local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-        local slider = forceSlider
-        local absPos = slider.AbsolutePosition.X
-        local absSize = slider.AbsoluteSize.X
+    if dragging then
+        local mousePos = game:GetService("Players").LocalPlayer:GetMouse()
         
-        local mouseX = mouse.X
-        local relative = math.clamp((mouseX - absPos) / absSize, 0, 1)
-        
-        local value = math.floor(1000 + relative * 19000) -- 1000 to 20000
-        config.force = value
-        forceLabel.Text = "PULL FORCE: " .. value
-        forceFill.Size = UDim2.new(value / 20000, 0, 1, 0)
-        forceHandle.Position = UDim2.new(value / 20000, -10, 0, 0)
+        if dragging == "sens" then
+            local slider = sensSlider
+            local absPos = slider.AbsolutePosition.X
+            local absSize = slider.AbsoluteSize.X
+            
+            local relative = math.clamp((mousePos.X - absPos) / absSize, 0, 1)
+            local value = 0.1 + relative * 1.9
+            updateSensitivity(value)
+            
+        elseif dragging == "fov" then
+            local slider = fovSlider
+            local absPos = slider.AbsolutePosition.X
+            local absSize = slider.AbsoluteSize.X
+            
+            local relative = math.clamp((mousePos.X - absPos) / absSize, 0, 1)
+            local value = 50 + relative * 50
+            updateFOV(value)
+        end
     end
 end)
 
@@ -355,37 +426,42 @@ game:GetService("UserInputService").InputEnded:Connect(function(input)
     end
 end)
 
--- Toggle menu
-toggleBtn.MouseButton1Click:Connect(function()
-    state.menuVisible = not state.menuVisible
-    
-    if state.menuVisible then
-        menu.Position = UDim2.new(0, 10, 0.5, -100)
-        toggleBtn.Position = UDim2.new(0, 240, 0.5, -20)
-        toggleBtn.Text = "◀"
-    else
-        menu.Position = UDim2.new(-1, 0, 0.5, -100)
-        toggleBtn.Position = UDim2.new(0, 10, 0.5, -20)
-        toggleBtn.Text = "▶"
+-- Hotkey (Shift to toggle)
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.LeftShift then
+        toggleShiftLock()
     end
 end)
 
--- Auto refresh parts while active
-RunService.Heartbeat:Connect(function()
-    if state.active then
-        collectAllParts()
+-- Toggle menu
+menuToggleBtn.MouseButton1Click:Connect(function()
+    state.menuVisible = not state.menuVisible
+    
+    if state.menuVisible then
+        menu.Position = UDim2.new(0, 10, 0.5, -150)
+        menuToggleBtn.Position = UDim2.new(0, 240, 0.5, -20)
+        menuToggleBtn.Text = "◀"
+    else
+        menu.Position = UDim2.new(-1, 0, 0.5, -150)
+        menuToggleBtn.Position = UDim2.new(0, 10, 0.5, -20)
+        menuToggleBtn.Text = "▶"
     end
+end)
+
+-- Auto-disable on death
+player.CharacterAdded:Connect(function()
+    disableShiftLock()
 end)
 
 -- Cleanup
 gui.Destroying:Connect(function()
-    if state.connection then
-        state.connection:Disconnect()
-    end
-    
-    if state.marker then
-        state.marker:Destroy()
-    end
+    disableShiftLock()
 end)
 
-print("Ultimate Pull Cheat by sherikyt loaded")
+-- Initial setup
+updateSensitivity(state.sensitivity)
+updateFOV(state.fov)
+
+print("ShiftLock Cheat by sherikyt loaded")
+print("Hotkey: Left Shift to toggle")
+print("Use menu to adjust sensitivity and FOV")
