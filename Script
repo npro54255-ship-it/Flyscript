@@ -1,303 +1,360 @@
--- Fly Script by sherikyt
--- Created with enhanced UI and controls
+-- ✨ Flight Script by sherikyt ✨
+-- 🚀 Advanced Flying System with Beautiful UI
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- Configuration
+-- ⚙️ Configuration
 local flySpeed = 50
 local isFlying = false
-local flightVelocity = Vector3.new(0, 0, 0)
-local connection
+local flightConnection
+local flyBodyVelocity
+local flyBodyGyro
 
--- Create ScreenGui
+-- 🎨 Create Beautiful UI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlyScriptUI"
+screenGui.Name = "FlightSystemUI"
 screenGui.Parent = player.PlayerGui
+screenGui.ResetOnSpawn = false
 
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 350, 0, 280)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-mainFrame.BackgroundTransparency = 0.2
-mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
+-- ✨ Main Container with Gradient
+local mainContainer = Instance.new("Frame")
+mainContainer.Name = "MainContainer"
+mainContainer.Size = UDim2.new(0, 400, 0, 320)
+mainContainer.Position = UDim2.new(0.5, -200, 0.5, -160)
+mainContainer.BackgroundTransparency = 0.15
+mainContainer.BorderSizePixel = 0
+mainContainer.ClipsDescendants = true
+mainContainer.Parent = screenGui
 
--- Corner for main frame
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = mainFrame
-
--- Gradient Background
+-- Rainbow Gradient Effect
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 60)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(148, 0, 211)), -- Violet
+    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(75, 0, 130)), -- Indigo
+    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(0, 0, 255)), -- Blue
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 0)), -- Green
+    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(255, 255, 0)), -- Yellow
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 127, 0)) -- Orange
 })
 gradient.Rotation = 45
-gradient.Parent = mainFrame
+gradient.Enabled = true
+gradient.Parent = mainContainer
 
--- Title Bar
-local titleBar = Instance.new("Frame")
-titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 40)
-titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-titleBar.BackgroundTransparency = 0.3
-titleBar.Parent = mainFrame
+-- Smooth Corners
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 20)
+corner.Parent = mainContainer
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = titleBar
+-- Glow Effect
+local glow = Instance.new("ImageLabel")
+glow.Name = "Glow"
+glow.Size = UDim2.new(1, 40, 1, 40)
+glow.Position = UDim2.new(0, -20, 0, -20)
+glow.BackgroundTransparency = 1
+glow.Image = "rbxassetid://8992230672"
+glow.ImageColor3 = Color3.fromRGB(0, 150, 255)
+glow.ScaleType = Enum.ScaleType.Slice
+glow.SliceScale = 0.03
+glow.SliceCenter = Rect.new(100, 100, 900, 900)
+glow.Parent = mainContainer
 
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Size = UDim2.new(1, -20, 1, 0)
-title.Position = UDim2.new(0, 10, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "🛸 Advanced Flight System"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = titleBar
+-- 🏆 Header with Creator Info
+local headerFrame = Instance.new("Frame")
+headerFrame.Name = "Header"
+headerFrame.Size = UDim2.new(1, 0, 0, 60)
+headerFrame.BackgroundTransparency = 0.8
+headerFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+headerFrame.BorderSizePixel = 0
+headerFrame.Parent = mainContainer
 
-local creator = Instance.new("TextLabel")
-creator.Name = "Creator"
-creator.Size = UDim2.new(1, -20, 0, 20)
-creator.Position = UDim2.new(0, 10, 0, 35)
-creator.BackgroundTransparency = 1
-creator.Text = "Created by: sherikyt"
-creator.TextColor3 = Color3.fromRGB(180, 180, 220)
-creator.Font = Enum.Font.Gotham
-creator.TextSize = 14
-creator.TextXAlignment = Enum.TextXAlignment.Left
-creator.Parent = titleBar
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 20)
+headerCorner.Parent = headerFrame
 
--- Speed Display
-local speedFrame = Instance.new("Frame")
-speedFrame.Name = "SpeedFrame"
-speedFrame.Size = UDim2.new(0.8, 0, 0, 60)
-speedFrame.Position = UDim2.new(0.1, 0, 0, 70)
-speedFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-speedFrame.BackgroundTransparency = 0.3
-speedFrame.Parent = mainFrame
+-- Title with Emoji
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "Title"
+titleLabel.Size = UDim2.new(1, -20, 0.6, 0)
+titleLabel.Position = UDim2.new(0, 10, 0, 5)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "✨ FLIGHT SYSTEM v2.0 ✨"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 22
+titleLabel.TextStrokeTransparency = 0.8
+titleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = headerFrame
+
+-- Creator Info with Animation
+local creatorLabel = Instance.new("TextLabel")
+creatorLabel.Name = "Creator"
+creatorLabel.Size = UDim2.new(1, -20, 0.4, 0)
+creatorLabel.Position = UDim2.new(0, 10, 0, 35)
+creatorLabel.BackgroundTransparency = 1
+creatorLabel.Text = "🚀 Created by: sherikyt 🚀"
+creatorLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+creatorLabel.Font = Enum.Font.GothamSemibold
+creatorLabel.TextSize = 14
+creatorLabel.TextStrokeTransparency = 0.7
+creatorLabel.TextXAlignment = Enum.TextXAlignment.Left
+creatorLabel.Parent = headerFrame
+
+-- 🔧 Speed Control Section
+local speedSection = Instance.new("Frame")
+speedSection.Name = "SpeedSection"
+speedSection.Size = UDim2.new(0.9, 0, 0, 90)
+speedSection.Position = UDim2.new(0.05, 0, 0, 70)
+speedSection.BackgroundTransparency = 0.7
+speedSection.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+speedSection.BorderSizePixel = 0
+speedSection.Parent = mainContainer
 
 local speedCorner = Instance.new("UICorner")
-speedCorner.CornerRadius = UDim.new(0, 10)
-speedCorner.Parent = speedFrame
+speedCorner.CornerRadius = UDim.new(0, 15)
+speedCorner.Parent = speedSection
 
+-- Speed Icon
 local speedIcon = Instance.new("TextLabel")
 speedIcon.Name = "SpeedIcon"
-speedIcon.Size = UDim2.new(0, 40, 1, 0)
+speedIcon.Size = UDim2.new(0, 50, 1, 0)
 speedIcon.BackgroundTransparency = 1
 speedIcon.Text = "⚡"
-speedIcon.TextColor3 = Color3.fromRGB(255, 215, 0)
+speedIcon.TextColor3 = Color3.fromRGB(255, 255, 0)
 speedIcon.Font = Enum.Font.GothamBold
-speedIcon.TextSize = 24
-speedIcon.Parent = speedFrame
+speedIcon.TextSize = 32
+speedIcon.Parent = speedSection
 
-local speedLabel = Instance.new("TextLabel")
-speedLabel.Name = "SpeedLabel"
-speedLabel.Size = UDim2.new(1, -50, 0.5, 0)
-speedLabel.Position = UDim2.new(0, 45, 0, 5)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Text = "CURRENT SPEED"
-speedLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
-speedLabel.Font = Enum.Font.Gotham
-speedLabel.TextSize = 12
-speedLabel.TextXAlignment = Enum.TextXAlignment.Left
-speedLabel.Parent = speedFrame
+-- Speed Display
+local speedDisplay = Instance.new("TextLabel")
+speedDisplay.Name = "SpeedDisplay"
+speedDisplay.Size = UDim2.new(0.7, 0, 1, 0)
+speedDisplay.Position = UDim2.new(0.15, 0, 0, 0)
+speedDisplay.BackgroundTransparency = 1
+speedDisplay.Text = "SPEED: " .. tostring(flySpeed)
+speedDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedDisplay.Font = Enum.Font.GothamBold
+speedDisplay.TextSize = 24
+speedDisplay.TextXAlignment = Enum.TextXAlignment.Left
+speedDisplay.Parent = speedSection
 
-local speedValue = Instance.new("TextLabel")
-speedValue.Name = "SpeedValue"
-speedValue.Size = UDim2.new(1, -50, 0.5, 0)
-speedValue.Position = UDim2.new(0, 45, 0, 25)
-speedValue.BackgroundTransparency = 1
-speedValue.Text = tostring(flySpeed)
-speedValue.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedValue.Font = Enum.Font.GothamBold
-speedValue.TextSize = 20
-speedValue.TextXAlignment = Enum.TextXAlignment.Left
-speedValue.Parent = speedFrame
+-- 📊 Speed Unit
+local speedUnit = Instance.new("TextLabel")
+speedUnit.Name = "SpeedUnit"
+speedUnit.Size = UDim2.new(0.2, 0, 0.5, 0)
+speedUnit.Position = UDim2.new(0.85, 0, 0.25, 0)
+speedUnit.BackgroundTransparency = 1
+speedUnit.Text = "units/sec"
+speedUnit.TextColor3 = Color3.fromRGB(200, 200, 200)
+speedUnit.Font = Enum.Font.Gotham
+speedUnit.TextSize = 12
+speedUnit.Parent = speedSection
 
--- Control Buttons
-local function createButton(name, text, position, color)
+-- 🎮 Control Buttons
+local function createBeautifulButton(name, text, position, color, emoji)
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 80, 0, 40)
+    button.Size = UDim2.new(0.4, 0, 0, 50)
     button.Position = position
     button.BackgroundColor3 = color
     button.BackgroundTransparency = 0.2
-    button.Text = text
+    button.Text = emoji .. " " .. text .. " " .. emoji
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.Font = Enum.Font.GothamBold
     button.TextSize = 16
+    button.TextStrokeTransparency = 0.7
     button.AutoButtonColor = true
-    button.Parent = mainFrame
+    button.Parent = mainContainer
     
     local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 8)
+    buttonCorner.CornerRadius = UDim.new(0, 12)
     buttonCorner.Parent = button
     
     local buttonStroke = Instance.new("UIStroke")
     buttonStroke.Color = Color3.fromRGB(255, 255, 255)
-    buttonStroke.Thickness = 1
+    buttonStroke.Thickness = 2
     buttonStroke.Transparency = 0.5
     buttonStroke.Parent = button
+    
+    -- Hover Effect
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.1}):Play()
+        TweenService:Create(buttonStroke, TweenInfo.new(0.2), {Thickness = 3}):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+        TweenService:Create(buttonStroke, TweenInfo.new(0.2), {Thickness = 2}):Play()
+    end)
     
     return button
 end
 
--- Plus Button
-local plusButton = createButton("PlusButton", "+ INCREASE", 
-    UDim2.new(0.1, 0, 0, 140), Color3.fromRGB(40, 180, 40))
+-- 🔼 Increase Speed Button
+local increaseButton = createBeautifulButton(
+    "IncreaseButton", 
+    "INCREASE", 
+    UDim2.new(0.05, 0, 0, 170),
+    Color3.fromRGB(0, 200, 0),
+    "🔼"
+)
 
--- Minus Button
-local minusButton = createButton("MinusButton", "- DECREASE", 
-    UDim2.new(0.1, 0, 0, 190), Color3.fromRGB(220, 40, 40))
+-- 🔽 Decrease Speed Button
+local decreaseButton = createBeautifulButton(
+    "DecreaseButton", 
+    "DECREASE", 
+    UDim2.new(0.55, 0, 0, 170),
+    Color3.fromRGB(200, 0, 0),
+    "🔽"
+)
 
--- Fly Toggle Button
-local flyButton = createButton("FlyButton", "🛸 TOGGLE FLY", 
-    UDim2.new(0.1, 0, 0, 240), Color3.fromRGB(60, 100, 220))
+-- 🚀 Fly Toggle Button
+local flyButton = createBeautifulButton(
+    "FlyButton", 
+    "TOGGLE FLY", 
+    UDim2.new(0.05, 0, 0, 230),
+    Color3.fromRGB(0, 100, 255),
+    "🛸"
+)
 
--- Instructions
+-- 📝 Instructions
 local instructions = Instance.new("TextLabel")
 instructions.Name = "Instructions"
-instructions.Size = UDim2.new(0.8, 0, 0, 40)
-instructions.Position = UDim2.new(0.1, 0, 0, 290)
+instructions.Size = UDim2.new(0.9, 0, 0, 40)
+instructions.Position = UDim2.new(0.05, 0, 0, 290)
 instructions.BackgroundTransparency = 1
-instructions.Text = "Use movement keys + mouse to control flight direction"
-instructions.TextColor3 = Color3.fromRGB(200, 200, 200)
-instructions.Font = Enum.Font.Gotham
-instructions.TextSize = 12
+instructions.Text = "🔄 WASD + Mouse | ⬆️ Space | ⬇️ Ctrl | 🎮 Use Game Joystick"
+instructions.TextColor3 = Color3.fromRGB(255, 255, 255)
+instructions.Font = Enum.Font.GothamSemibold
+instructions.TextSize = 14
+instructions.TextStrokeTransparency = 0.8
 instructions.TextXAlignment = Enum.TextXAlignment.Center
-instructions.Parent = mainFrame
+instructions.Parent = mainContainer
 
--- Animation for buttons
-local function animateButton(button)
-    local originalSize = button.Size
-    local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    
-    button.MouseButton1Down:Connect(function()
-        local tween = TweenService:Create(button, tweenInfo, {Size = originalSize - UDim2.new(0, 5, 0, 5)})
-        tween:Play()
-    end)
-    
-    button.MouseButton1Up:Connect(function()
-        local tween = TweenService:Create(button, tweenInfo, {Size = originalSize})
-        tween:Play()
-    end)
+-- ✨ Status Indicator
+local statusIndicator = Instance.new("Frame")
+statusIndicator.Name = "StatusIndicator"
+statusIndicator.Size = UDim2.new(0, 10, 0, 10)
+statusIndicator.Position = UDim2.new(0.92, 0, 0.05, 0)
+statusIndicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+statusIndicator.BorderSizePixel = 0
+statusIndicator.Parent = mainContainer
+
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(1, 0)
+statusCorner.Parent = statusIndicator
+
+-- 🚀 Flight Functions
+local function updateStatus()
+    if isFlying then
+        statusIndicator.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
+        flyButton.Text = "🛸 FLYING ON 🛸"
+        flyButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    else
+        statusIndicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        flyButton.Text = "🛸 TOGGLE FLY 🛸"
+        flyButton.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+    end
 end
 
-animateButton(plusButton)
-animateButton(minusButton)
-animateButton(flyButton)
-
--- Fly Functions
 local function startFlying()
-    if not humanoidRootPart or not character then return end
+    if not character or not humanoidRootPart then return end
     
+    -- Enable platform stand
     humanoid.PlatformStand = true
     isFlying = true
+    updateStatus()
     
-    local bg = Instance.new("BodyGyro")
-    bg.Name = "FlightGyro"
-    bg.P = 10000
-    bg.D = 500
-    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    bg.CFrame = humanoidRootPart.CFrame
-    bg.Parent = humanoidRootPart
+    -- Create flight controls
+    flyBodyGyro = Instance.new("BodyGyro")
+    flyBodyGyro.Name = "FlightGyro"
+    flyBodyGyro.P = 10000
+    flyBodyGyro.D = 1000
+    flyBodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    flyBodyGyro.CFrame = humanoidRootPart.CFrame
+    flyBodyGyro.Parent = humanoidRootPart
     
-    local bv = Instance.new("BodyVelocity")
-    bv.Name = "FlightVelocity"
-    bv.Velocity = Vector3.new(0, 0, 0)
-    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bv.P = 10000
-    bv.Parent = humanoidRootPart
+    flyBodyVelocity = Instance.new("BodyVelocity")
+    flyBodyVelocity.Name = "FlightVelocity"
+    flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    flyBodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+    flyBodyVelocity.P = 1250
+    flyBodyVelocity.Parent = humanoidRootPart
     
-    connection = RunService.RenderStepped:Connect(function(delta)
-        if not isFlying or not humanoidRootPart or not bg or not bv then return end
+    -- Flight loop
+    flightConnection = RunService.Heartbeat:Connect(function(delta)
+        if not isFlying or not flyBodyGyro or not flyBodyVelocity or not humanoidRootPart then return end
         
-        local camera = Workspace.CurrentCamera
+        local camera = workspace.CurrentCamera
         local moveDirection = Vector3.new(0, 0, 0)
         
-        -- Get movement from input
-        local forwardVector = camera.CFrame.LookVector
+        -- Get camera vectors
+        local lookVector = camera.CFrame.LookVector
         local rightVector = camera.CFrame.RightVector
-        local upVector = Vector3.new(0, 1, 0)
         
-        -- Forward/Backward (W/S)
+        -- Keyboard controls
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            moveDirection = moveDirection + forwardVector
+            moveDirection = moveDirection + lookVector
         end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            moveDirection = moveDirection - forwardVector
-        end
-        
-        -- Left/Right (A/D)
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            moveDirection = moveDirection - rightVector
+            moveDirection = moveDirection - lookVector
         end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then
             moveDirection = moveDirection + rightVector
         end
-        
-        -- Up/Down (Space/Ctrl)
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDirection = moveDirection - rightVector
+        end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            moveDirection = moveDirection + upVector
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)
         end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
-            moveDirection = moveDirection - upVector
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or 
+           UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
+            moveDirection = moveDirection - Vector3.new(0, 1, 0)
         end
         
-        -- Normalize direction if moving
+        -- Apply movement
         if moveDirection.Magnitude > 0 then
             moveDirection = moveDirection.Unit
         end
         
-        -- Update gyro to face camera direction
-        bg.CFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + camera.CFrame.LookVector)
+        -- Update velocity
+        flyBodyVelocity.Velocity = moveDirection * flySpeed
         
-        -- Apply velocity
-        bv.Velocity = moveDirection * flySpeed
-        flightVelocity = bv.Velocity
+        -- Update gyro for smooth rotation
+        flyBodyGyro.CFrame = CFrame.new(humanoidRootPart.Position, 
+            humanoidRootPart.Position + lookVector)
     end)
-    
-    flyButton.Text = "🛸 FLYING (ON)"
-    flyButton.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
 end
 
 local function stopFlying()
     isFlying = false
+    updateStatus()
     
-    if connection then
-        connection:Disconnect()
-        connection = nil
+    if flightConnection then
+        flightConnection:Disconnect()
+        flightConnection = nil
     end
     
     humanoid.PlatformStand = false
     
-    if humanoidRootPart then
-        local bg = humanoidRootPart:FindFirstChild("FlightGyro")
-        local bv = humanoidRootPart:FindFirstChild("FlightVelocity")
-        
-        if bg then bg:Destroy() end
-        if bv then bv:Destroy() end
+    if flyBodyGyro then
+        flyBodyGyro:Destroy()
+        flyBodyGyro = nil
     end
     
-    flyButton.Text = "🛸 TOGGLE FLY"
-    flyButton.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
+    if flyBodyVelocity then
+        flyBodyVelocity:Destroy()
+        flyBodyVelocity = nil
+    end
 end
 
 local function toggleFlying()
@@ -308,68 +365,97 @@ local function toggleFlying()
     end
 end
 
--- Button Functionality
-plusButton.MouseButton1Click:Connect(function()
+-- 📱 Button Functionality
+increaseButton.MouseButton1Click:Connect(function()
     flySpeed = math.min(flySpeed + 10, 200)
-    speedValue.Text = tostring(flySpeed)
+    speedDisplay.Text = "SPEED: " .. tostring(flySpeed)
+    
+    -- Animation
+    TweenService:Create(speedDisplay, TweenInfo.new(0.1), {TextSize = 28}):Play()
+    wait(0.1)
+    TweenService:Create(speedDisplay, TweenInfo.new(0.1), {TextSize = 24}):Play()
 end)
 
-minusButton.MouseButton1Click:Connect(function()
+decreaseButton.MouseButton1Click:Connect(function()
     flySpeed = math.max(flySpeed - 10, 10)
-    speedValue.Text = tostring(flySpeed)
+    speedDisplay.Text = "SPEED: " .. tostring(flySpeed)
+    
+    -- Animation
+    TweenService:Create(speedDisplay, TweenInfo.new(0.1), {TextSize = 28}):Play()
+    wait(0.1)
+    TweenService:Create(speedDisplay, TweenInfo.new(0.1), {TextSize = 24}):Play()
 end)
 
 flyButton.MouseButton1Click:Connect(toggleFlying)
 
--- Cleanup on character change
-character.DescendantRemoving:Connect(function(descendant)
-    if descendant.Name == "HumanoidRootPart" then
-        stopFlying()
+-- 🎮 Joystick Support (for mobile/touch)
+UserInputService.TouchStarted:Connect(function(touch, gameProcessed)
+    if not gameProcessed and isFlying then
+        -- Handle touch input for mobile flying
     end
 end)
 
--- Make frame draggable
+-- 🖱️ Make Window Draggable
 local dragging = false
-local dragInput, dragStart, startPos
+local dragStart = Vector2.new(0, 0)
+local frameStart = Vector2.new(0, 0)
 
-local function updateInput(input)
-    local delta = input.Position - dragStart
-    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-
-titleBar.InputBegan:Connect(function(input)
+headerFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
+        dragStart = Vector2.new(input.Position.X, input.Position.Y)
+        frameStart = Vector2.new(mainContainer.Position.X.Offset, mainContainer.Position.Y.Offset)
         
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-titleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
+        -- Highlight header
+        TweenService:Create(headerFrame, TweenInfo.new(0.2), {BackgroundTransparency = 0.5}):Play()
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and input == dragInput then
-        updateInput(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local mousePos = Vector2.new(input.Position.X, input.Position.Y)
+        local delta = mousePos - dragStart
+        mainContainer.Position = UDim2.new(
+            0, frameStart.X + delta.X,
+            0, frameStart.Y + delta.Y
+        )
     end
 end)
 
--- Update character reference if it changes
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+        TweenService:Create(headerFrame, TweenInfo.new(0.2), {BackgroundTransparency = 0.8}):Play()
+    end
+end)
+
+-- 🔄 Handle Character Changes
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoid = character:WaitForChild("Humanoid")
     humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    stopFlying()
 end)
 
-print("Flight Script by sherikyt loaded successfully!")
-print("Controls: W/A/S/D for movement, Space/Ctrl for up/down")
-print("Use mouse to control flight direction")
+character.Humanoid.Died:Connect(function()
+    stopFlying()
+end)
+
+-- 🎉 Initial Status Update
+updateStatus()
+
+-- 📢 Debug Message
+print("✨ Flight System by sherikyt loaded successfully! ✨")
+print("🛸 Controls: WASD + Mouse | Space/Up | Ctrl/Down")
+print("🎮 Game joystick also supported")
+print("📱 Mobile/touch controls enabled")
+
+-- 🌈 Animated Gradient
+spawn(function()
+    while true do
+        for i = 0, 360, 1 do
+            gradient.Rotation = i
+            wait(0.05)
+        end
+    end
+end)
