@@ -1,4 +1,4 @@
--- Camera Control by sherikyt - Ультра компактный
+-- Camera Control v2.0 by sherikyt
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
@@ -13,52 +13,101 @@ local gui = Instance.new("ScreenGui")
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 200, 0, 220)
+main.Size = UDim2.new(0, 250, 0, 280)
 main.Position = UDim2.new(0, 10, 0, 10)
 main.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
 main.BorderSizePixel = 0
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+
+-- Градиентный фон
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 40, 90))
+})
+gradient.Rotation = 45
+gradient.Parent = main
+
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
+
+-- Обводка
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(100, 100, 255)
+stroke.Thickness = 2
+stroke.Parent = main
+
 main.Parent = gui
 
+-- Заголовок
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
+title.Size = UDim2.new(1, 0, 0, 50)
 title.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-title.Text = "📸 Camera Control"
+title.Text = "📸 CAMERA CONTROL\n<font size='12'>by sherikyt</font>"
 title.TextColor3 = Color3.white
 title.Font = Enum.Font.GothamBold
-title.TextSize = 14
+title.TextSize = 16
+title.RichText = true
+title.TextYAlignment = Enum.TextYAlignment.Center
+Instance.new("UICorner", title).CornerRadius = UDim.new(0, 15, 0, 0)
 title.Parent = main
 
 -- Счетчик меток
 local counter = Instance.new("TextLabel")
-counter.Size = UDim2.new(1, 0, 0, 30)
+counter.Size = UDim2.new(1, 0, 0, 40)
 counter.Position = UDim2.new(0, 0, 0.85, 0)
 counter.BackgroundTransparency = 1
-counter.Text = "Marks: 0/10"
+counter.Text = "📍 MARKS: 0/10"
 counter.TextColor3 = Color3.fromRGB(200, 200, 255)
 counter.Font = Enum.Font.Gotham
 counter.TextSize = 14
 counter.Parent = main
 
--- Создаем кнопки
-local buttons = {
-    {name="Free", text="FREE CAM", color=Color3.fromRGB(70, 130, 200), pos=UDim2.new(0.05,0,0.2,0)},
-    {name="Mark", text="PLACE MARK", color=Color3.fromRGB(60, 200, 100), pos=UDim2.new(0.55,0,0.2,0)},
-    {name="View", text="VIEW MARKS", color=Color3.fromRGB(255, 165, 50), pos=UDim2.new(0.05,0,0.5,0)},
-    {name="Clear", text="CLEAR ALL", color=Color3.fromRGB(220, 60, 60), pos=UDim2.new(0.55,0,0.5,0)}
+-- Создаем красивые кнопки
+local buttonData = {
+    {name="Free", text="FREE CAMERA", color=Color3.fromRGB(70, 130, 200), icon="🛸"},
+    {name="Mark", text="PLACE MARK", color=Color3.fromRGB(60, 200, 100), icon="📍"},
+    {name="View", text="VIEW MARKS", color=Color3.fromRGB(255, 165, 50), icon="👁️"},
+    {name="Clear", text="CLEAR ALL", color=Color3.fromRGB(220, 60, 60), icon="🗑️"}
 }
 
-for _, btn in pairs(buttons) do
+for i, btn in pairs(buttonData) do
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0.4, 0, 0.25, 0)
-    button.Position = btn.pos
+    button.Size = UDim2.new(0.9, 0, 0, 50)
+    button.Position = UDim2.new(0.05, 0, 0.18 + (i-1)*0.18, 0)
     button.BackgroundColor3 = btn.color
-    button.Text = btn.text
+    button.Text = btn.icon .. " " .. btn.text
     button.TextColor3 = Color3.white
     button.Font = Enum.Font.GothamBold
-    button.TextSize = 12
+    button.TextSize = 14
     button.AutoButtonColor = false
-    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 10)
+    btnCorner.Parent = button
+    
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Color = Color3.fromRGB(255, 255, 255)
+    btnStroke.Thickness = 1
+    btnStroke.Transparency = 0.3
+    btnStroke.Parent = button
+    
+    -- Эффекты наведения
+    local originalColor = btn.color
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = originalColor * 1.2
+    end)
+    
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = originalColor
+    end)
+    
+    button.MouseButton1Down:Connect(function()
+        button.BackgroundColor3 = originalColor * 0.7
+    end)
+    
+    button.MouseButton1Up:Connect(function()
+        button.BackgroundColor3 = originalColor * 1.2
+    end)
+    
     button.Parent = main
 end
 
@@ -71,21 +120,75 @@ local camYaw = 0
 local camPitch = 0
 local move = {W=false,A=false,S=false,D=false,Q=false,E=false}
 local speed = 25
+local speedLabel
+
+-- Функция обновления интерфейса скорости
+local function createSpeedUI()
+    local speedPanel = Instance.new("Frame")
+    speedPanel.Size = UDim2.new(0, 200, 0, 40)
+    speedPanel.Position = UDim2.new(0, 10, 1, 10)
+    speedPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    speedPanel.BorderSizePixel = 0
+    Instance.new("UICorner", speedPanel).CornerRadius = UDim.new(0, 10)
+    
+    local gradient2 = Instance.new("UIGradient")
+    gradient2.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 40, 90))
+    })
+    gradient2.Rotation = 45
+    gradient2.Parent = speedPanel
+    
+    speedLabel = Instance.new("TextLabel")
+    speedLabel.Size = UDim2.new(1, 0, 1, 0)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.Text = "⚡ SPEED: " .. speed
+    speedLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextSize = 14
+    speedLabel.Parent = speedPanel
+    
+    speedPanel.Parent = gui
+    return speedPanel
+end
+
+local speedPanel = createSpeedUI()
 
 -- Функции
 local function updateCounter()
-    counter.Text = "Marks: "..#marks.."/10"
+    counter.Text = "📍 MARKS: "..#marks.."/10"
 end
 
 local function createMarker(pos)
-    if #marks >= 10 then return end
+    if #marks >= 10 then 
+        counter.Text = "❌ MAX MARKS REACHED"
+        return 
+    end
+    
     local m = Instance.new("Part")
-    m.Size = Vector3.new(2, 2, 2)
+    m.Size = Vector3.new(2, 3, 2)
     m.Position = pos
     m.Anchored = true
     m.CanCollide = false
-    m.Color = Color3.fromRGB(0, 200, 255)
+    m.Material = EnumMaterial.Neon
+    m.Color = Color3.fromHSV(#marks/10, 1, 1)
     m.Transparency = 0.3
+    
+    -- Номер маркера
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 50, 0, 50)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = m
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = tostring(#marks + 1)
+    label.TextColor3 = Color3.white
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 20
+    label.Parent = billboard
+    
     m.Parent = Workspace
     marks[#marks+1] = {position=pos, part=m}
     updateCounter()
@@ -93,7 +196,9 @@ end
 
 local function clearMarks()
     for _, mark in pairs(marks) do
-        mark.part:Destroy()
+        if mark.part then
+            mark.part:Destroy()
+        end
     end
     marks = {}
     currentMark = 0
@@ -110,33 +215,52 @@ end
 local function toggleFreeCam()
     freeCam = not freeCam
     viewMode = false
+    
     if freeCam then
         camera.CameraType = Enum.CameraType.Scriptable
-        main.Free.Text = "EXIT CAM"
+        main.Free.Text = "🛸 EXIT FREE CAM"
+        counter.Text = "🛸 FLYING MODE | MARKS: "..#marks.."/10"
     else
         camera.CameraType = Enum.CameraType.Custom
-        main.Free.Text = "FREE CAM"
+        main.Free.Text = "🛸 FREE CAMERA"
+        updateCounter()
     end
 end
 
 local function toggleView()
-    if #marks == 0 then return end
+    if #marks == 0 then 
+        counter.Text = "❌ NO MARKS PLACED"
+        return 
+    end
+    
     viewMode = not viewMode
     freeCam = false
+    
     if viewMode then
         camera.CameraType = Enum.CameraType.Scriptable
         viewMark(1)
-        main.View.Text = "EXIT VIEW"
+        main.View.Text = "👁️ EXIT VIEW"
+        counter.Text = "👁️ VIEWING MARK "..currentMark.."/"..#marks
     else
         camera.CameraType = Enum.CameraType.Custom
-        main.View.Text = "VIEW MARKS"
+        main.View.Text = "👁️ VIEW MARKS"
+        updateCounter()
     end
 end
 
 -- Обработчики кнопок
 main.Free.MouseButton1Click:Connect(toggleFreeCam)
-main.Mark.MouseButton1Click:Connect(function() if freeCam then createMarker(camera.CFrame.Position) end end)
-main.View.MouseButton1Click:Connect(toggleView)
+
+main.Mark.MouseButton1Click:Connect(function() 
+    if freeCam then 
+        createMarker(camera.CFrame.Position) 
+    end 
+end)
+
+main.View.MouseButton1Click:Connect(function()
+    toggleView()
+end)
+
 main.Clear.MouseButton1Click:Connect(clearMarks)
 
 -- Клавиши
@@ -145,8 +269,12 @@ UserInputService.InputBegan:Connect(function(input)
     elseif input.KeyCode == Enum.KeyCode.M and freeCam then createMarker(camera.CFrame.Position)
     elseif input.KeyCode == Enum.KeyCode.V then toggleView()
     elseif input.KeyCode == Enum.KeyCode.C then clearMarks()
-    elseif input.KeyCode == Enum.KeyCode.LeftBracket then speed = math.max(10, speed-5)
-    elseif input.KeyCode == Enum.KeyCode.RightBracket then speed = math.min(50, speed+5)
+    elseif input.KeyCode == Enum.KeyCode.LeftBracket then 
+        speed = math.max(10, speed-5)
+        if speedLabel then speedLabel.Text = "⚡ SPEED: " .. speed end
+    elseif input.KeyCode == Enum.KeyCode.RightBracket then 
+        speed = math.min(50, speed+5)
+        if speedLabel then speedLabel.Text = "⚡ SPEED: " .. speed end
     end
     
     if freeCam then
@@ -177,25 +305,43 @@ local lastMousePos
 UserInputService.InputChanged:Connect(function(input)
     if freeCam and input.UserInputType == Enum.UserInputType.MouseMovement then
         if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-            if not lastMousePos then lastMousePos = input.Position return end
+            if not lastMousePos then 
+                lastMousePos = input.Position 
+                return 
+            end
+            
             local delta = input.Position - lastMousePos
             camYaw = camYaw - delta.X * 0.003
             camPitch = camPitch - delta.Y * 0.003
             camPitch = math.clamp(camPitch, -1.5, 1.5)
             lastMousePos = input.Position
-        else lastMousePos = nil end
+        else 
+            lastMousePos = nil 
+        end
     end
 end)
 
 -- Колесико мыши
-mouse.WheelForward:Connect(function() if freeCam then speed = math.min(50, speed+5) end end)
-mouse.WheelBackward:Connect(function() if freeCam then speed = math.max(10, speed-5) end end)
+mouse.WheelForward:Connect(function() 
+    if freeCam then 
+        speed = math.min(50, speed+5) 
+        if speedLabel then speedLabel.Text = "⚡ SPEED: " .. speed end
+    end 
+end)
+
+mouse.WheelBackward:Connect(function() 
+    if freeCam then 
+        speed = math.max(10, speed-5) 
+        if speedLabel then speedLabel.Text = "⚡ SPEED: " .. speed end
+    end 
+end)
 
 -- Главный цикл
 RunService.Heartbeat:Connect(function(dt)
     if freeCam then
         local rot = CFrame.fromOrientation(camPitch, camYaw, 0)
         local moveVec = Vector3.new(0,0,0)
+        
         if move.W then moveVec = moveVec + Vector3.new(0,0,-1) end
         if move.S then moveVec = moveVec + Vector3.new(0,0,1) end
         if move.D then moveVec = moveVec + Vector3.new(1,0,0) end
@@ -216,13 +362,94 @@ RunService.Heartbeat:Connect(function(dt)
         local mark = marks[currentMark]
         if mark then
             local time = tick()
-            local x = math.cos(time * 0.5) * 10
-            local z = math.sin(time * 0.5) * 10
-            local target = mark.position + Vector3.new(x, 5, z)
+            local orbitRadius = 12
+            local height = 4
+            
+            local x = math.cos(time * 0.5) * orbitRadius
+            local z = math.sin(time * 0.5) * orbitRadius
+            
+            local target = mark.position + Vector3.new(x, height, z)
             camera.CFrame = camera.CFrame:Lerp(CFrame.new(target, mark.position), 5*dt)
             camera.FieldOfView = 60
+            
+            -- Обновляем текст в режиме просмотра
+            counter.Text = "👁️ VIEWING MARK "..currentMark.."/"..#marks
         end
     end
 end)
 
-print("Camera Control by sherikyt loaded!")
+-- Добавляем кнопки навигации в режиме просмотра
+local navFrame = Instance.new("Frame")
+navFrame.Size = UDim2.new(0, 200, 0, 50)
+navFrame.Position = UDim2.new(0, 10, 0, 300)
+navFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+navFrame.BackgroundTransparency = 0.5
+navFrame.BorderSizePixel = 0
+navFrame.Visible = false
+Instance.new("UICorner", navFrame).CornerRadius = UDim.new(0, 10)
+navFrame.Parent = gui
+
+local prevBtn = Instance.new("TextButton")
+prevBtn.Size = UDim2.new(0.4, 0, 0.7, 0)
+prevBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+prevBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+prevBtn.Text = "◀ PREV"
+prevBtn.TextColor3 = Color3.white
+prevBtn.Font = Enum.Font.GothamBold
+prevBtn.TextSize = 12
+prevBtn.Visible = false
+prevBtn.AutoButtonColor = false
+Instance.new("UICorner", prevBtn).CornerRadius = UDim.new(0, 8)
+prevBtn.Parent = navFrame
+
+local nextBtn = Instance.new("TextButton")
+nextBtn.Size = UDim2.new(0.4, 0, 0.7, 0)
+nextBtn.Position = UDim2.new(0.55, 0, 0.15, 0)
+nextBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+nextBtn.Text = "NEXT ▶"
+nextBtn.TextColor3 = Color3.white
+nextBtn.Font = Enum.Font.GothamBold
+nextBtn.TextSize = 12
+nextBtn.Visible = false
+nextBtn.AutoButtonColor = false
+Instance.new("UICorner", nextBtn).CornerRadius = UDim.new(0, 8)
+nextBtn.Parent = navFrame
+
+-- Показываем/скрываем навигацию при переключении режима
+local function updateNavigation()
+    navFrame.Visible = viewMode
+    prevBtn.Visible = viewMode and currentMark > 1
+    nextBtn.Visible = viewMode and currentMark < #marks
+end
+
+prevBtn.MouseButton1Click:Connect(function()
+    if currentMark > 1 then
+        currentMark = currentMark - 1
+        viewMark(currentMark)
+        updateNavigation()
+    end
+end)
+
+nextBtn.MouseButton1Click:Connect(function()
+    if currentMark < #marks then
+        currentMark = currentMark + 1
+        viewMark(currentMark)
+        updateNavigation()
+    end
+end)
+
+-- Обновляем навигацию при изменении
+RunService.Heartbeat:Connect(function()
+    if viewMode then
+        updateNavigation()
+    end
+end)
+
+print("✅ Camera Control v2.0 by sherikyt loaded!")
+print("F - Free Camera")
+print("M - Place Mark (in free cam)")
+print("V - View Marks")
+print("C - Clear All")
+print("WASD + QE - Movement")
+print("RMB - Rotate camera")
+print("Mouse wheel - Speed")
