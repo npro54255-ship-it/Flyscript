@@ -1,34 +1,42 @@
--- ShiftLock Cheat by sherikyt
+-- Security Camera System by sherikyt
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+local config = {
+    maxCameras = 5,
+    cameraFOV = 70,
+    moveSpeed = 10,
+    zoomSpeed = 5,
+    panSpeed = 50
+}
+
 local state = {
-    shiftLockEnabled = false,
-    originalCameraType = nil,
-    originalMouseBehavior = nil,
-    mouseLocked = false,
+    cameras = {}, -- Table of camera objects
+    currentCamera = nil,
+    cameraIndex = 0,
+    isMonitoring = false,
+    isPlacing = false,
     menuVisible = true,
-    sensitivity = 0.5,
-    fov = 70,
-    smoothness = 0.8
+    zoomLevel = 1,
+    camRotation = Vector2.new(0, 0)
 }
 
 -- Create GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "ShiftLockGUI"
+gui.Name = "CameraSystemGUI"
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 -- Main menu
 local menu = Instance.new("Frame")
 menu.Name = "MainMenu"
-menu.Size = UDim2.new(0, 220, 0, 300)
-menu.Position = UDim2.new(0, 10, 0.5, -150)
+menu.Size = UDim2.new(0, 250, 0, 350)
+menu.Position = UDim2.new(0, 10, 0.5, -175)
 menu.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 menu.BackgroundTransparency = 0.1
 menu.Parent = gui
@@ -43,7 +51,7 @@ title.Name = "Title"
 title.Size = UDim2.new(1, -10, 0, 30)
 title.Position = UDim2.new(0, 10, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "SHIFT LOCK PRO"
+title.Text = "📹 SECURITY CAMERAS"
 title.TextColor3 = Color3.fromRGB(255, 100, 255)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
@@ -92,112 +100,69 @@ local function createButton(name, text, position, icon, color)
 end
 
 -- Create buttons
-local toggleBtn = createButton(
-    "ToggleBtn",
-    "TOGGLE SHIFT LOCK",
+local placeBtn = createButton(
+    "PlaceBtn",
+    "PLACE CAMERA",
     UDim2.new(0.05, 0, 0, 60),
-    "🎮",
+    "📷",
     Color3.fromRGB(0, 120, 255)
 )
 
-local resetBtn = createButton(
-    "ResetBtn",
-    "RESET CAMERA",
+local monitorBtn = createButton(
+    "MonitorBtn",
+    "MONITOR MODE",
     UDim2.new(0.05, 0, 0, 110),
-    "🔄",
-    Color3.fromRGB(60, 60, 80)
+    "👁️",
+    Color3.fromRGB(150, 0, 255)
 )
 
--- Settings container
-local settingsFrame = Instance.new("Frame")
-settingsFrame.Name = "SettingsFrame"
-settingsFrame.Size = UDim2.new(0.9, 0, 0, 120)
-settingsFrame.Position = UDim2.new(0.05, 0, 0, 160)
-settingsFrame.BackgroundTransparency = 1
-settingsFrame.Parent = menu
+local clearBtn = createButton(
+    "ClearBtn",
+    "CLEAR ALL",
+    UDim2.new(0.05, 0, 0, 160),
+    "🗑️",
+    Color3.fromRGB(255, 50, 50)
+)
 
--- Sensitivity slider
-local sensLabel = Instance.new("TextLabel")
-sensLabel.Name = "SensLabel"
-sensLabel.Size = UDim2.new(1, 0, 0, 20)
-sensLabel.Position = UDim2.new(0, 0, 0, 0)
-sensLabel.BackgroundTransparency = 1
-sensLabel.Text = "SENSITIVITY: " .. state.sensitivity
-sensLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-sensLabel.Font = Enum.Font.Gotham
-sensLabel.TextSize = 11
-sensLabel.TextXAlignment = Enum.TextXAlignment.Left
-sensLabel.Parent = settingsFrame
+-- Camera list
+local camerasLabel = Instance.new("TextLabel")
+camerasLabel.Name = "CamerasLabel"
+camerasLabel.Size = UDim2.new(0.9, 0, 0, 25)
+camerasLabel.Position = UDim2.new(0.05, 0, 0, 210)
+camerasLabel.BackgroundTransparency = 1
+camerasLabel.Text = "CAMERAS: 0/" .. config.maxCameras
+camerasLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+camerasLabel.Font = Enum.Font.GothamBold
+camerasLabel.TextSize = 12
+camerasLabel.TextXAlignment = Enum.TextXAlignment.Left
+camerasLabel.Parent = menu
 
-local sensSlider = Instance.new("Frame")
-sensSlider.Name = "SensSlider"
-sensSlider.Size = UDim2.new(1, 0, 0, 20)
-sensSlider.Position = UDim2.new(0, 0, 0, 20)
-sensSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-sensSlider.Parent = settingsFrame
-Instance.new("UICorner", sensSlider).CornerRadius = UDim.new(0, 10)
+local camerasList = Instance.new("TextLabel")
+camerasList.Name = "CamerasList"
+camerasList.Size = UDim2.new(0.9, 0, 0, 60)
+camerasList.Position = UDim2.new(0.05, 0, 0, 235)
+camerasList.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+camerasList.BackgroundTransparency = 0.3
+camerasList.Text = "No cameras placed"
+camerasList.TextColor3 = Color3.fromRGB(200, 200, 200)
+camerasList.Font = Enum.Font.Gotham
+camerasList.TextSize = 11
+camerasList.TextWrapped = true
+camerasList.TextXAlignment = Enum.TextXAlignment.Left
+camerasList.Parent = menu
 
-local sensFill = Instance.new("Frame")
-sensFill.Name = "SensFill"
-sensFill.Size = UDim2.new(state.sensitivity, 0, 1, 0)
-sensFill.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-sensFill.Parent = sensSlider
-Instance.new("UICorner", sensFill).CornerRadius = UDim.new(0, 10)
-
-local sensHandle = Instance.new("TextButton")
-sensHandle.Name = "SensHandle"
-sensHandle.Size = UDim2.new(0, 20, 0, 20)
-sensHandle.Position = UDim2.new(state.sensitivity, -10, 0, 0)
-sensHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-sensHandle.Text = ""
-sensHandle.Parent = sensSlider
-Instance.new("UICorner", sensHandle).CornerRadius = UDim.new(1, 0)
-
--- FOV slider
-local fovLabel = Instance.new("TextLabel")
-fovLabel.Name = "FovLabel"
-fovLabel.Size = UDim2.new(1, 0, 0, 20)
-fovLabel.Position = UDim2.new(0, 0, 0, 50)
-fovLabel.BackgroundTransparency = 1
-fovLabel.Text = "FOV: " .. state.fov
-fovLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-fovLabel.Font = Enum.Font.Gotham
-fovLabel.TextSize = 11
-fovLabel.TextXAlignment = Enum.TextXAlignment.Left
-fovLabel.Parent = settingsFrame
-
-local fovSlider = Instance.new("Frame")
-fovSlider.Name = "FovSlider"
-fovSlider.Size = UDim2.new(1, 0, 0, 20)
-fovSlider.Position = UDim2.new(0, 0, 0, 70)
-fovSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-fovSlider.Parent = settingsFrame
-Instance.new("UICorner", fovSlider).CornerRadius = UDim.new(0, 10)
-
-local fovFill = Instance.new("Frame")
-fovFill.Name = "FovFill"
-fovFill.Size = UDim2.new((state.fov - 50) / 50, 0, 1, 0)
-fovFill.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
-fovFill.Parent = fovSlider
-Instance.new("UICorner", fovFill).CornerRadius = UDim.new(0, 10)
-
-local fovHandle = Instance.new("TextButton")
-fovHandle.Name = "FovHandle"
-fovHandle.Size = UDim2.new(0, 20, 0, 20)
-fovHandle.Position = UDim2.new((state.fov - 50) / 50, -10, 0, 0)
-fovHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-fovHandle.Text = ""
-fovHandle.Parent = fovSlider
-Instance.new("UICorner", fovHandle).CornerRadius = UDim.new(1, 0)
+local camerasCorner = Instance.new("UICorner")
+camerasCorner.CornerRadius = UDim.new(0, 8)
+camerasCorner.Parent = camerasList
 
 -- Status
 local status = Instance.new("TextLabel")
 status.Name = "Status"
 status.Size = UDim2.new(0.9, 0, 0, 30)
-status.Position = UDim2.new(0.05, 0, 0, 290)
+status.Position = UDim2.new(0.05, 0, 0, 310)
 status.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 status.BackgroundTransparency = 0.3
-status.Text = "SHIFT LOCK: OFF"
+status.Text = "READY TO PLACE CAMERAS"
 status.TextColor3 = Color3.fromRGB(255, 255, 255)
 status.Font = Enum.Font.Gotham
 status.TextSize = 11
@@ -212,7 +177,7 @@ statusCorner.Parent = status
 local menuToggleBtn = Instance.new("TextButton")
 menuToggleBtn.Name = "MenuToggleBtn"
 menuToggleBtn.Size = UDim2.new(0, 40, 0, 40)
-menuToggleBtn.Position = UDim2.new(0, 240, 0.5, -20)
+menuToggleBtn.Position = UDim2.new(0, 270, 0.5, -20)
 menuToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
 menuToggleBtn.Text = "◀"
 menuToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -224,212 +189,361 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(1, 0)
 toggleCorner.Parent = menuToggleBtn
 
--- Crosshair
-local crosshair = Instance.new("Frame")
-crosshair.Name = "Crosshair"
-crosshair.Size = UDim2.new(0, 20, 0, 20)
-crosshair.Position = UDim2.new(0.5, -10, 0.5, -10)
-crosshair.BackgroundTransparency = 1
-crosshair.Visible = false
-crosshair.Parent = gui
+-- Monitor GUI (hidden by default)
+local monitorGui = Instance.new("Frame")
+monitorGui.Name = "MonitorGui"
+monitorGui.Size = UDim2.new(1, 0, 1, 0)
+monitorGui.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+monitorGui.BackgroundTransparency = 0.1
+monitorGui.Visible = false
+monitorGui.Parent = gui
 
-local crossH = Instance.new("Frame")
-crossH.Name = "CrossH"
-crossH.Size = UDim2.new(0, 20, 0, 2)
-crossH.Position = UDim2.new(0, 0, 0.5, -1)
-crossH.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-crossH.BorderSizePixel = 0
-crossH.Parent = crosshair
+-- Camera info overlay (top right)
+local cameraInfo = Instance.new("Frame")
+cameraInfo.Name = "CameraInfo"
+cameraInfo.Size = UDim2.new(0, 200, 0, 80)
+cameraInfo.Position = UDim2.new(1, -210, 0, 10)
+cameraInfo.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+cameraInfo.BackgroundTransparency = 0.7
+cameraInfo.Parent = monitorGui
 
-local crossV = Instance.new("Frame")
-crossV.Name = "CrossV"
-crossV.Size = UDim2.new(0, 2, 0, 20)
-crossV.Position = UDim2.new(0.5, -1, 0, 0)
-crossV.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-crossV.BorderSizePixel = 0
-crossV.Parent = crosshair
+local infoCorner = Instance.new("UICorner")
+infoCorner.CornerRadius = UDim.new(0, 10)
+infoCorner.Parent = cameraInfo
 
--- Shift lock variables
-local camera = Workspace.CurrentCamera
-local mouse = player:GetMouse()
-local lastMousePos = Vector2.new(0, 0)
-local yaw = 0
-local pitch = 0
-local shiftLockConnection = nil
+local cameraTitle = Instance.new("TextLabel")
+cameraTitle.Name = "CameraTitle"
+cameraTitle.Size = UDim2.new(1, -10, 0, 30)
+cameraTitle.Position = UDim2.new(0, 10, 0, 5)
+cameraTitle.BackgroundTransparency = 1
+cameraTitle.Text = "CAMERA 0"
+cameraTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+cameraTitle.Font = Enum.Font.GothamBold
+cameraTitle.TextSize = 18
+cameraTitle.TextXAlignment = Enum.TextXAlignment.Left
+cameraTitle.Parent = cameraInfo
 
--- Shift lock functions
-local function enableShiftLock()
-    if state.shiftLockEnabled then return end
+local cameraPosition = Instance.new("TextLabel")
+cameraPosition.Name = "CameraPosition"
+cameraPosition.Size = UDim2.new(1, -10, 0, 20)
+cameraPosition.Position = UDim2.new(0, 10, 0, 35)
+cameraPosition.BackgroundTransparency = 1
+cameraPosition.Text = "X:0 Y:0 Z:0"
+cameraPosition.TextColor3 = Color3.fromRGB(200, 200, 200)
+cameraPosition.Font = Enum.Font.Gotham
+cameraPosition.TextSize = 12
+cameraPosition.TextXAlignment = Enum.TextXAlignment.Left
+cameraPosition.Parent = cameraInfo
+
+local cameraControls = Instance.new("TextLabel")
+cameraControls.Name = "CameraControls"
+cameraControls.Size = UDim2.new(1, -10, 0, 20)
+cameraControls.Position = UDim2.new(0, 10, 0, 55)
+cameraControls.BackgroundTransparency = 1
+cameraControls.Text = "WASD: Move | QE: Zoom | ←→: Switch"
+cameraControls.TextColor3 = Color3.fromRGB(150, 150, 255)
+cameraControls.Font = Enum.Font.Gotham
+cameraControls.TextSize = 11
+cameraControls.TextXAlignment = Enum.TextXAlignment.Left
+cameraControls.Parent = cameraInfo
+
+-- Camera functions
+local function createCameraVisual(position, index)
+    -- Create camera model
+    local cameraModel = Instance.new("Part")
+    cameraModel.Name = "SecurityCamera_" .. index
+    cameraModel.Size = Vector3.new(1, 1, 1)
+    cameraModel.Position = position
+    cameraModel.Anchored = true
+    cameraModel.CanCollide = false
+    cameraModel.Material = EnumMaterial.Metal
+    cameraModel.Color = Color3.fromRGB(50, 50, 50)
     
-    state.originalCameraType = camera.CameraType
-    state.originalMouseBehavior = UserInputService.MouseBehavior
+    -- Camera body
+    local body = Instance.new("Part")
+    body.Name = "Body"
+    body.Size = Vector3.new(0.5, 0.5, 0.5)
+    body.Position = position + Vector3.new(0, 0.5, 0)
+    body.Anchored = true
+    body.CanCollide = false
+    body.Material = EnumMaterial.Metal
+    body.Color = Color3.fromRGB(30, 30, 30)
+    body.Parent = cameraModel
     
-    state.shiftLockEnabled = true
-    camera.CameraType = Enum.CameraType.Scriptable
+    -- Camera lens
+    local lens = Instance.new("Part")
+    lens.Name = "Lens"
+    lens.Size = Vector3.new(0.2, 0.2, 0.2)
+    lens.Position = position + Vector3.new(0, 0.5, 0.3)
+    lens.Anchored = true
+    lens.CanCollide = false
+    lens.Material = EnumMaterial.Glass
+    lens.Color = Color3.fromRGB(0, 100, 255)
+    lens.Transparency = 0.3
+    lens.Parent = cameraModel
     
-    -- Initialize camera angles
+    -- Light to indicate active camera
+    local light = Instance.new("PointLight")
+    light.Name = "CameraLight"
+    light.Color = Color3.fromRGB(0, 100, 255)
+    light.Brightness = 0
+    light.Range = 5
+    light.Parent = cameraModel
+    
+    cameraModel.Parent = Workspace
+    
+    -- Store camera data
+    local cameraData = {
+        model = cameraModel,
+        position = position,
+        index = index,
+        rotation = Vector2.new(0, 0),
+        offset = Vector3.new(0, 0, -10),
+        fov = config.cameraFOV
+    }
+    
+    return cameraData
+end
+
+local function updateCamerasList()
+    local count = #state.cameras
+    camerasLabel.Text = "CAMERAS: " .. count .. "/" .. config.maxCameras
+    
+    if count == 0 then
+        camerasList.Text = "No cameras placed"
+    else
+        local listText = ""
+        for i, cam in ipairs(state.cameras) do
+            listText = listText .. "📷 Camera " .. i .. "\n"
+        end
+        camerasList.Text = listText
+    end
+end
+
+local function placeCamera()
+    if #state.cameras >= config.maxCameras then
+        status.Text = "MAX CAMERAS REACHED (" .. config.maxCameras .. ")"
+        return
+    end
+    
     local character = player.Character
-    if character then
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local cf = hrp.CFrame
-            local look = cf.LookVector
-            yaw = math.atan2(look.Z, look.X)
-            pitch = math.asin(look.Y)
+    if not character then return end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local cameraPosition = hrp.Position + Vector3.new(0, 5, 0)
+    local index = #state.cameras + 1
+    
+    local cameraData = createCameraVisual(cameraPosition, index)
+    table.insert(state.cameras, cameraData)
+    
+    status.Text = "📷 CAMERA " .. index .. " PLACED"
+    updateCamerasList()
+end
+
+local function clearAllCameras()
+    for i, cam in ipairs(state.cameras) do
+        if cam.model then
+            cam.model:Destroy()
         end
     end
     
-    crosshair.Visible = true
-    status.Text = "SHIFT LOCK: ON"
-    toggleBtn.Text = "⏹️ DISABLE SHIFT LOCK"
+    state.cameras = {}
+    state.currentCamera = nil
+    state.cameraIndex = 0
     
-    -- Mouse lock logic
-    shiftLockConnection = RunService.RenderStepped:Connect(function(delta)
-        if not state.shiftLockEnabled then return end
+    updateCamerasList()
+    status.Text = "ALL CAMERAS CLEARED"
+end
+
+local function switchCamera(direction)
+    if #state.cameras == 0 then return end
+    
+    if direction == "next" then
+        state.cameraIndex = state.cameraIndex + 1
+        if state.cameraIndex > #state.cameras then
+            state.cameraIndex = 1
+        end
+    elseif direction == "prev" then
+        state.cameraIndex = state.cameraIndex - 1
+        if state.cameraIndex < 1 then
+            state.cameraIndex = #state.cameras
+        end
+    end
+    
+    state.currentCamera = state.cameras[state.cameraIndex]
+    
+    -- Update camera info
+    if state.currentCamera and state.isMonitoring then
+        cameraTitle.Text = "📷 CAMERA " .. state.cameraIndex
+        local pos = state.currentCamera.position
+        cameraPosition.Text = string.format("X:%d Y:%d Z:%d", 
+            math.floor(pos.X), math.floor(pos.Y), math.floor(pos.Z))
         
-        local character = player.Character
-        if not character then return end
+        -- Update camera lights
+        for i, cam in ipairs(state.cameras) do
+            local light = cam.model:FindFirstChild("CameraLight")
+            if light then
+                light.Brightness = (i == state.cameraIndex) and 3 or 0
+            end
+        end
+    end
+end
+
+local function startMonitoring()
+    if #state.cameras == 0 then
+        status.Text = "NO CAMERAS TO MONITOR"
+        return
+    end
+    
+    state.isMonitoring = true
+    state.cameraIndex = 1
+    state.currentCamera = state.cameras[1]
+    
+    -- Switch to Scriptable camera
+    local camera = Workspace.CurrentCamera
+    camera.CameraType = Enum.CameraType.Scriptable
+    
+    -- Show monitor GUI
+    monitorGui.Visible = true
+    monitorBtn.Text = "⏹️ EXIT MONITOR"
+    
+    -- Update camera info
+    cameraTitle.Text = "📷 CAMERA " .. state.cameraIndex
+    local pos = state.currentCamera.position
+    cameraPosition.Text = string.format("X:%d Y:%d Z:%d", 
+        math.floor(pos.X), math.floor(pos.Y), math.floor(pos.Z))
+    
+    -- Turn on light for current camera
+    for i, cam in ipairs(state.cameras) do
+        local light = cam.model:FindFirstChild("CameraLight")
+        if light then
+            light.Brightness = (i == state.cameraIndex) and 3 or 0
+        end
+    end
+    
+    status.Text = "MONITORING MODE ACTIVE"
+end
+
+local function stopMonitoring()
+    state.isMonitoring = false
+    state.currentCamera = nil
+    
+    -- Return to normal camera
+    local camera = Workspace.CurrentCamera
+    camera.CameraType = Enum.CameraType.Custom
+    
+    -- Hide monitor GUI
+    monitorGui.Visible = false
+    monitorBtn.Text = "👁️ MONITOR MODE"
+    
+    -- Turn off all camera lights
+    for _, cam in ipairs(state.cameras) do
+        local light = cam.model:FindFirstChild("CameraLight")
+        if light then
+            light.Brightness = 0
+        end
+    end
+    
+    status.Text = "EXITED MONITOR MODE"
+end
+
+local function toggleMonitoring()
+    if state.isMonitoring then
+        stopMonitoring()
+    else
+        startMonitoring()
+    end
+end
+
+-- Camera movement in monitor mode
+local monitorConnection
+local function setupMonitorControls()
+    if monitorConnection then
+        monitorConnection:Disconnect()
+    end
+    
+    monitorConnection = RunService.RenderStepped:Connect(function(delta)
+        if not state.isMonitoring or not state.currentCamera then return end
         
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
+        local camera = Workspace.CurrentCamera
         
-        -- Get mouse delta
-        local mouseDelta = Vector2.new(mouse.Delta.X, mouse.Delta.Y)
+        -- Calculate camera position based on offset and rotation
+        local camData = state.currentCamera
+        local basePos = camData.position
         
-        -- Apply sensitivity
-        yaw = yaw - mouseDelta.X * state.sensitivity * 0.01
-        pitch = pitch - mouseDelta.Y * state.sensitivity * 0.01
+        -- Apply rotation to offset
+        local yaw = camData.rotation.X
+        local pitch = camData.rotation.Y
         
-        -- Clamp pitch
-        pitch = math.clamp(pitch, -math.pi/2 + 0.1, math.pi/2 - 0.1)
+        local offset = camData.offset * state.zoomLevel
         
-        -- Calculate camera position (offset from character)
-        local offset = Vector3.new(0, 2, -10)
+        -- Rotate offset based on yaw and pitch
+        local rotCFrame = CFrame.fromEulerAnglesYXZ(pitch, yaw, 0)
+        local rotatedOffset = rotCFrame:PointToWorldSpace(offset)
         
-        -- Rotate offset based on yaw
-        local rotCF = CFrame.fromEulerAnglesYXZ(0, yaw, 0)
-        offset = rotCF:PointToWorldSpace(offset)
+        local cameraPos = basePos + rotatedOffset
         
-        -- Set camera position and look direction
-        local cameraPos = hrp.Position + offset
-        local lookDir = Vector3.new(math.cos(yaw) * math.cos(pitch), math.sin(pitch), math.sin(yaw) * math.cos(pitch))
+        -- Set camera position and look at base position
+        camera.CFrame = CFrame.new(cameraPos, basePos)
+        camera.FieldOfView = camData.fov / state.zoomLevel
         
-        camera.CFrame = CFrame.new(cameraPos, cameraPos + lookDir)
-        camera.FieldOfView = state.fov
+        -- Handle keyboard controls
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            camData.rotation = Vector2.new(
+                camData.rotation.X - delta * config.panSpeed,
+                camData.rotation.Y
+            )
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            camData.rotation = Vector2.new(
+                camData.rotation.X + delta * config.panSpeed,
+                camData.rotation.Y
+            )
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            camData.rotation = Vector2.new(
+                camData.rotation.X,
+                math.max(camData.rotation.Y - delta * config.panSpeed, -1.5)
+            )
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            camData.rotation = Vector2.new(
+                camData.rotation.X,
+                math.min(camData.rotation.Y + delta * config.panSpeed, 1.5)
+            )
+        end
         
-        -- Lock mouse to center
-        if mouseDelta.Magnitude > 0 then
-            mouse.TargetFilter = Workspace
-            mouseBehavior = Enum.MouseBehavior.LockCenter
+        -- Zoom controls
+        if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
+            state.zoomLevel = math.min(state.zoomLevel + delta * config.zoomSpeed, 5)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.E) then
+            state.zoomLevel = math.max(state.zoomLevel - delta * config.zoomSpeed, 0.5)
         end
     end)
 end
 
-local function disableShiftLock()
-    if not state.shiftLockEnabled then return end
-    
-    state.shiftLockEnabled = false
-    
-    if shiftLockConnection then
-        shiftLockConnection:Disconnect()
-        shiftLockConnection = nil
-    end
-    
-    camera.CameraType = state.originalCameraType or Enum.CameraType.Custom
-    UserInputService.MouseBehavior = state.originalMouseBehavior or Enum.MouseBehavior.Default
-    
-    crosshair.Visible = false
-    status.Text = "SHIFT LOCK: OFF"
-    toggleBtn.Text = "🎮 ENABLE SHIFT LOCK"
-end
-
-local function toggleShiftLock()
-    if state.shiftLockEnabled then
-        disableShiftLock()
-    else
-        enableShiftLock()
-    end
-end
-
-local function resetCamera()
-    disableShiftLock()
-    
-    if camera then
-        camera.CameraType = Enum.CameraType.Custom
-        camera.FieldOfView = 70
-    end
-    
-    status.Text = "CAMERA RESET"
-end
-
 -- Button events
-toggleBtn.MouseButton1Click:Connect(toggleShiftLock)
-resetBtn.MouseButton1Click:Connect(resetCamera)
+placeBtn.MouseButton1Click:Connect(placeCamera)
+monitorBtn.MouseButton1Click:Connect(toggleMonitoring)
+clearBtn.MouseButton1Click:Connect(clearAllCameras)
 
--- Slider dragging
-local dragging = nil
-
-local function updateSensitivity(value)
-    state.sensitivity = math.clamp(value, 0.1, 2)
-    sensLabel.Text = "SENSITIVITY: " .. string.format("%.1f", state.sensitivity)
-    sensFill.Size = UDim2.new(state.sensitivity / 2, 0, 1, 0)
-    sensHandle.Position = UDim2.new(state.sensitivity / 2, -10, 0, 0)
-end
-
-local function updateFOV(value)
-    state.fov = math.clamp(value, 50, 100)
-    fovLabel.Text = "FOV: " .. state.fov
-    fovFill.Size = UDim2.new((state.fov - 50) / 50, 0, 1, 0)
-    fovHandle.Position = UDim2.new((state.fov - 50) / 50, -10, 0, 0)
-    
-    if camera then
-        camera.FieldOfView = state.fov
-    end
-end
-
-sensHandle.MouseButton1Down:Connect(function()
-    dragging = "sens"
-end)
-
-fovHandle.MouseButton1Down:Connect(function()
-    dragging = "fov"
-end)
-
-RunService.Heartbeat:Connect(function()
-    if dragging then
-        local mousePos = game:GetService("Players").LocalPlayer:GetMouse()
-        
-        if dragging == "sens" then
-            local slider = sensSlider
-            local absPos = slider.AbsolutePosition.X
-            local absSize = slider.AbsoluteSize.X
-            
-            local relative = math.clamp((mousePos.X - absPos) / absSize, 0, 1)
-            local value = 0.1 + relative * 1.9
-            updateSensitivity(value)
-            
-        elseif dragging == "fov" then
-            local slider = fovSlider
-            local absPos = slider.AbsolutePosition.X
-            local absSize = slider.AbsoluteSize.X
-            
-            local relative = math.clamp((mousePos.X - absPos) / absSize, 0, 1)
-            local value = 50 + relative * 50
-            updateFOV(value)
-        end
-    end
-end)
-
-game:GetService("UserInputService").InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = nil
-    end
-end)
-
--- Hotkey (Shift to toggle)
+-- Camera switching in monitor mode
 UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.LeftShift then
-        toggleShiftLock()
+    if not state.isMonitoring or processed then return end
+    
+    if input.KeyCode == Enum.KeyCode.Right then
+        switchCamera("next")
+    elseif input.KeyCode == Enum.KeyCode.Left then
+        switchCamera("prev")
+    elseif input.KeyCode == Enum.KeyCode.R then
+        -- Reset camera rotation and zoom
+        if state.currentCamera then
+            state.currentCamera.rotation = Vector2.new(0, 0)
+            state.zoomLevel = 1
+        end
     end
 end)
 
@@ -438,30 +552,26 @@ menuToggleBtn.MouseButton1Click:Connect(function()
     state.menuVisible = not state.menuVisible
     
     if state.menuVisible then
-        menu.Position = UDim2.new(0, 10, 0.5, -150)
-        menuToggleBtn.Position = UDim2.new(0, 240, 0.5, -20)
+        menu.Position = UDim2.new(0, 10, 0.5, -175)
+        menuToggleBtn.Position = UDim2.new(0, 270, 0.5, -20)
         menuToggleBtn.Text = "◀"
     else
-        menu.Position = UDim2.new(-1, 0, 0.5, -150)
+        menu.Position = UDim2.new(-1, 0, 0.5, -175)
         menuToggleBtn.Position = UDim2.new(0, 10, 0.5, -20)
         menuToggleBtn.Text = "▶"
     end
 end)
 
--- Auto-disable on death
-player.CharacterAdded:Connect(function()
-    disableShiftLock()
-end)
+-- Setup monitor controls when monitoring starts
+setupMonitorControls()
 
 -- Cleanup
 gui.Destroying:Connect(function()
-    disableShiftLock()
+    if monitorConnection then
+        monitorConnection:Disconnect()
+    end
+    clearAllCameras()
 end)
 
--- Initial setup
-updateSensitivity(state.sensitivity)
-updateFOV(state.fov)
-
-print("ShiftLock Cheat by sherikyt loaded")
-print("Hotkey: Left Shift to toggle")
-print("Use menu to adjust sensitivity and FOV")
+print("Security Camera System by sherikyt loaded")
+print("Place up to 5 cameras and monitor them!")
