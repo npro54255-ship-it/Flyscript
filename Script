@@ -20,10 +20,8 @@ local state = {
     currentCamera = nil,
     cameraIndex = 0,
     isMonitoring = false,
-    isPlacing = false,
     menuVisible = true,
-    zoomLevel = 1,
-    camRotation = Vector2.new(0, 0)
+    zoomLevel = 1
 }
 
 -- Create GUI
@@ -249,21 +247,26 @@ cameraControls.Parent = cameraInfo
 
 -- Camera functions
 local function createCameraVisual(position, index)
-    -- Create camera model
-    local cameraModel = Instance.new("Part")
+    -- Create main camera model as a Model
+    local cameraModel = Instance.new("Model")
     cameraModel.Name = "SecurityCamera_" .. index
-    cameraModel.Size = Vector3.new(1, 1, 1)
-    cameraModel.Position = position
-    cameraModel.Anchored = true
-    cameraModel.CanCollide = false
-    cameraModel.Material = EnumMaterial.Metal
-    cameraModel.Color = Color3.fromRGB(50, 50, 50)
+    
+    -- Base part
+    local base = Instance.new("Part")
+    base.Name = "Base"
+    base.Size = Vector3.new(1, 0.2, 1)
+    base.Position = position
+    base.Anchored = true
+    base.CanCollide = false
+    base.Material = EnumMaterial.Metal
+    base.Color = Color3.fromRGB(50, 50, 50)
+    base.Parent = cameraModel
     
     -- Camera body
     local body = Instance.new("Part")
     body.Name = "Body"
     body.Size = Vector3.new(0.5, 0.5, 0.5)
-    body.Position = position + Vector3.new(0, 0.5, 0)
+    body.Position = position + Vector3.new(0, 0.6, 0)
     body.Anchored = true
     body.CanCollide = false
     body.Material = EnumMaterial.Metal
@@ -274,7 +277,7 @@ local function createCameraVisual(position, index)
     local lens = Instance.new("Part")
     lens.Name = "Lens"
     lens.Size = Vector3.new(0.2, 0.2, 0.2)
-    lens.Position = position + Vector3.new(0, 0.5, 0.3)
+    lens.Position = position + Vector3.new(0, 0.6, 0.3)
     lens.Anchored = true
     lens.CanCollide = false
     lens.Material = EnumMaterial.Glass
@@ -288,8 +291,9 @@ local function createCameraVisual(position, index)
     light.Color = Color3.fromRGB(0, 100, 255)
     light.Brightness = 0
     light.Range = 5
-    light.Parent = cameraModel
+    light.Parent = body
     
+    cameraModel.PrimaryPart = base
     cameraModel.Parent = Workspace
     
     -- Store camera data
@@ -327,19 +331,33 @@ local function placeCamera()
     end
     
     local character = player.Character
-    if not character then return end
+    if not character then
+        status.Text = "NO CHARACTER FOUND"
+        return
+    end
     
     local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+    if not hrp then
+        status.Text = "CANNOT FIND HUMANOIDROOTPART"
+        return
+    end
     
     local cameraPosition = hrp.Position + Vector3.new(0, 5, 0)
     local index = #state.cameras + 1
     
-    local cameraData = createCameraVisual(cameraPosition, index)
-    table.insert(state.cameras, cameraData)
+    local success, cameraData = pcall(function()
+        return createCameraVisual(cameraPosition, index)
+    end)
     
-    status.Text = "📷 CAMERA " .. index .. " PLACED"
-    updateCamerasList()
+    if success and cameraData then
+        table.insert(state.cameras, cameraData)
+        status.Text = "📷 CAMERA " .. index .. " PLACED"
+        updateCamerasList()
+        print("Camera " .. index .. " placed at:", cameraPosition)
+    else
+        status.Text = "ERROR PLACING CAMERA"
+        print("Error placing camera:", cameraData)
+    end
 end
 
 local function clearAllCameras()
@@ -383,7 +401,7 @@ local function switchCamera(direction)
         
         -- Update camera lights
         for i, cam in ipairs(state.cameras) do
-            local light = cam.model:FindFirstChild("CameraLight")
+            local light = cam.model.Body:FindFirstChild("CameraLight")
             if light then
                 light.Brightness = (i == state.cameraIndex) and 3 or 0
             end
@@ -417,7 +435,7 @@ local function startMonitoring()
     
     -- Turn on light for current camera
     for i, cam in ipairs(state.cameras) do
-        local light = cam.model:FindFirstChild("CameraLight")
+        local light = cam.model.Body:FindFirstChild("CameraLight")
         if light then
             light.Brightness = (i == state.cameraIndex) and 3 or 0
         end
@@ -440,7 +458,7 @@ local function stopMonitoring()
     
     -- Turn off all camera lights
     for _, cam in ipairs(state.cameras) do
-        local light = cam.model:FindFirstChild("CameraLight")
+        local light = cam.model.Body:FindFirstChild("CameraLight")
         if light then
             light.Brightness = 0
         end
@@ -562,7 +580,7 @@ menuToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Setup monitor controls when monitoring starts
+-- Setup monitor controls
 setupMonitorControls()
 
 -- Cleanup
