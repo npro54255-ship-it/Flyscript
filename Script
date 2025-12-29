@@ -1,456 +1,375 @@
--- Ultimate Fly Script with Joystick
--- made by gay228
+-- Fly Script by sherikyt
+-- Created with enhanced UI and controls
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanoidRootPart")
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- Variables
+-- Configuration
 local flySpeed = 50
 local isFlying = false
-local bodyVelocity = nil
-local flyingConnection = nil
-local joystickActive = false
-local joystickDirection = Vector3.new(0, 0, 0)
+local flightVelocity = Vector3.new(0, 0, 0)
+local connection
 
--- Create main GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateFlyGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FlyScriptUI"
+screenGui.Parent = player.PlayerGui
 
--- Main control panel (left side)
-local ControlPanel = Instance.new("Frame")
-ControlPanel.Name = "ControlPanel"
-ControlPanel.Size = UDim2.new(0, 280, 0, 200)
-ControlPanel.Position = UDim2.new(0, 20, 0.5, -100)
-ControlPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-ControlPanel.BackgroundTransparency = 0.15
-ControlPanel.BorderSizePixel = 0
-ControlPanel.Active = true
-ControlPanel.Draggable = true
-ControlPanel.Parent = ScreenGui
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 350, 0, 280)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
 
--- Rounded corners
-local PanelCorner = Instance.new("UICorner")
-PanelCorner.CornerRadius = UDim.new(0, 20)
-PanelCorner.Parent = ControlPanel
+-- Corner for main frame
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
 
--- Shadow effect
-local PanelShadow = Instance.new("UIStroke")
-PanelShadow.Color = Color3.fromRGB(80, 120, 255)
-PanelShadow.Thickness = 2
-PanelShadow.Transparency = 0.5
-PanelShadow.Parent = ControlPanel
+-- Gradient Background
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 60)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+})
+gradient.Rotation = 45
+gradient.Parent = mainFrame
 
--- Title
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Position = UDim2.new(0, 0, 0, 0)
-Title.BackgroundColor3 = Color3.fromRGB(40, 60, 150)
-Title.BackgroundTransparency = 0.3
-Title.Text = "🛸 ULTIMATE FLY"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 22
-Title.Font = Enum.Font.GothamBold
-Title.Parent = ControlPanel
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+titleBar.BackgroundTransparency = 0.3
+titleBar.Parent = mainFrame
 
-local MadeBy = Instance.new("TextLabel")
-MadeBy.Name = "MadeBy"
-MadeBy.Size = UDim2.new(1, 0, 0, 25)
-MadeBy.Position = UDim2.new(0, 0, 0, 40)
-MadeBy.BackgroundTransparency = 1
-MadeBy.Text = "made by gay228"
-MadeBy.TextColor3 = Color3.fromRGB(255, 100, 150)
-MadeBy.TextSize = 16
-MadeBy.Font = Enum.Font.Gotham
-MadeBy.Parent = ControlPanel
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.Parent = titleBar
 
--- Toggle button
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "ToggleButton"
-ToggleButton.Size = UDim2.new(0.8, 0, 0, 50)
-ToggleButton.Position = UDim2.new(0.1, 0, 0.35, 0)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-ToggleButton.Text = "🛸 START FLYING"
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.TextSize = 18
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.Parent = ControlPanel
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -20, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🛸 Advanced Flight System"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
 
-local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, 12)
-ToggleCorner.Parent = ToggleButton
+local creator = Instance.new("TextLabel")
+creator.Name = "Creator"
+creator.Size = UDim2.new(1, -20, 0, 20)
+creator.Position = UDim2.new(0, 10, 0, 35)
+creator.BackgroundTransparency = 1
+creator.Text = "Created by: sherikyt"
+creator.TextColor3 = Color3.fromRGB(180, 180, 220)
+creator.Font = Enum.Font.Gotham
+creator.TextSize = 14
+creator.TextXAlignment = Enum.TextXAlignment.Left
+creator.Parent = titleBar
 
--- Speed controls
-local SpeedFrame = Instance.new("Frame")
-SpeedFrame.Name = "SpeedFrame"
-SpeedFrame.Size = UDim2.new(0.8, 0, 0, 40)
-SpeedFrame.Position = UDim2.new(0.1, 0, 0.65, 0)
-SpeedFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-SpeedFrame.BackgroundTransparency = 0.5
-SpeedFrame.Parent = ControlPanel
+-- Speed Display
+local speedFrame = Instance.new("Frame")
+speedFrame.Name = "SpeedFrame"
+speedFrame.Size = UDim2.new(0.8, 0, 0, 60)
+speedFrame.Position = UDim2.new(0.1, 0, 0, 70)
+speedFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+speedFrame.BackgroundTransparency = 0.3
+speedFrame.Parent = mainFrame
 
-local SpeedCorner = Instance.new("UICorner")
-SpeedCorner.CornerRadius = UDim.new(0, 10)
-SpeedCorner.Parent = SpeedFrame
+local speedCorner = Instance.new("UICorner")
+speedCorner.CornerRadius = UDim.new(0, 10)
+speedCorner.Parent = speedFrame
 
-local SpeedLabel = Instance.new("TextLabel")
-SpeedLabel.Name = "SpeedLabel"
-SpeedLabel.Size = UDim2.new(0.6, 0, 1, 0)
-SpeedLabel.Position = UDim2.new(0, 0, 0, 0)
-SpeedLabel.BackgroundTransparency = 1
-SpeedLabel.Text = "Speed: " .. flySpeed
-SpeedLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-SpeedLabel.TextSize = 16
-SpeedLabel.Font = Enum.Font.Gotham
-SpeedLabel.Parent = SpeedFrame
+local speedIcon = Instance.new("TextLabel")
+speedIcon.Name = "SpeedIcon"
+speedIcon.Size = UDim2.new(0, 40, 1, 0)
+speedIcon.BackgroundTransparency = 1
+speedIcon.Text = "⚡"
+speedIcon.TextColor3 = Color3.fromRGB(255, 215, 0)
+speedIcon.Font = Enum.Font.GothamBold
+speedIcon.TextSize = 24
+speedIcon.Parent = speedFrame
 
-local SpeedUp = Instance.new("TextButton")
-SpeedUp.Name = "SpeedUp"
-SpeedUp.Size = UDim2.new(0.2, 0, 1, 0)
-SpeedUp.Position = UDim2.new(0.6, 0, 0, 0)
-SpeedUp.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
-SpeedUp.Text = "+"
-SpeedUp.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedUp.TextSize = 20
-SpeedUp.Font = Enum.Font.GothamBold
-SpeedUp.Parent = SpeedFrame
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Name = "SpeedLabel"
+speedLabel.Size = UDim2.new(1, -50, 0.5, 0)
+speedLabel.Position = UDim2.new(0, 45, 0, 5)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "CURRENT SPEED"
+speedLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 12
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = speedFrame
 
-local SpeedDown = Instance.new("TextButton")
-SpeedDown.Name = "SpeedDown"
-SpeedDown.Size = UDim2.new(0.2, 0, 1, 0)
-SpeedDown.Position = UDim2.new(0.8, 0, 0, 0)
-SpeedDown.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-SpeedDown.Text = "-"
-SpeedDown.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedDown.TextSize = 20
-SpeedDown.Font = Enum.Font.GothamBold
-SpeedDown.Parent = SpeedFrame
+local speedValue = Instance.new("TextLabel")
+speedValue.Name = "SpeedValue"
+speedValue.Size = UDim2.new(1, -50, 0.5, 0)
+speedValue.Position = UDim2.new(0, 45, 0, 25)
+speedValue.BackgroundTransparency = 1
+speedValue.Text = tostring(flySpeed)
+speedValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedValue.Font = Enum.Font.GothamBold
+speedValue.TextSize = 20
+speedValue.TextXAlignment = Enum.TextXAlignment.Left
+speedValue.Parent = speedFrame
 
--- Info label
-local InfoLabel = Instance.new("TextLabel")
-InfoLabel.Name = "InfoLabel"
-InfoLabel.Size = UDim2.new(1, 0, 0, 30)
-InfoLabel.Position = UDim2.new(0, 0, 1, -30)
-InfoLabel.BackgroundTransparency = 1
-InfoLabel.Text = "Use joystick on right side to move"
-InfoLabel.TextColor3 = Color3.fromRGB(150, 150, 200)
-InfoLabel.TextSize = 14
-InfoLabel.Font = Enum.Font.Gotham
-InfoLabel.Parent = ControlPanel
-
--- JOYSTICK GUI (right side)
-local JoystickFrame = Instance.new("Frame")
-JoystickFrame.Name = "JoystickFrame"
-JoystickFrame.Size = UDim2.new(0, 200, 0, 200)
-JoystickFrame.Position = UDim2.new(1, -220, 0.5, -100)
-JoystickFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-JoystickFrame.BackgroundTransparency = 0.3
-JoystickFrame.BorderSizePixel = 0
-JoystickFrame.Visible = false
-JoystickFrame.Parent = ScreenGui
-
-local JoystickCorner = Instance.new("UICorner")
-JoystickCorner.CornerRadius = UDim.new(0, 100)
-JoystickCorner.Parent = JoystickFrame
-
--- Joystick background circle
-local JoystickBg = Instance.new("Frame")
-JoystickBg.Name = "JoystickBg"
-JoystickBg.Size = UDim2.new(0, 150, 0, 150)
-JoystickBg.Position = UDim2.new(0.5, -75, 0.5, -75)
-JoystickBg.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-JoystickBg.BackgroundTransparency = 0.5
-JoystickBg.BorderSizePixel = 0
-JoystickBg.Parent = JoystickFrame
-
-local JoystickBgCorner = Instance.new("UICorner")
-JoystickBgCorner.CornerRadius = UDim.new(0, 75)
-JoystickBgCorner.Parent = JoystickBg
-
--- Joystick handle (movable part)
-local JoystickHandle = Instance.new("Frame")
-JoystickHandle.Name = "JoystickHandle"
-JoystickHandle.Size = UDim2.new(0, 60, 0, 60)
-JoystickHandle.Position = UDim2.new(0.5, -30, 0.5, -30)
-JoystickHandle.BackgroundColor3 = Color3.fromRGB(80, 120, 255)
-JoystickHandle.BorderSizePixel = 0
-JoystickHandle.Parent = JoystickFrame
-
-local HandleCorner = Instance.new("UICorner")
-HandleCorner.CornerRadius = UDim.new(0, 30)
-HandleCorner.Parent = JoystickHandle
-
-local HandleGlow = Instance.new("UIStroke")
-HandleGlow.Color = Color3.fromRGB(150, 180, 255)
-HandleGlow.Thickness = 3
-HandleGlow.Parent = JoystickHandle
-
--- Joystick center point
-local CenterDot = Instance.new("Frame")
-CenterDot.Name = "CenterDot"
-CenterDot.Size = UDim2.new(0, 10, 0, 10)
-CenterDot.Position = UDim2.new(0.5, -5, 0.5, -5)
-CenterDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-CenterDot.BorderSizePixel = 0
-CenterDot.Parent = JoystickFrame
-
-local CenterCorner = Instance.new("UICorner")
-CenterCorner.CornerRadius = UDim.new(0, 5)
-CenterCorner.Parent = CenterDot
-
--- Joystick instruction
-local JoystickLabel = Instance.new("TextLabel")
-JoystickLabel.Name = "JoystickLabel"
-JoystickLabel.Size = UDim2.new(1, 0, 0, 30)
-JoystickLabel.Position = UDim2.new(0, 0, 1, -30)
-JoystickLabel.BackgroundTransparency = 1
-JoystickLabel.Text = "Drag to move • Release to stop"
-JoystickLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-JoystickLabel.TextSize = 14
-JoystickLabel.Font = Enum.Font.Gotham
-JoystickLabel.Parent = JoystickFrame
-
--- Functions
-local function updateSpeedDisplay()
-    SpeedLabel.Text = "Speed: " .. flySpeed
+-- Control Buttons
+local function createButton(name, text, position, color)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0, 80, 0, 40)
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.BackgroundTransparency = 0.2
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 16
+    button.AutoButtonColor = true
+    button.Parent = mainFrame
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 8)
+    buttonCorner.Parent = button
+    
+    local buttonStroke = Instance.new("UIStroke")
+    buttonStroke.Color = Color3.fromRGB(255, 255, 255)
+    buttonStroke.Thickness = 1
+    buttonStroke.Transparency = 0.5
+    buttonStroke.Parent = button
+    
+    return button
 end
 
-local function updateToggleButton()
-    if isFlying then
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
-        ToggleButton.Text = "🛸 FLYING ON"
-        JoystickFrame.Visible = true
-        
-        -- Fade in joystick
-        JoystickFrame.BackgroundTransparency = 0.7
-        local tween = TweenService:Create(JoystickFrame, TweenInfo.new(0.5), {BackgroundTransparency = 0.3})
+-- Plus Button
+local plusButton = createButton("PlusButton", "+ INCREASE", 
+    UDim2.new(0.1, 0, 0, 140), Color3.fromRGB(40, 180, 40))
+
+-- Minus Button
+local minusButton = createButton("MinusButton", "- DECREASE", 
+    UDim2.new(0.1, 0, 0, 190), Color3.fromRGB(220, 40, 40))
+
+-- Fly Toggle Button
+local flyButton = createButton("FlyButton", "🛸 TOGGLE FLY", 
+    UDim2.new(0.1, 0, 0, 240), Color3.fromRGB(60, 100, 220))
+
+-- Instructions
+local instructions = Instance.new("TextLabel")
+instructions.Name = "Instructions"
+instructions.Size = UDim2.new(0.8, 0, 0, 40)
+instructions.Position = UDim2.new(0.1, 0, 0, 290)
+instructions.BackgroundTransparency = 1
+instructions.Text = "Use movement keys + mouse to control flight direction"
+instructions.TextColor3 = Color3.fromRGB(200, 200, 200)
+instructions.Font = Enum.Font.Gotham
+instructions.TextSize = 12
+instructions.TextXAlignment = Enum.TextXAlignment.Center
+instructions.Parent = mainFrame
+
+-- Animation for buttons
+local function animateButton(button)
+    local originalSize = button.Size
+    local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    button.MouseButton1Down:Connect(function()
+        local tween = TweenService:Create(button, tweenInfo, {Size = originalSize - UDim2.new(0, 5, 0, 5)})
         tween:Play()
+    end)
+    
+    button.MouseButton1Up:Connect(function()
+        local tween = TweenService:Create(button, tweenInfo, {Size = originalSize})
+        tween:Play()
+    end)
+end
+
+animateButton(plusButton)
+animateButton(minusButton)
+animateButton(flyButton)
+
+-- Fly Functions
+local function startFlying()
+    if not humanoidRootPart or not character then return end
+    
+    humanoid.PlatformStand = true
+    isFlying = true
+    
+    local bg = Instance.new("BodyGyro")
+    bg.Name = "FlightGyro"
+    bg.P = 10000
+    bg.D = 500
+    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bg.CFrame = humanoidRootPart.CFrame
+    bg.Parent = humanoidRootPart
+    
+    local bv = Instance.new("BodyVelocity")
+    bv.Name = "FlightVelocity"
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.P = 10000
+    bv.Parent = humanoidRootPart
+    
+    connection = RunService.RenderStepped:Connect(function(delta)
+        if not isFlying or not humanoidRootPart or not bg or not bv then return end
+        
+        local camera = Workspace.CurrentCamera
+        local moveDirection = Vector3.new(0, 0, 0)
+        
+        -- Get movement from input
+        local forwardVector = camera.CFrame.LookVector
+        local rightVector = camera.CFrame.RightVector
+        local upVector = Vector3.new(0, 1, 0)
+        
+        -- Forward/Backward (W/S)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveDirection = moveDirection + forwardVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveDirection = moveDirection - forwardVector
+        end
+        
+        -- Left/Right (A/D)
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDirection = moveDirection - rightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveDirection = moveDirection + rightVector
+        end
+        
+        -- Up/Down (Space/Ctrl)
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            moveDirection = moveDirection + upVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
+            moveDirection = moveDirection - upVector
+        end
+        
+        -- Normalize direction if moving
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit
+        end
+        
+        -- Update gyro to face camera direction
+        bg.CFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + camera.CFrame.LookVector)
+        
+        -- Apply velocity
+        bv.Velocity = moveDirection * flySpeed
+        flightVelocity = bv.Velocity
+    end)
+    
+    flyButton.Text = "🛸 FLYING (ON)"
+    flyButton.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+end
+
+local function stopFlying()
+    isFlying = false
+    
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    
+    humanoid.PlatformStand = false
+    
+    if humanoidRootPart then
+        local bg = humanoidRootPart:FindFirstChild("FlightGyro")
+        local bv = humanoidRootPart:FindFirstChild("FlightVelocity")
+        
+        if bg then bg:Destroy() end
+        if bv then bv:Destroy() end
+    end
+    
+    flyButton.Text = "🛸 TOGGLE FLY"
+    flyButton.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
+end
+
+local function toggleFlying()
+    if isFlying then
+        stopFlying()
     else
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-        ToggleButton.Text = "🛸 START FLYING"
-        JoystickFrame.Visible = false
+        startFlying()
     end
 end
 
-local function toggleFlight()
-    if isFlying then
-        -- Stop flying
-        if bodyVelocity then
-            bodyVelocity:Destroy()
-            bodyVelocity = nil
-        end
-        if flyingConnection then
-            flyingConnection:Disconnect()
-            flyingConnection = nil
-        end
-        humanoid.PlatformStand = false
-        isFlying = false
-        joystickActive = false
-        joystickDirection = Vector3.new(0, 0, 0)
+-- Button Functionality
+plusButton.MouseButton1Click:Connect(function()
+    flySpeed = math.min(flySpeed + 10, 200)
+    speedValue.Text = tostring(flySpeed)
+end)
+
+minusButton.MouseButton1Click:Connect(function()
+    flySpeed = math.max(flySpeed - 10, 10)
+    speedValue.Text = tostring(flySpeed)
+end)
+
+flyButton.MouseButton1Click:Connect(toggleFlying)
+
+-- Cleanup on character change
+character.DescendantRemoving:Connect(function(descendant)
+    if descendant.Name == "HumanoidRootPart" then
+        stopFlying()
+    end
+end)
+
+-- Make frame draggable
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
         
-        -- Reset joystick position
-        JoystickHandle.Position = UDim2.new(0.5, -30, 0.5, -30)
-    else
-        -- Start flying
-        humanoid.PlatformStand = true
-        
-        bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
-        bodyVelocity.P = 1000
-        bodyVelocity.Parent = rootPart
-        
-        isFlying = true
-        
-        -- Flight physics loop
-        flyingConnection = RunService.Heartbeat:Connect(function()
-            if not bodyVelocity or not bodyVelocity.Parent then return end
-            
-            local camera = workspace.CurrentCamera
-            
-            -- Combine joystick movement with keyboard controls
-            local moveDirection = joystickDirection
-            
-            -- Add keyboard controls (WASD)
-            local lookVector = camera.CFrame.LookVector
-            local rightVector = camera.CFrame.RightVector
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                moveDirection = moveDirection + lookVector
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
             end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                moveDirection = moveDirection - lookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                moveDirection = moveDirection - rightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                moveDirection = moveDirection + rightVector
-            end
-            
-            -- Vertical controls (Space/Shift)
-            local vertical = 0
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                vertical = vertical + 1
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift) then
-                vertical = vertical - 1
-            end
-            
-            -- Apply speed
-            if moveDirection.Magnitude > 0 then
-                moveDirection = moveDirection.Unit * flySpeed
-            end
-            
-            -- Final velocity
-            bodyVelocity.Velocity = Vector3.new(moveDirection.X, vertical * flySpeed, moveDirection.Z)
         end)
     end
-    
-    updateToggleButton()
-end
-
--- Joystick control logic
-local function updateJoystick(input)
-    if not isFlying then return end
-    
-    local joystickCenter = JoystickBg.AbsolutePosition + JoystickBg.AbsoluteSize / 2
-    local maxDistance = JoystickBg.AbsoluteSize.X / 2 - JoystickHandle.AbsoluteSize.X / 2
-    
-    local mousePos = Vector2.new(input.Position.X, input.Position.Y)
-    local direction = mousePos - joystickCenter
-    
-    -- Limit joystick movement
-    local distance = math.min(direction.Magnitude, maxDistance)
-    local normalizedDirection = direction.Magnitude > 0 and direction.Unit or Vector2.new(0, 0)
-    
-    -- Update handle position
-    local newPosition = joystickCenter + normalizedDirection * distance
-    JoystickHandle.Position = UDim2.new(
-        0, newPosition.X - JoystickFrame.AbsolutePosition.X - JoystickHandle.AbsoluteSize.X / 2,
-        0, newPosition.Y - JoystickFrame.AbsolutePosition.Y - JoystickHandle.AbsoluteSize.Y / 2
-    )
-    
-    -- Calculate movement direction (invert Y for intuitive controls)
-    local x = normalizedDirection.X
-    local y = -normalizedDirection.Y  -- Invert Y axis
-    
-    -- Convert to 3D movement based on camera
-    local camera = workspace.CurrentCamera
-    local lookVector = camera.CFrame.LookVector
-    local rightVector = camera.CFrame.RightVector
-    
-    joystickDirection = (rightVector * x) + (lookVector * y)
-    joystickActive = direction.Magnitude > 10
-end
-
-local function resetJoystick()
-    joystickActive = false
-    joystickDirection = Vector3.new(0, 0, 0)
-    
-    -- Animate handle back to center
-    local tween = TweenService:Create(JoystickHandle, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0.5, -30, 0.5, -30)
-    })
-    tween:Play()
-end
-
--- Button events
-ToggleButton.MouseButton1Click:Connect(toggleFlight)
-
-SpeedUp.MouseButton1Click:Connect(function()
-    flySpeed = math.min(flySpeed + 10, 200)
-    updateSpeedDisplay()
 end)
 
-SpeedDown.MouseButton1Click:Connect(function()
-    flySpeed = math.max(flySpeed - 10, 10)
-    updateSpeedDisplay()
-end)
-
--- Joystick input handling
-JoystickHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        joystickActive = true
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
     end
 end)
 
-JoystickHandle.InputChanged:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and joystickActive then
-        updateJoystick(input)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        updateInput(input)
     end
 end)
 
-JoystickHandle.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        resetJoystick()
-    end
+-- Update character reference if it changes
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 end)
 
--- Also allow dragging from joystick background
-JoystickBg.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        joystickActive = true
-        updateJoystick(input)
-    end
-end)
-
-JoystickBg.InputChanged:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and joystickActive then
-        updateJoystick(input)
-    end
-end)
-
-JoystickBg.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        resetJoystick()
-    end
-end)
-
--- Close button
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(1, -35, 0, 5)
-CloseButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 18
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.Parent = Title
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 8)
-CloseCorner.Parent = CloseButton
-
-CloseButton.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-    if isFlying then
-        toggleFlight()
-    end
-end)
-
--- Initialize
-updateSpeedDisplay()
-updateToggleButton()
-
--- Load notification
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "ULTIMATE FLY LOADED",
-    Text = "made by gay228\nPress button to fly, use joystick to move!",
-    Duration = 5,
-    Icon = "rbxassetid://4483345998"
-})
-
-print("🎮 Ultimate Fly Script by gay228 loaded!")
-print("🛸 Click button to toggle flight • Use joystick to move")
+print("Flight Script by sherikyt loaded successfully!")
+print("Controls: W/A/S/D for movement, Space/Ctrl for up/down")
+print("Use mouse to control flight direction")
