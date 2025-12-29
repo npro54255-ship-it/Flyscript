@@ -1,117 +1,15 @@
--- Camera Control v2.0 by sherikyt
+-- Camera Control v3.0 by sherikyt - FINAL WORKING VERSION
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 local mouse = player:GetMouse()
 
--- Создаем GUI
-local gui = Instance.new("ScreenGui")
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 250, 0, 280)
-main.Position = UDim2.new(0, 10, 0, 10)
-main.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-main.BorderSizePixel = 0
-
--- Градиентный фон
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 40, 90))
-})
-gradient.Rotation = 45
-gradient.Parent = main
-
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
-
--- Обводка
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(100, 100, 255)
-stroke.Thickness = 2
-stroke.Parent = main
-
-main.Parent = gui
-
--- Заголовок
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 50)
-title.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-title.Text = "📸 CAMERA CONTROL\n<font size='12'>by sherikyt</font>"
-title.TextColor3 = Color3.white
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.RichText = true
-title.TextYAlignment = Enum.TextYAlignment.Center
-Instance.new("UICorner", title).CornerRadius = UDim.new(0, 15, 0, 0)
-title.Parent = main
-
--- Счетчик меток
-local counter = Instance.new("TextLabel")
-counter.Size = UDim2.new(1, 0, 0, 40)
-counter.Position = UDim2.new(0, 0, 0.85, 0)
-counter.BackgroundTransparency = 1
-counter.Text = "📍 MARKS: 0/10"
-counter.TextColor3 = Color3.fromRGB(200, 200, 255)
-counter.Font = Enum.Font.Gotham
-counter.TextSize = 14
-counter.Parent = main
-
--- Создаем красивые кнопки
-local buttonData = {
-    {name="Free", text="FREE CAMERA", color=Color3.fromRGB(70, 130, 200), icon="🛸"},
-    {name="Mark", text="PLACE MARK", color=Color3.fromRGB(60, 200, 100), icon="📍"},
-    {name="View", text="VIEW MARKS", color=Color3.fromRGB(255, 165, 50), icon="👁️"},
-    {name="Clear", text="CLEAR ALL", color=Color3.fromRGB(220, 60, 60), icon="🗑️"}
-}
-
-for i, btn in pairs(buttonData) do
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0.9, 0, 0, 50)
-    button.Position = UDim2.new(0.05, 0, 0.18 + (i-1)*0.18, 0)
-    button.BackgroundColor3 = btn.color
-    button.Text = btn.icon .. " " .. btn.text
-    button.TextColor3 = Color3.white
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 14
-    button.AutoButtonColor = false
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 10)
-    btnCorner.Parent = button
-    
-    local btnStroke = Instance.new("UIStroke")
-    btnStroke.Color = Color3.fromRGB(255, 255, 255)
-    btnStroke.Thickness = 1
-    btnStroke.Transparency = 0.3
-    btnStroke.Parent = button
-    
-    -- Эффекты наведения
-    local originalColor = btn.color
-    button.MouseEnter:Connect(function()
-        button.BackgroundColor3 = originalColor * 1.2
-    end)
-    
-    button.MouseLeave:Connect(function()
-        button.BackgroundColor3 = originalColor
-    end)
-    
-    button.MouseButton1Down:Connect(function()
-        button.BackgroundColor3 = originalColor * 0.7
-    end)
-    
-    button.MouseButton1Up:Connect(function()
-        button.BackgroundColor3 = originalColor * 1.2
-    end)
-    
-    button.Parent = main
-end
-
--- Стейты
+-- STATE
 local marks = {}
 local freeCam = false
 local viewMode = false
@@ -120,78 +18,348 @@ local camYaw = 0
 local camPitch = 0
 local move = {W=false,A=false,S=false,D=false,Q=false,E=false}
 local speed = 25
-local speedLabel
 
--- Функция обновления интерфейса скорости
-local function createSpeedUI()
-    local speedPanel = Instance.new("Frame")
-    speedPanel.Size = UDim2.new(0, 200, 0, 40)
-    speedPanel.Position = UDim2.new(0, 10, 1, 10)
-    speedPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-    speedPanel.BorderSizePixel = 0
-    Instance.new("UICorner", speedPanel).CornerRadius = UDim.new(0, 10)
+-- CREATE GRADIENT MENU
+local gui = Instance.new("ScreenGui")
+gui.Name = "CameraControlPro"
+gui.Parent = player:WaitForChild("PlayerGui")
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Main container
+local main = Instance.new("Frame")
+main.Name = "MainContainer"
+main.Size = UDim2.new(0, 280, 0, 320)
+main.Position = UDim2.new(0.02, 0, 0.3, 0)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+
+-- ANIMATED GRADIENT BACKGROUND
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(60, 40, 100)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 70))
+})
+gradient.Rotation = 0
+gradient.Parent = main
+
+-- Gradient animation
+spawn(function()
+    while true do
+        for i = 0, 360, 2 do
+            gradient.Rotation = i
+            wait(0.05)
+        end
+    end
+end)
+
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
+
+-- Glass effect
+local glass = Instance.new("Frame")
+glass.Size = UDim2.new(1, 0, 1, 0)
+glass.BackgroundTransparency = 0.9
+glass.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+glass.BorderSizePixel = 0
+glass.Parent = main
+
+-- Glowing stroke
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(100, 100, 255)
+stroke.Thickness = 2
+stroke.Transparency = 0.3
+stroke.Parent = main
+
+main.Parent = gui
+
+-- TITLE
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 60)
+title.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+title.BackgroundTransparency = 0.3
+title.Text = "CAMERA CONTROL v3.0\n<font size='12' color='#AAAAFF'>by sherikyt</font>"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.RichText = true
+title.TextYAlignment = Enum.TextYAlignment.Center
+Instance.new("UICorner", title).CornerRadius = UDim.new(0, 15, 0, 0)
+title.Parent = main
+
+-- INFO PANEL
+local infoPanel = Instance.new("Frame")
+infoPanel.Size = UDim2.new(0.9, 0, 0, 70)
+infoPanel.Position = UDim2.new(0.05, 0, 0.2, 0)
+infoPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
+infoPanel.BackgroundTransparency = 0.2
+Instance.new("UICorner", infoPanel).CornerRadius = UDim.new(0, 10)
+infoPanel.Parent = main
+
+local counter = Instance.new("TextLabel")
+counter.Name = "Counter"
+counter.Size = UDim2.new(1, 0, 1, 0)
+counter.BackgroundTransparency = 1
+counter.Text = "MARKS: 0/10\nSPEED: 25"
+counter.TextColor3 = Color3.fromRGB(200, 200, 255)
+counter.Font = Enum.Font.Gotham
+counter.TextSize = 14
+counter.TextXAlignment = Enum.TextXAlignment.Left
+counter.Parent = infoPanel
+
+local padding = Instance.new("UIPadding", counter)
+padding.PaddingLeft = UDim.new(0, 15)
+padding.PaddingTop = UDim.new(0, 10)
+
+-- BUTTONS WITH ANIMATIONS
+local buttonData = {
+    {name="Free", text="FREE CAMERA", color=Color3.fromRGB(70, 130, 200), icon="F", hotkey="F"},
+    {name="Mark", text="PLACE MARK", color=Color3.fromRGB(60, 200, 100), icon="M", hotkey="M"},
+    {name="View", text="VIEW MARKS", color=Color3.fromRGB(255, 165, 50), icon="V", hotkey="V"},
+    {name="Clear", text="CLEAR ALL", color=Color3.fromRGB(220, 60, 60), icon="C", hotkey="C"}
+}
+
+local buttons = {}
+for i, btn in pairs(buttonData) do
+    local buttonContainer = Instance.new("Frame")
+    buttonContainer.Size = UDim2.new(0.9, 0, 0, 55)
+    buttonContainer.Position = UDim2.new(0.05, 0, 0.35 + (i-1)*0.22, 0)
+    buttonContainer.BackgroundTransparency = 1
+    buttonContainer.Parent = main
     
-    local gradient2 = Instance.new("UIGradient")
-    gradient2.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 40, 90))
+    local button = Instance.new("TextButton")
+    button.Name = btn.name
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundColor3 = btn.color
+    button.Text = ""
+    button.AutoButtonColor = false
+    
+    -- Button gradient
+    local btnGradient = Instance.new("UIGradient")
+    btnGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, btn.color),
+        ColorSequenceKeypoint.new(1, btn.color * 1.3)
     })
-    gradient2.Rotation = 45
-    gradient2.Parent = speedPanel
+    btnGradient.Rotation = 90
+    btnGradient.Parent = button
     
-    speedLabel = Instance.new("TextLabel")
-    speedLabel.Size = UDim2.new(1, 0, 1, 0)
-    speedLabel.BackgroundTransparency = 1
-    speedLabel.Text = "⚡ SPEED: " .. speed
-    speedLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-    speedLabel.Font = Enum.Font.GothamBold
-    speedLabel.TextSize = 14
-    speedLabel.Parent = speedPanel
+    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
     
-    speedPanel.Parent = gui
-    return speedPanel
+    -- Button stroke
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Color = Color3.fromRGB(255, 255, 255)
+    btnStroke.Thickness = 1.5
+    btnStroke.Transparency = 0.5
+    btnStroke.Parent = button
+    
+    -- Icon
+    local icon = Instance.new("TextLabel")
+    icon.Size = UDim2.new(0, 40, 1, 0)
+    icon.Position = UDim2.new(0, 10, 0, 0)
+    icon.BackgroundTransparency = 1
+    icon.Text = btn.icon
+    icon.TextColor3 = Color3.white
+    icon.Font = Enum.Font.GothamBold
+    icon.TextSize = 24
+    icon.TextXAlignment = Enum.TextXAlignment.Left
+    icon.Parent = buttonContainer
+    
+    -- Text
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, -60, 0.6, 0)
+    text.Position = UDim2.new(0, 50, 0, 5)
+    text.BackgroundTransparency = 1
+    text.Text = btn.text
+    text.TextColor3 = Color3.white
+    text.Font = Enum.Font.GothamBold
+    text.TextSize = 14
+    text.TextXAlignment = Enum.TextXAlignment.Left
+    text.Parent = buttonContainer
+    
+    -- Hotkey
+    local hotkey = Instance.new("TextLabel")
+    hotkey.Size = UDim2.new(1, -60, 0.4, 0)
+    hotkey.Position = UDim2.new(0, 50, 0.6, 0)
+    hotkey.BackgroundTransparency = 1
+    hotkey.Text = "[" .. btn.hotkey .. "]"
+    hotkey.TextColor3 = Color3.fromRGB(180, 180, 255)
+    hotkey.Font = Enum.Font.Gotham
+    hotkey.TextSize = 12
+    hotkey.TextXAlignment = Enum.TextXAlignment.Left
+    hotkey.Parent = buttonContainer
+    
+    -- HOVER EFFECTS
+    local originalColor = btn.color
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {
+            BackgroundColor3 = originalColor * 1.3,
+            Size = UDim2.new(1.02, 0, 1.05, 0)
+        }):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {
+            BackgroundColor3 = originalColor,
+            Size = UDim2.new(1, 0, 1, 0)
+        }):Play()
+    end)
+    
+    button.MouseButton1Down:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {
+            BackgroundColor3 = originalColor * 0.7
+        }):Play()
+    end)
+    
+    button.MouseButton1Up:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {
+            BackgroundColor3 = originalColor * 1.3
+        }):Play()
+    end)
+    
+    button.Parent = buttonContainer
+    buttons[btn.name] = button
 end
 
-local speedPanel = createSpeedUI()
+-- CONTROL PANEL FOR MODES
+local controlPanel = Instance.new("Frame")
+controlPanel.Name = "ControlPanel"
+controlPanel.Size = UDim2.new(0, 280, 0, 200)
+controlPanel.Position = UDim2.new(0.02, 0, 0.6, 0)
+controlPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+controlPanel.BackgroundTransparency = 0.1
+controlPanel.BorderSizePixel = 0
+controlPanel.Visible = false
+Instance.new("UICorner", controlPanel).CornerRadius = UDim.new(0, 15)
+controlPanel.Parent = gui
 
--- Функции
-local function updateCounter()
-    counter.Text = "📍 MARKS: "..#marks.."/10"
+-- Gradient on control panel
+local controlGradient = Instance.new("UIGradient")
+controlGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 40, 90))
+})
+controlGradient.Rotation = 90
+controlGradient.Parent = controlPanel
+
+local panelTitle = Instance.new("TextLabel")
+panelTitle.Size = UDim2.new(1, 0, 0, 40)
+panelTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
+panelTitle.BackgroundTransparency = 0.3
+panelTitle.Text = "ACTIVE MODE"
+panelTitle.TextColor3 = Color3.white
+panelTitle.Font = Enum.Font.GothamBold
+panelTitle.TextSize = 16
+panelTitle.Parent = controlPanel
+
+local modeInfo = Instance.new("TextLabel")
+modeInfo.Name = "ModeInfo"
+modeInfo.Size = UDim2.new(1, -20, 0, 50)
+modeInfo.Position = UDim2.new(0, 10, 0.25, 0)
+modeInfo.BackgroundTransparency = 1
+modeInfo.Text = "WASD = Move\nQE = Up/Down\nRMB = Rotate"
+modeInfo.TextColor3 = Color3.fromRGB(200, 200, 255)
+modeInfo.Font = Enum.Font.Gotham
+modeInfo.TextSize = 13
+modeInfo.TextXAlignment = Enum.TextXAlignment.Left
+modeInfo.Parent = controlPanel
+
+local exitBtn = Instance.new("TextButton")
+exitBtn.Size = UDim2.new(0.8, 0, 0, 40)
+exitBtn.Position = UDim2.new(0.1, 0, 0.75, 0)
+exitBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+exitBtn.Text = "EXIT MODE"
+exitBtn.TextColor3 = Color3.white
+exitBtn.Font = Enum.Font.GothamBold
+exitBtn.TextSize = 14
+exitBtn.AutoButtonColor = false
+Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 10)
+exitBtn.Parent = controlPanel
+
+-- NAVIGATION FOR VIEW MODE
+local navPanel = Instance.new("Frame")
+navPanel.Size = UDim2.new(0, 280, 0, 60)
+navPanel.Position = UDim2.new(0.02, 0, 0.85, 0)
+navPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+navPanel.BackgroundTransparency = 0.1
+navPanel.Visible = false
+Instance.new("UICorner", navPanel).CornerRadius = UDim.new(0, 15)
+navPanel.Parent = gui
+
+local prevBtn = Instance.new("TextButton")
+prevBtn.Size = UDim2.new(0.4, 0, 0.7, 0)
+prevBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+prevBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+prevBtn.Text = "PREV MARK"
+prevBtn.TextColor3 = Color3.white
+prevBtn.Font = Enum.Font.GothamBold
+prevBtn.TextSize = 12
+prevBtn.Visible = false
+prevBtn.AutoButtonColor = false
+Instance.new("UICorner", prevBtn).CornerRadius = UDim.new(0, 8)
+prevBtn.Parent = navPanel
+
+local nextBtn = Instance.new("TextButton")
+nextBtn.Size = UDim2.new(0.4, 0, 0.7, 0)
+nextBtn.Position = UDim2.new(0.55, 0, 0.15, 0)
+nextBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+nextBtn.Text = "NEXT MARK"
+nextBtn.TextColor3 = Color3.white
+nextBtn.Font = Enum.Font.GothamBold
+nextBtn.TextSize = 12
+nextBtn.Visible = false
+nextBtn.AutoButtonColor = false
+Instance.new("UICorner", nextBtn).CornerRadius = UDim.new(0, 8)
+nextBtn.Parent = navPanel
+
+-- FUNCTIONS
+local function updateUI()
+    counter.Text = string.format("MARKS: %d/10\nSPEED: %d", #marks, speed)
 end
 
 local function createMarker(pos)
     if #marks >= 10 then 
-        counter.Text = "❌ MAX MARKS REACHED"
+        counter.Text = "MAX MARKS REACHED (10/10)"
         return 
     end
     
-    local m = Instance.new("Part")
-    m.Size = Vector3.new(2, 3, 2)
-    m.Position = pos
-    m.Anchored = true
-    m.CanCollide = false
-    m.Material = EnumMaterial.Neon
-    m.Color = Color3.fromHSV(#marks/10, 1, 1)
-    m.Transparency = 0.3
+    local marker = Instance.new("Part")
+    marker.Name = "CamMark_" .. (#marks + 1)
+    marker.Size = Vector3.new(2.5, 3.5, 2.5)
+    marker.Position = pos
+    marker.Anchored = true
+    marker.CanCollide = false
+    marker.Material = EnumMaterial.Neon
+    marker.Color = Color3.fromHSV((#marks/10) * 0.8, 1, 1)
+    marker.Transparency = 0.2
     
-    -- Номер маркера
+    -- Glow
+    local light = Instance.new("PointLight")
+    light.Color = marker.Color
+    light.Brightness = 2
+    light.Range = 15
+    light.Parent = marker
+    
+    -- Number
     local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 50, 0, 50)
+    billboard.Size = UDim2.new(0, 60, 0, 60)
     billboard.AlwaysOnTop = true
-    billboard.Parent = m
+    billboard.Parent = marker
     
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = tostring(#marks + 1)
-    label.TextColor3 = Color3.white
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 20
-    label.Parent = billboard
+    local num = Instance.new("TextLabel")
+    num.Size = UDim2.new(1, 0, 1, 0)
+    num.BackgroundTransparency = 1
+    num.Text = tostring(#marks + 1)
+    num.TextColor3 = Color3.white
+    num.Font = Enum.Font.GothamBold
+    num.TextSize = 24
+    num.Parent = billboard
     
-    m.Parent = Workspace
-    marks[#marks+1] = {position=pos, part=m}
-    updateCounter()
+    marker.Parent = Workspace
+    
+    -- Spawn effect
+    marker.Transparency = 1
+    TweenService:Create(marker, TweenInfo.new(0.5), {Transparency = 0.2}):Play()
+    
+    marks[#marks + 1] = {position = pos, part = marker}
+    updateUI()
 end
 
 local function clearMarks()
@@ -202,14 +370,20 @@ local function clearMarks()
     end
     marks = {}
     currentMark = 0
-    updateCounter()
+    updateUI()
 end
 
 local function viewMark(index)
     if #marks == 0 then return end
     currentMark = math.clamp(index, 1, #marks)
     local mark = marks[currentMark]
-    camera.CFrame = CFrame.new(mark.position + Vector3.new(0, 5, 10), mark.position)
+    
+    -- Smooth transition to marker
+    local startCF = camera.CFrame
+    local endCF = CFrame.new(mark.position + Vector3.new(0, 6, 12), mark.position)
+    
+    local tween = TweenService:Create(camera, TweenInfo.new(0.5), {CFrame = endCF})
+    tween:Play()
 end
 
 local function toggleFreeCam()
@@ -218,18 +392,32 @@ local function toggleFreeCam()
     
     if freeCam then
         camera.CameraType = Enum.CameraType.Scriptable
-        main.Free.Text = "🛸 EXIT FREE CAM"
-        counter.Text = "🛸 FLYING MODE | MARKS: "..#marks.."/10"
+        camYaw = 0
+        camPitch = 0
+        
+        main.Visible = false
+        controlPanel.Visible = true
+        navPanel.Visible = false
+        
+        panelTitle.Text = "FREE CAMERA MODE"
+        modeInfo.Text = "WASD = Move\nQE = Up/Down\nRMB = Rotate\nM = Place Mark"
+        
+        buttons.Free.Text = ""
     else
         camera.CameraType = Enum.CameraType.Custom
-        main.Free.Text = "🛸 FREE CAMERA"
-        updateCounter()
+        main.Visible = true
+        controlPanel.Visible = false
+        navPanel.Visible = false
+        
+        buttons.Free.Text = ""
     end
+    
+    updateUI()
 end
 
 local function toggleView()
     if #marks == 0 then 
-        counter.Text = "❌ NO MARKS PLACED"
+        counter.Text = "NO MARKS PLACED"
         return 
     end
     
@@ -239,31 +427,51 @@ local function toggleView()
     if viewMode then
         camera.CameraType = Enum.CameraType.Scriptable
         viewMark(1)
-        main.View.Text = "👁️ EXIT VIEW"
-        counter.Text = "👁️ VIEWING MARK "..currentMark.."/"..#marks
+        
+        main.Visible = false
+        controlPanel.Visible = true
+        navPanel.Visible = true
+        
+        panelTitle.Text = "VIEWING MARKS"
+        modeInfo.Text = string.format("MARK %d/%d\nUse arrows to navigate", currentMark, #marks)
+        
+        prevBtn.Visible = true
+        nextBtn.Visible = true
     else
         camera.CameraType = Enum.CameraType.Custom
-        main.View.Text = "👁️ VIEW MARKS"
-        updateCounter()
+        main.Visible = true
+        controlPanel.Visible = false
+        navPanel.Visible = false
     end
 end
 
--- Обработчики кнопок
-main.Free.MouseButton1Click:Connect(toggleFreeCam)
-
-main.Mark.MouseButton1Click:Connect(function() 
+-- ASSIGN BUTTONS
+buttons.Free.MouseButton1Click:Connect(toggleFreeCam)
+buttons.Mark.MouseButton1Click:Connect(function() 
     if freeCam then 
         createMarker(camera.CFrame.Position) 
     end 
 end)
-
-main.View.MouseButton1Click:Connect(function()
-    toggleView()
+buttons.View.MouseButton1Click:Connect(toggleView)
+buttons.Clear.MouseButton1Click:Connect(clearMarks)
+exitBtn.MouseButton1Click:Connect(function()
+    if freeCam then toggleFreeCam()
+    elseif viewMode then toggleView() end
+end)
+prevBtn.MouseButton1Click:Connect(function()
+    if currentMark > 1 then
+        viewMark(currentMark - 1)
+        modeInfo.Text = string.format("MARK %d/%d\nUse arrows to navigate", currentMark, #marks)
+    end
+end)
+nextBtn.MouseButton1Click:Connect(function()
+    if currentMark < #marks then
+        viewMark(currentMark + 1)
+        modeInfo.Text = string.format("MARK %d/%d\nUse arrows to navigate", currentMark, #marks)
+    end
 end)
 
-main.Clear.MouseButton1Click:Connect(clearMarks)
-
--- Клавиши
+-- KEYBOARD CONTROLS
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F then toggleFreeCam()
     elseif input.KeyCode == Enum.KeyCode.M and freeCam then createMarker(camera.CFrame.Position)
@@ -271,10 +479,10 @@ UserInputService.InputBegan:Connect(function(input)
     elseif input.KeyCode == Enum.KeyCode.C then clearMarks()
     elseif input.KeyCode == Enum.KeyCode.LeftBracket then 
         speed = math.max(10, speed-5)
-        if speedLabel then speedLabel.Text = "⚡ SPEED: " .. speed end
+        updateUI()
     elseif input.KeyCode == Enum.KeyCode.RightBracket then 
         speed = math.min(50, speed+5)
-        if speedLabel then speedLabel.Text = "⚡ SPEED: " .. speed end
+        updateUI()
     end
     
     if freeCam then
@@ -284,6 +492,18 @@ UserInputService.InputBegan:Connect(function(input)
         elseif input.KeyCode == Enum.KeyCode.D then move.D = true
         elseif input.KeyCode == Enum.KeyCode.Q then move.Q = true
         elseif input.KeyCode == Enum.KeyCode.E then move.E = true
+        end
+    elseif viewMode then
+        if input.KeyCode == Enum.KeyCode.Left then
+            if currentMark > 1 then
+                viewMark(currentMark - 1)
+                modeInfo.Text = string.format("MARK %d/%d\nUse arrows to navigate", currentMark, #marks)
+            end
+        elseif input.KeyCode == Enum.KeyCode.Right then
+            if currentMark < #marks then
+                viewMark(currentMark + 1)
+                modeInfo.Text = string.format("MARK %d/%d\nUse arrows to navigate", currentMark, #marks)
+            end
         end
     end
 end)
@@ -300,7 +520,7 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Вращение мышью
+-- MOUSE ROTATION
 local lastMousePos
 UserInputService.InputChanged:Connect(function(input)
     if freeCam and input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -321,22 +541,22 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Колесико мыши
+-- MOUSE WHEEL FOR SPEED
 mouse.WheelForward:Connect(function() 
     if freeCam then 
         speed = math.min(50, speed+5) 
-        if speedLabel then speedLabel.Text = "⚡ SPEED: " .. speed end
+        updateUI()
     end 
 end)
 
 mouse.WheelBackward:Connect(function() 
     if freeCam then 
         speed = math.max(10, speed-5) 
-        if speedLabel then speedLabel.Text = "⚡ SPEED: " .. speed end
+        updateUI()
     end 
 end)
 
--- Главный цикл
+-- MAIN MOVEMENT LOOP
 RunService.Heartbeat:Connect(function(dt)
     if freeCam then
         local rot = CFrame.fromOrientation(camPitch, camYaw, 0)
@@ -362,94 +582,54 @@ RunService.Heartbeat:Connect(function(dt)
         local mark = marks[currentMark]
         if mark then
             local time = tick()
-            local orbitRadius = 12
-            local height = 4
+            local orbitRadius = 15
+            local height = 5
             
-            local x = math.cos(time * 0.5) * orbitRadius
-            local z = math.sin(time * 0.5) * orbitRadius
+            local x = math.cos(time * 0.3) * orbitRadius
+            local z = math.sin(time * 0.3) * orbitRadius
             
             local target = mark.position + Vector3.new(x, height, z)
             camera.CFrame = camera.CFrame:Lerp(CFrame.new(target, mark.position), 5*dt)
             camera.FieldOfView = 60
-            
-            -- Обновляем текст в режиме просмотра
-            counter.Text = "👁️ VIEWING MARK "..currentMark.."/"..#marks
         end
     end
 end)
 
--- Добавляем кнопки навигации в режиме просмотра
-local navFrame = Instance.new("Frame")
-navFrame.Size = UDim2.new(0, 200, 0, 50)
-navFrame.Position = UDim2.new(0, 10, 0, 300)
-navFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-navFrame.BackgroundTransparency = 0.5
-navFrame.BorderSizePixel = 0
-navFrame.Visible = false
-Instance.new("UICorner", navFrame).CornerRadius = UDim.new(0, 10)
-navFrame.Parent = gui
-
-local prevBtn = Instance.new("TextButton")
-prevBtn.Size = UDim2.new(0.4, 0, 0.7, 0)
-prevBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-prevBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
-prevBtn.Text = "◀ PREV"
-prevBtn.TextColor3 = Color3.white
-prevBtn.Font = Enum.Font.GothamBold
-prevBtn.TextSize = 12
-prevBtn.Visible = false
-prevBtn.AutoButtonColor = false
-Instance.new("UICorner", prevBtn).CornerRadius = UDim.new(0, 8)
-prevBtn.Parent = navFrame
-
-local nextBtn = Instance.new("TextButton")
-nextBtn.Size = UDim2.new(0.4, 0, 0.7, 0)
-nextBtn.Position = UDim2.new(0.55, 0, 0.15, 0)
-nextBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
-nextBtn.Text = "NEXT ▶"
-nextBtn.TextColor3 = Color3.white
-nextBtn.Font = Enum.Font.GothamBold
-nextBtn.TextSize = 12
-nextBtn.Visible = false
-nextBtn.AutoButtonColor = false
-Instance.new("UICorner", nextBtn).CornerRadius = UDim.new(0, 8)
-nextBtn.Parent = navFrame
-
--- Показываем/скрываем навигацию при переключении режима
-local function updateNavigation()
-    navFrame.Visible = viewMode
-    prevBtn.Visible = viewMode and currentMark > 1
-    nextBtn.Visible = viewMode and currentMark < #marks
-end
-
-prevBtn.MouseButton1Click:Connect(function()
-    if currentMark > 1 then
-        currentMark = currentMark - 1
-        viewMark(currentMark)
-        updateNavigation()
-    end
-end)
-
-nextBtn.MouseButton1Click:Connect(function()
-    if currentMark < #marks then
-        currentMark = currentMark + 1
-        viewMark(currentMark)
-        updateNavigation()
-    end
-end)
-
--- Обновляем навигацию при изменении
+-- UPDATE NAVIGATION UI
 RunService.Heartbeat:Connect(function()
     if viewMode then
-        updateNavigation()
+        prevBtn.Visible = currentMark > 1
+        nextBtn.Visible = currentMark < #marks
     end
 end)
 
-print("✅ Camera Control v2.0 by sherikyt loaded!")
-print("F - Free Camera")
-print("M - Place Mark (in free cam)")
-print("V - View Marks")
-print("C - Clear All")
-print("WASD + QE - Movement")
-print("RMB - Rotate camera")
-print("Mouse wheel - Speed")
+-- LOAD NOTIFICATION
+local notify = Instance.new("ScreenGui", player.PlayerGui)
+local note = Instance.new("TextLabel", notify)
+note.Size = UDim2.new(0, 300, 0, 80)
+note.Position = UDim2.new(0.5, -150, 0.1, 0)
+note.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
+note.BackgroundTransparency = 0.1
+note.Text = "CAMERA CONTROL v3.0\nby sherikyt\nF=Free Cam, M=Mark, V=View, C=Clear"
+note.TextColor3 = Color3.white
+note.Font = Enum.Font.Gotha
+note.TextSize = 16
+
+-- Notification gradient
+local noteGradient = Instance.new("UIGradient")
+noteGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 60, 100)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 60, 120))
+})
+noteGradient.Rotation = 45
+noteGradient.Parent = note
+
+Instance.new("UICorner", note).CornerRadius = UDim.new(0, 15)
+
+task.wait(3)
+notify:Destroy()
+
+print("Camera Control v3.0 by sherikyt - LOADED!")
+
+-- INITIALIZE
+updateUI()
