@@ -1,15 +1,14 @@
--- Camera Control v5.0 by sherikyt - РАБОЧАЯ ВЕРСИЯ
+-- Camera Control v6.0 by sherikyt - FINAL WORKING VERSION
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 local mouse = player:GetMouse()
 
--- СОСТОЯНИЕ
+-- STATE
 local marks = {}
 local freeCam = false
 local viewMode = false
@@ -19,13 +18,13 @@ local camPitch = 0
 local move = {W=false,A=false,S=false,D=false,Q=false,E=false}
 local speed = 25
 
--- СОЗДАЕМ GUI
+-- CREATE GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "CameraControlGUI"
 gui.Parent = player:WaitForChild("PlayerGui")
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Основная панель
+-- Main panel
 local main = Instance.new("Frame")
 main.Name = "MainPanel"
 main.Size = UDim2.new(0, 250, 0, 320)
@@ -33,7 +32,6 @@ main.Position = UDim2.new(0.02, 0, 0.3, 0)
 main.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
 main.BorderSizePixel = 0
 
--- Градиент
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
@@ -45,18 +43,18 @@ gradient.Parent = main
 
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
 
--- Заголовок
+-- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 50)
 title.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
-title.Text = "CAMERA CONTROL v5.0"
+title.Text = "CAMERA CONTROL v6.0"
 title.TextColor3 = Color3.white
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 Instance.new("UICorner", title).CornerRadius = UDim.new(0, 15, 0, 0)
 title.Parent = main
 
--- Счетчик
+-- Counter
 local counter = Instance.new("TextLabel")
 counter.Size = UDim2.new(1, -20, 0, 40)
 counter.Position = UDim2.new(0, 10, 0.2, 0)
@@ -67,7 +65,7 @@ counter.Font = Enum.Font.Gotham
 counter.TextSize = 14
 counter.Parent = main
 
--- Функция создания кнопки
+-- Button creation function
 local function createButton(name, text, posY, color)
     local button = Instance.new("TextButton")
     button.Name = name
@@ -84,7 +82,6 @@ local function createButton(name, text, posY, color)
     corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = button
     
-    -- Эффекты кнопки
     local original = color
     button.MouseEnter:Connect(function()
         button.BackgroundColor3 = original * 1.2
@@ -99,13 +96,13 @@ local function createButton(name, text, posY, color)
     end)
     
     button.MouseButton1Up:Connect(function()
-        button.BackgroundColor3 = original
+        button.BackgroundColor3 = original * 1.2
     end)
     
     return button
 end
 
--- Создаем кнопки
+-- Create buttons
 local freeBtn = createButton("FreeBtn", "FREE CAMERA", 0.35, Color3.fromRGB(70, 130, 200))
 local markBtn = createButton("MarkBtn", "PLACE MARK", 0.5, Color3.fromRGB(60, 200, 100))
 local viewBtn = createButton("ViewBtn", "VIEW MARKS", 0.65, Color3.fromRGB(255, 165, 50))
@@ -118,7 +115,7 @@ clearBtn.Parent = main
 
 main.Parent = gui
 
--- ФУНКЦИИ
+-- FUNCTIONS
 local function updateCounter()
     counter.Text = "MARKS: " .. #marks .. "/10 | SPEED: " .. speed
 end
@@ -137,19 +134,16 @@ local function createMarker(pos)
     marker.CanCollide = false
     marker.Material = EnumMaterial.Neon
     
-    -- Цвет маркера
     local hue = (#marks / 10) * 0.8
     marker.Color = Color3.fromHSV(hue, 1, 1)
     marker.Transparency = 0.3
     
-    -- Подсветка
     local light = Instance.new("PointLight")
     light.Color = marker.Color
     light.Brightness = 2
     light.Range = 10
     light.Parent = marker
     
-    -- Номер маркера
     local billboard = Instance.new("BillboardGui")
     billboard.Size = UDim2.new(0, 50, 0, 50)
     billboard.AlwaysOnTop = true
@@ -190,12 +184,7 @@ local function viewMark(index)
     
     currentMark = math.clamp(index, 1, #marks)
     local mark = marks[currentMark]
-    
-    -- Плавный переход
-    local tween = TweenService:Create(camera, TweenInfo.new(0.5), {
-        CFrame = CFrame.new(mark.position + Vector3.new(0, 5, 10), mark.position)
-    })
-    tween:Play()
+    camera.CFrame = CFrame.new(mark.position + Vector3.new(0, 5, 10), mark.position)
 end
 
 local function toggleFreeCam()
@@ -203,14 +192,11 @@ local function toggleFreeCam()
     viewMode = false
     
     if freeCam then
-        -- Включаем свободную камеру
         camera.CameraType = Enum.CameraType.Scriptable
         camYaw = 0
         camPitch = 0
-        
         freeBtn.Text = "EXIT FREE CAM"
     else
-        -- Выключаем свободную камеру
         camera.CameraType = Enum.CameraType.Custom
         freeBtn.Text = "FREE CAMERA"
     end
@@ -228,20 +214,17 @@ local function toggleView()
     freeCam = false
     
     if viewMode then
-        -- Включаем режим просмотра
         camera.CameraType = Enum.CameraType.Scriptable
         currentMark = 1
         viewMark(1)
-        
         viewBtn.Text = "EXIT VIEW MODE"
     else
-        -- Выключаем режим просмотра
         camera.CameraType = Enum.CameraType.Custom
         viewBtn.Text = "VIEW MARKS"
     end
 end
 
--- НАЗНАЧАЕМ КНОПКИ
+-- BUTTON EVENTS
 freeBtn.MouseButton1Click:Connect(toggleFreeCam)
 
 markBtn.MouseButton1Click:Connect(function()
@@ -254,7 +237,7 @@ viewBtn.MouseButton1Click:Connect(toggleView)
 
 clearBtn.MouseButton1Click:Connect(clearMarks)
 
--- КЛАВИАТУРА
+-- KEYBOARD CONTROLS
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F then
         toggleFreeCam()
@@ -305,7 +288,7 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- ВРАЩЕНИЕ МЫШЬЮ
+-- MOUSE ROTATION
 local lastMousePos
 UserInputService.InputChanged:Connect(function(input)
     if freeCam and input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -326,7 +309,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- КОЛЕСИКО МЫШИ ДЛЯ СКОРОСТИ
+-- MOUSE WHEEL SPEED
 mouse.WheelForward:Connect(function()
     if freeCam then
         speed = math.min(50, speed + 5)
@@ -341,14 +324,12 @@ mouse.WheelBackward:Connect(function()
     end
 end)
 
--- ГЛАВНЫЙ ЦИКЛ ДВИЖЕНИЯ
+-- MAIN MOVEMENT LOOP
 RunService.Heartbeat:Connect(function(dt)
     if freeCam then
-        -- Создаем вращение
         local rot = CFrame.fromOrientation(camPitch, camYaw, 0)
-        
-        -- Рассчитываем движение
         local moveVec = Vector3.new(0, 0, 0)
+        
         if move.W then moveVec = moveVec + Vector3.new(0, 0, -1) end
         if move.S then moveVec = moveVec + Vector3.new(0, 0, 1) end
         if move.D then moveVec = moveVec + Vector3.new(1, 0, 0) end
@@ -356,7 +337,6 @@ RunService.Heartbeat:Connect(function(dt)
         if move.E then moveVec = moveVec + Vector3.new(0, 1, 0) end
         if move.Q then moveVec = moveVec + Vector3.new(0, -1, 0) end
         
-        -- Применяем движение
         if moveVec.Magnitude > 0 then
             moveVec = moveVec.Unit * speed * dt
             local rotatedMove = rot:VectorToWorldSpace(moveVec)
@@ -368,7 +348,6 @@ RunService.Heartbeat:Connect(function(dt)
         camera.FieldOfView = 70
         
     elseif viewMode and #marks > 0 then
-        -- Плавное движение камеры вокруг маркера
         local mark = marks[currentMark]
         if mark then
             local time = tick()
@@ -391,13 +370,13 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- Уведомление о загрузке
+-- LOAD NOTIFICATION
 local notify = Instance.new("ScreenGui", player.PlayerGui)
 local note = Instance.new("TextLabel", notify)
 note.Size = UDim2.new(0, 250, 0, 60)
 note.Position = UDim2.new(0.5, -125, 0.1, 0)
 note.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
-note.Text = "Camera Control v5.0 loaded!\nF=Free, M=Mark, V=View, C=Clear"
+note.Text = "Camera Control v6.0 loaded!\nF=Free, M=Mark, V=View, C=Clear"
 note.TextColor3 = Color3.white
 note.Font = Enum.Font.GothamBold
 note.TextSize = 14
@@ -407,7 +386,7 @@ Instance.new("UICorner", note).CornerRadius = UDim.new(0, 10)
 task.wait(3)
 notify:Destroy()
 
-print("Camera Control v5.0 loaded!")
+print("Camera Control v6.0 loaded!")
 print("F - Toggle Free Camera")
 print("M - Place Marker (in free cam)")
 print("V - Toggle View Mode")
@@ -416,12 +395,5 @@ print("WASD + QE - Movement")
 print("Right Mouse - Rotate camera")
 print("Mouse Wheel - Adjust speed")
 
--- ИНИЦИАЛИЗАЦИЯ
+-- INIT
 updateCounter()
-
--- Дебаг информация
-print("GUI created:", gui.Parent ~= nil)
-print("Main panel:", main.Parent ~= nil)
-print("Buttons created:", freeBtn.Parent ~= nil)
-print("Player:", player.Name)
-print("Camera:", camera.Name)
