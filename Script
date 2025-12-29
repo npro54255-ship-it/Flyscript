@@ -1,8 +1,9 @@
--- Camera Control v6.0 by sherikyt - FINAL WORKING VERSION
+-- Camera Control v6.0 by sherikyt - FINAL WORKING VERSION (FIXED)
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
@@ -51,6 +52,7 @@ title.Text = "CAMERA CONTROL v6.0"
 title.TextColor3 = Color3.white
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
+title.BorderSizePixel = 0
 Instance.new("UICorner", title).CornerRadius = UDim.new(0, 15, 0, 0)
 title.Parent = main
 
@@ -77,6 +79,7 @@ local function createButton(name, text, posY, color)
     button.Font = Enum.Font.GothamBold
     button.TextSize = 14
     button.AutoButtonColor = false
+    button.BorderSizePixel = 0
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 10)
@@ -132,7 +135,8 @@ local function createMarker(pos)
     marker.Position = pos
     marker.Anchored = true
     marker.CanCollide = false
-    marker.Material = EnumMaterial.Neon
+    marker.Material = Enum.Material.Neon
+    marker.CastShadow = false
     
     local hue = (#marks / 10) * 0.8
     marker.Color = Color3.fromHSV(hue, 1, 1)
@@ -169,8 +173,8 @@ local function createMarker(pos)
 end
 
 local function clearMarks()
-    for _, mark in pairs(marks) do
-        if mark.part then
+    for _, mark in ipairs(marks) do
+        if mark.part and mark.part.Parent then
             mark.part:Destroy()
         end
     end
@@ -184,7 +188,9 @@ local function viewMark(index)
     
     currentMark = math.clamp(index, 1, #marks)
     local mark = marks[currentMark]
-    camera.CFrame = CFrame.new(mark.position + Vector3.new(0, 5, 10), mark.position)
+    if mark and mark.part then
+        camera.CFrame = CFrame.new(mark.position + Vector3.new(0, 5, 10), mark.position)
+    end
 end
 
 local function toggleFreeCam()
@@ -238,7 +244,9 @@ viewBtn.MouseButton1Click:Connect(toggleView)
 clearBtn.MouseButton1Click:Connect(clearMarks)
 
 -- KEYBOARD CONTROLS
-UserInputService.InputBegan:Connect(function(input)
+local function handleInputBegan(input, gameProcessed)
+    if gameProcessed then return end
+    
     if input.KeyCode == Enum.KeyCode.F then
         toggleFreeCam()
     elseif input.KeyCode == Enum.KeyCode.M and freeCam then
@@ -274,9 +282,9 @@ UserInputService.InputBegan:Connect(function(input)
             end
         end
     end
-end)
+end
 
-UserInputService.InputEnded:Connect(function(input)
+local function handleInputEnded(input)
     if freeCam then
         if input.KeyCode == Enum.KeyCode.W then move.W = false
         elseif input.KeyCode == Enum.KeyCode.A then move.A = false
@@ -286,11 +294,16 @@ UserInputService.InputEnded:Connect(function(input)
         elseif input.KeyCode == Enum.KeyCode.E then move.E = false
         end
     end
-end)
+end
+
+UserInputService.InputBegan:Connect(handleInputBegan)
+UserInputService.InputEnded:Connect(handleInputEnded)
 
 -- MOUSE ROTATION
 local lastMousePos
-UserInputService.InputChanged:Connect(function(input)
+UserInputService.InputChanged:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
     if freeCam and input.UserInputType == Enum.UserInputType.MouseMovement then
         if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
             if not lastMousePos then
@@ -310,22 +323,31 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- MOUSE WHEEL SPEED
-mouse.WheelForward:Connect(function()
+local function handleMouseWheel(action)
+    if not action then return end
+    
+    local forward = action == "Forward"
+    
     if freeCam then
-        speed = math.min(50, speed + 5)
+        if forward then
+            speed = math.min(50, speed + 5)
+        else
+            speed = math.max(10, speed - 5)
+        end
         updateCounter()
     end
+end
+
+mouse.WheelForward:Connect(function()
+    handleMouseWheel("Forward")
 end)
 
 mouse.WheelBackward:Connect(function()
-    if freeCam then
-        speed = math.max(10, speed - 5)
-        updateCounter()
-    end
+    handleMouseWheel("Backward")
 end)
 
 -- MAIN MOVEMENT LOOP
-RunService.Heartbeat:Connect(function(dt)
+local connection = RunService.Heartbeat:Connect(function(dt)
     if freeCam then
         local rot = CFrame.fromOrientation(camPitch, camYaw, 0)
         local moveVec = Vector3.new(0, 0, 0)
@@ -340,16 +362,16 @@ RunService.Heartbeat:Connect(function(dt)
         if moveVec.Magnitude > 0 then
             moveVec = moveVec.Unit * speed * dt
             local rotatedMove = rot:VectorToWorldSpace(moveVec)
-            camera.CFrame = rot + camera.CFrame.Position + rotatedMove
+            camera.CFrame = rot * CFrame.new(rotatedMove) + camera.CFrame.Position
         else
             camera.CFrame = rot + camera.CFrame.Position
         end
         
         camera.FieldOfView = 70
         
-    elseif viewMode and #marks > 0 then
+    elseif viewMode and #marks > 0 and currentMark > 0 then
         local mark = marks[currentMark]
-        if mark then
+        if mark and mark.part then
             local time = tick()
             local radius = 12
             local height = 4
@@ -371,29 +393,60 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 
 -- LOAD NOTIFICATION
-local notify = Instance.new("ScreenGui", player.PlayerGui)
-local note = Instance.new("TextLabel", notify)
-note.Size = UDim2.new(0, 250, 0, 60)
-note.Position = UDim2.new(0.5, -125, 0.1, 0)
-note.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
-note.Text = "Camera Control v6.0 loaded!\nF=Free, M=Mark, V=View, C=Clear"
-note.TextColor3 = Color3.white
-note.Font = Enum.Font.GothamBold
-note.TextSize = 14
+local function showNotification()
+    local notify = Instance.new("ScreenGui")
+    notify.Name = "CameraControlNotify"
+    notify.Parent = player:WaitForChild("PlayerGui")
+    notify.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    local note = Instance.new("TextLabel")
+    note.Size = UDim2.new(0, 250, 0, 60)
+    note.Position = UDim2.new(0.5, -125, 0.1, 0)
+    note.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
+    note.Text = "Camera Control v6.0 loaded!\nF=Free, M=Mark, V=View, C=Clear"
+    note.TextColor3 = Color3.white
+    note.Font = Enum.Font.GothamBold
+    note.TextSize = 14
+    note.BorderSizePixel = 0
+    
+    Instance.new("UICorner", note).CornerRadius = UDim.new(0, 10)
+    note.Parent = notify
+    
+    task.wait(3)
+    notify:Destroy()
+end
 
-Instance.new("UICorner", note).CornerRadius = UDim.new(0, 10)
+-- CLEANUP ON PLAYER LEAVE
+local function cleanup()
+    connection:Disconnect()
+    if gui then gui:Destroy() end
+    clearMarks()
+end
 
-task.wait(3)
-notify:Destroy()
+player.CharacterAdded:Connect(function()
+    camera = Workspace.CurrentCamera
+end)
 
-print("Camera Control v6.0 loaded!")
-print("F - Toggle Free Camera")
-print("M - Place Marker (in free cam)")
-print("V - Toggle View Mode")
-print("C - Clear All Markers")
-print("WASD + QE - Movement")
-print("Right Mouse - Rotate camera")
-print("Mouse Wheel - Adjust speed")
+player.CharacterRemoving:Connect(cleanup)
 
--- INIT
-updateCounter()
+-- INITIALIZATION
+local function init()
+    updateCounter()
+    showNotification()
+    
+    print("Camera Control v6.0 loaded!")
+    print("F - Toggle Free Camera")
+    print("M - Place Marker (in free cam)")
+    print("V - Toggle View Mode")
+    print("C - Clear All Markers")
+    print("WASD + QE - Movement")
+    print("Right Mouse - Rotate camera")
+    print("Mouse Wheel - Adjust speed")
+    print("[ and ] - Adjust speed")
+end
+
+-- Delay initialization to ensure everything is loaded
+task.spawn(function()
+    task.wait(1)
+    init()
+end)
