@@ -1,14 +1,5 @@
--- Mobile Camera Cheat v3.0
--- Created by sherikyt
--- For Roblox Executors (Synapse, KRNL, Fluxus, etc.)
-
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-
-if not game:GetService("Players").LocalPlayer then
-    repeat wait() until game:GetService("Players").LocalPlayer
-end
+-- Camera Control v2.0 by sherikyt
+-- Minimal & Powerful Roblox Cheat
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -21,307 +12,236 @@ local mouse = player:GetMouse()
 
 -- Config
 local MAX_MARKS = 10
-local CAM_SPEED = 15
-local MAX_SPEED = 50
+local CAM_SPEED = 20
+local SPEED_INCREMENT = 5
 local MIN_SPEED = 5
+local MAX_SPEED = 50
 
--- States
+-- State
 local marks = {}
-local isFreeCam = false
+local freeCam = false
 local currentMark = 0
-local gui = nil
-local touchData = {}
+local gui
+local moveInput = {W=false,A=false,S=false,D=false,Q=false,E=false}
 
--- Create Cheat GUI
-local function createCheatGUI()
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "CameraCheat_" .. math.random(10000, 99999)
-    ScreenGui.Parent = game:GetService("CoreGui")
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+-- Create Sleek UI
+local function createUI()
+    local ui = Instance.new("ScreenGui")
+    ui.Name = "CameraCheatUI"
+    ui.Parent = game:GetService("CoreGui")
+    ui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    -- Main Panel
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainPanel"
-    MainFrame.Size = UDim2.new(0.3, 0, 0, 200)
-    MainFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-    MainFrame.BackgroundTransparency = 0.1
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Active = true
-    MainFrame.Draggable = true
+    -- Main Control Panel
+    local main = Instance.new("Frame")
+    main.Name = "MainPanel"
+    main.Size = UDim2.new(0, 280, 0, 180)
+    main.Position = UDim2.new(0.02, 0, 0.3, 0)
+    main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    main.BackgroundTransparency = 0.05
+    main.BorderSizePixel = 0
+    main.Active = true
+    main.Draggable = true
 
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 12)
-    UICorner.Parent = MainFrame
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = main
 
-    local UIStroke = Instance.new("UIStroke")
-    UIStroke.Color = Color3.fromRGB(100, 100, 255)
-    UIStroke.Thickness = 2
-    UIStroke.Parent = MainFrame
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(100, 100, 255)
+    stroke.Thickness = 2
+    stroke.Parent = main
 
     -- Title
-    local Title = Instance.new("TextLabel")
-    Title.Name = "Title"
-    Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Position = UDim2.new(0, 0, 0, 0)
-    Title.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-    Title.Text = "📱 Camera Cheat v3.0\nby sherikyt"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 14
-    Title.TextXAlignment = Enum.TextXAlignment.Center
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 35)
+    title.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    title.Text = "🎥 CAMERA CONTROL v2.0"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.TextXAlignment = Enum.TextXAlignment.Center
 
-    local TitleCorner = Instance.new("UICorner")
-    TitleCorner.CornerRadius = UDim.new(0, 12)
-    TitleCorner.Parent = Title
-    Title.Parent = MainFrame
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 12)
+    titleCorner.Parent = title
+    title.Parent = main
 
-    -- Buttons Grid
-    local buttonConfigs = {
-        {name = "ToggleCam", text = "FREE CAM", color = Color3.fromRGB(70, 130, 200), pos = UDim2.new(0.05, 0, 0.25, 0)},
-        {name = "PlaceMark", text = "PLACE MARK", color = Color3.fromRGB(60, 200, 100), pos = UDim2.new(0.55, 0, 0.25, 0)},
-        {name = "ViewMarks", text = "VIEW MARKS", color = Color3.fromRGB(255, 165, 50), pos = UDim2.new(0.05, 0, 0.45, 0)},
-        {name = "ClearMarks", text = "CLEAR MARKS", color = Color3.fromRGB(220, 60, 60), pos = UDim2.new(0.55, 0, 0.45, 0)}
+    -- Button Grid (2x2)
+    local buttons = {
+        {name="FreeCam", text="FREE CAMERA", color=Color3.fromRGB(70, 130, 200), pos=UDim2.new(0.05,0,0.25,0)},
+        {name="PlaceMark", text="PLACE MARK", color=Color3.fromRGB(60, 200, 100), pos=UDim2.new(0.55,0,0.25,0)},
+        {name="ViewMarks", text="VIEW MARKS", color=Color3.fromRGB(255, 165, 50), pos=UDim2.new(0.05,0,0.55,0)},
+        {name="Clear", text="CLEAR MARKS", color=Color3.fromRGB(220, 60, 60), pos=UDim2.new(0.55,0,0.55,0)}
     }
 
-    for _, config in pairs(buttonConfigs) do
-        local Btn = Instance.new("TextButton")
-        Btn.Name = config.name
-        Btn.Size = UDim2.new(0.4, 0, 0.15, 0)
-        Btn.Position = config.pos
-        Btn.BackgroundColor3 = config.color
-        Btn.Text = config.text
-        Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        Btn.Font = Enum.Font.GothamBold
-        Btn.TextSize = 12
-        Btn.AutoButtonColor = false
+    for _, btnData in pairs(buttons) do
+        local btn = Instance.new("TextButton")
+        btn.Name = btnData.name
+        btn.Size = UDim2.new(0.4, 0, 0.25, 0)
+        btn.Position = btnData.pos
+        btn.BackgroundColor3 = btnData.color
+        btn.Text = btnData.text
+        btn.TextColor3 = Color3.white
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 12
+        btn.AutoButtonColor = false
         
-        local BtnCorner = Instance.new("UICorner")
-        BtnCorner.CornerRadius = UDim.new(0, 8)
-        BtnCorner.Parent = Btn
-        
-        Btn.Parent = MainFrame
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+        btn.Parent = main
     end
 
-    -- Marks Counter
-    local Counter = Instance.new("TextLabel")
-    Counter.Name = "Counter"
-    Counter.Size = UDim2.new(1, 0, 0, 30)
-    Counter.Position = UDim2.new(0, 0, 0.65, 0)
-    Counter.BackgroundTransparency = 1
-    Counter.Text = "📍 MARKS: 0/" .. MAX_MARKS
-    Counter.TextColor3 = Color3.fromRGB(200, 200, 255)
-    Counter.Font = Enum.Font.GothamBold
-    Counter.TextSize = 14
-    Counter.TextXAlignment = Enum.TextXAlignment.Center
-    Counter.Parent = MainFrame
+    -- Info Display
+    local info = Instance.new("TextLabel")
+    info.Size = UDim2.new(1, 0, 0, 25)
+    info.Position = UDim2.new(0, 0, 0.85, 0)
+    info.BackgroundTransparency = 1
+    info.Text = "📍 MARKS: 0/"..MAX_MARKS.." | SPEED: "..CAM_SPEED
+    info.TextColor3 = Color3.fromRGB(200, 200, 255)
+    info.Font = Enum.Font.Gotham
+    info.TextSize = 12
+    info.TextXAlignment = Enum.TextXAlignment.Center
+    info.Parent = main
 
-    -- Speed Control
-    local SpeedFrame = Instance.new("Frame")
-    SpeedFrame.Name = "SpeedControl"
-    SpeedFrame.Size = UDim2.new(1, 0, 0, 40)
-    SpeedFrame.Position = UDim2.new(0, 0, 0.8, 0)
-    SpeedFrame.BackgroundTransparency = 1
+    main.Parent = ui
 
-    local SpeedLabel = Instance.new("TextLabel")
-    SpeedLabel.Name = "SpeedLabel"
-    SpeedLabel.Size = UDim2.new(0.4, 0, 1, 0)
-    SpeedLabel.Position = UDim2.new(0.05, 0, 0, 0)
-    SpeedLabel.BackgroundTransparency = 1
-    SpeedLabel.Text = "SPEED: " .. CAM_SPEED
-    SpeedLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-    SpeedLabel.Font = Enum.Font.Gotham
-    SpeedLabel.TextSize = 14
-    SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
-    SpeedLabel.Parent = SpeedFrame
+    -- Mark Viewer
+    local viewer = Instance.new("Frame")
+    viewer.Name = "Viewer"
+    viewer.Size = UDim2.new(0, 250, 0, 120)
+    viewer.Position = UDim2.new(0.02, 0, 0.55, 0)
+    viewer.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
+    viewer.BackgroundTransparency = 0.1
+    viewer.BorderSizePixel = 0
+    viewer.Visible = false
+    viewer.Active = true
+    viewer.Draggable = true
 
-    local SpeedUp = Instance.new("TextButton")
-    SpeedUp.Name = "SpeedUp"
-    SpeedUp.Size = UDim2.new(0.15, 0, 0.7, 0)
-    SpeedUp.Position = UDim2.new(0.6, 0, 0.15, 0)
-    SpeedUp.BackgroundColor3 = Color3.fromRGB(70, 200, 70)
-    SpeedUp.Text = "+"
-    SpeedUp.TextColor3 = Color3.white
-    SpeedUp.Font = Enum.Font.GothamBold
-    SpeedUp.TextSize = 16
-    SpeedUp.AutoButtonColor = false
-    SpeedUp.Parent = SpeedFrame
+    Instance.new("UICorner", viewer).CornerRadius = UDim.new(0, 12)
 
-    local SpeedDown = Instance.new("TextButton")
-    SpeedDown.Name = "SpeedDown"
-    SpeedDown.Size = UDim2.new(0.15, 0, 0.7, 0)
-    SpeedDown.Position = UDim2.new(0.8, 0, 0.15, 0)
-    SpeedDown.BackgroundColor3 = Color3.fromRGB(220, 70, 70)
-    SpeedDown.Text = "-"
-    SpeedDown.TextColor3 = Color3.white
-    SpeedDown.Font = Enum.Font.GothamBold
-    SpeedDown.TextSize = 16
-    SpeedDown.AutoButtonColor = false
-    SpeedDown.Parent = SpeedFrame
+    local viewerTitle = Instance.new("TextLabel")
+    viewerTitle.Size = UDim2.new(1, 0, 0, 30)
+    viewerTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
+    viewerTitle.Text = "📹 MARK VIEWER"
+    viewerTitle.TextColor3 = Color3.white
+    viewerTitle.Font = Enum.Font.GothamBold
+    viewerTitle.TextSize = 14
+    viewerTitle.Parent = viewer
 
-    SpeedFrame.Parent = MainFrame
-    MainFrame.Parent = ScreenGui
+    local markInfo = Instance.new("TextLabel")
+    markInfo.Name = "MarkInfo"
+    markInfo.Size = UDim2.new(1, 0, 0, 40)
+    markInfo.Position = UDim2.new(0, 0, 0.3, 0)
+    markInfo.BackgroundTransparency = 1
+    markInfo.Text = "NO MARKS PLACED"
+    markInfo.TextColor3 = Color3.fromRGB(200, 200, 255)
+    markInfo.Font = Enum.Font.Gotham
+    markInfo.TextSize = 14
+    markInfo.Parent = viewer
 
-    -- View Panel
-    local ViewFrame = Instance.new("Frame")
-    ViewFrame.Name = "ViewPanel"
-    ViewFrame.Size = UDim2.new(0.3, 0, 0, 120)
-    ViewFrame.Position = UDim2.new(0.02, 0, 0.55, 0)
-    ViewFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
-    ViewFrame.BackgroundTransparency = 0.2
-    ViewFrame.BorderSizePixel = 0
-    ViewFrame.Visible = false
-    ViewFrame.Active = true
-    ViewFrame.Draggable = true
+    -- Navigation Buttons
+    local navBtns = {
+        {name="Prev", text="◀ PREV", pos=UDim2.new(0.1,0,0.75,0), color=Color3.fromRGB(70,130,200)},
+        {name="Next", text="NEXT ▶", pos=UDim2.new(0.6,0,0.75,0), color=Color3.fromRGB(70,130,200)},
+        {name="Exit", text="EXIT", pos=UDim2.new(0.35,0,0.75,0), color=Color3.fromRGB(220,70,70)}
+    }
 
-    local ViewCorner = Instance.new("UICorner")
-    ViewCorner.CornerRadius = UDim.new(0, 12)
-    ViewCorner.Parent = ViewFrame
+    for _, nav in pairs(navBtns) do
+        local btn = Instance.new("TextButton")
+        btn.Name = nav.name
+        btn.Size = UDim2.new(0.25, 0, 0.2, 0)
+        btn.Position = nav.pos
+        btn.BackgroundColor3 = nav.color
+        btn.Text = nav.text
+        btn.TextColor3 = Color3.white
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 12
+        btn.AutoButtonColor = false
+        btn.Visible = false
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        btn.Parent = viewer
+    end
 
-    local ViewTitle = Instance.new("TextLabel")
-    ViewTitle.Name = "ViewTitle"
-    ViewTitle.Size = UDim2.new(1, 0, 0, 30)
-    ViewTitle.Position = UDim2.new(0, 0, 0, 0)
-    ViewTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
-    ViewTitle.Text = "📹 CAMERA VIEWER"
-    ViewTitle.TextColor3 = Color3.white
-    ViewTitle.Font = Enum.Font.GothamBold
-    ViewTitle.TextSize = 14
-    ViewTitle.Parent = ViewFrame
-
-    local ViewInfo = Instance.new("TextLabel")
-    ViewInfo.Name = "ViewInfo"
-    ViewInfo.Size = UDim2.new(1, 0, 0, 40)
-    ViewInfo.Position = UDim2.new(0, 0, 0.3, 0)
-    ViewInfo.BackgroundTransparency = 1
-    ViewInfo.Text = "NO MARKS PLACED"
-    ViewInfo.TextColor3 = Color3.fromRGB(200, 200, 255)
-    ViewInfo.Font = Enum.Font.Gotham
-    ViewInfo.TextSize = 14
-    ViewInfo.Parent = ViewFrame
-
-    local NavFrame = Instance.new("Frame")
-    NavFrame.Name = "NavFrame"
-    NavFrame.Size = UDim2.new(1, 0, 0, 40)
-    NavFrame.Position = UDim2.new(0, 0, 0.7, 0)
-    NavFrame.BackgroundTransparency = 1
-
-    local PrevBtn = Instance.new("TextButton")
-    PrevBtn.Name = "PrevBtn"
-    PrevBtn.Size = UDim2.new(0.3, 0, 0.8, 0)
-    PrevBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
-    PrevBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
-    PrevBtn.Text = "◀ PREV"
-    PrevBtn.TextColor3 = Color3.white
-    PrevBtn.Font = Enum.Font.GothamBold
-    PrevBtn.TextSize = 12
-    PrevBtn.Visible = false
-    PrevBtn.AutoButtonColor = false
-    PrevBtn.Parent = NavFrame
-
-    local NextBtn = Instance.new("TextButton")
-    NextBtn.Name = "NextBtn"
-    NextBtn.Size = UDim2.new(0.3, 0, 0.8, 0)
-    NextBtn.Position = UDim2.new(0.65, 0, 0.1, 0)
-    NextBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
-    NextBtn.Text = "NEXT ▶"
-    NextBtn.TextColor3 = Color3.white
-    NextBtn.Font = Enum.Font.GothamBold
-    NextBtn.TextSize = 12
-    NextBtn.Visible = false
-    NextBtn.AutoButtonColor = false
-    NextBtn.Parent = NavFrame
-
-    local ExitBtn = Instance.new("TextButton")
-    ExitBtn.Name = "ExitBtn"
-    ExitBtn.Size = UDim2.new(0.3, 0, 0.8, 0)
-    ExitBtn.Position = UDim2.new(0.35, 0, 0.1, 0)
-    ExitBtn.BackgroundColor3 = Color3.fromRGB(220, 70, 70)
-    ExitBtn.Text = "EXIT"
-    ExitBtn.TextColor3 = Color3.white
-    ExitBtn.Font = Enum.Font.GothamBold
-    ExitBtn.TextSize = 12
-    ExitBtn.Visible = false
-    ExitBtn.AutoButtonColor = false
-    ExitBtn.Parent = NavFrame
-
-    NavFrame.Parent = ViewFrame
-    ViewFrame.Parent = ScreenGui
-
-    return ScreenGui
+    viewer.Parent = ui
+    return ui
 end
 
--- Functions
-local function updateCounter()
-    if gui and gui:FindFirstChild("MainPanel") then
-        local counter = gui.MainPanel:FindFirstChild("Counter")
-        if counter then
-            counter.Text = "📍 MARKS: " .. #marks .. "/" .. MAX_MARKS
+-- Button Effects
+local function setupButton(btn)
+    local original = btn.BackgroundColor3
+    
+    btn.MouseButton1Down:Connect(function()
+        btn.BackgroundColor3 = original * 0.7
+    end)
+    
+    btn.MouseButton1Up:Connect(function()
+        btn.BackgroundColor3 = original * 1.1
+        wait(0.1)
+        btn.BackgroundColor3 = original
+    end)
+    
+    btn.MouseEnter:Connect(function()
+        if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+            btn.BackgroundColor3 = original * 1.1
+        end
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundColor3 = original
+    end)
+end
+
+-- Mark Functions
+local function updateInfo()
+    if gui and gui.MainPanel then
+        local info = gui.MainPanel:FindFirstChildWhichIsA("TextLabel", true)
+        if info then
+            info.Text = "📍 MARKS: "..#marks.."/"..MAX_MARKS.." | SPEED: "..CAM_SPEED
         end
     end
 end
 
-local function createMark(position, lookVector)
-    if #marks >= MAX_MARKS then
-        warn("[Camera Cheat] Max marks reached!")
-        return nil
+local function createMark(pos, look)
+    if #marks >= MAX_MARKS then 
+        warn("Max marks reached!")
+        return 
     end
     
     local mark = {
-        position = position,
-        lookVector = lookVector,
-        part = nil
+        position = pos,
+        lookVector = look,
+        part = Instance.new("Part")
     }
     
-    -- Create visual marker
-    local part = Instance.new("Part")
-    part.Name = "CheatMark_" .. #marks + 1
-    part.Size = Vector3.new(2, 2, 2)
-    part.Position = position
-    part.Anchored = true
-    part.CanCollide = false
-    part.Material = EnumMaterial.Neon
-    part.Color = Color3.fromRGB(0, 255, 255)
-    part.Transparency = 0.3
+    mark.part.Name = "CamMark"
+    mark.part.Size = Vector3.new(2, 3, 2)
+    mark.part.Position = pos
+    mark.part.Anchored = true
+    mark.part.CanCollide = false
+    mark.part.Material = EnumMaterial.Neon
+    mark.part.Color = Color3.fromRGB(0, 200, 255)
+    mark.part.Transparency = 0.3
+    mark.part.Parent = workspace
     
-    -- Add beam to mark
-    local beam = Instance.new("Beam")
-    beam.Color = ColorSequence.new(Color3.fromRGB(0, 255, 255))
-    beam.Width0 = 0.5
-    beam.Width1 = 0.5
-    beam.Attachment0 = Instance.new("Attachment")
-    beam.Attachment0.Parent = part
-    beam.Attachment0.Position = Vector3.new(0, 1, 0)
-    beam.Attachment1 = Instance.new("Attachment")
-    beam.Attachment1.Parent = part
-    beam.Attachment1.Position = Vector3.new(0, 5, 0)
-    beam.Parent = part
-    
-    part.Parent = workspace
-    mark.part = part
-    
-    table.insert(marks, mark)
-    updateCounter()
-    
-    print("[Camera Cheat] Mark placed at " .. tostring(position))
+    marks[#marks + 1] = mark
+    updateInfo()
     return mark
 end
 
-local function clearAllMarks()
+local function clearMarks()
     for _, mark in ipairs(marks) do
-        if mark.part and mark.part.Parent then
-            mark.part:Destroy()
-        end
+        if mark.part then mark.part:Destroy() end
     end
     marks = {}
     currentMark = 0
-    updateCounter()
+    updateInfo()
     
-    if gui and gui:FindFirstChild("ViewPanel") then
-        gui.ViewPanel.ViewInfo.Text = "NO MARKS PLACED"
-        gui.ViewPanel.NavFrame.PrevBtn.Visible = false
-        gui.ViewPanel.NavFrame.NextBtn.Visible = false
-        gui.ViewPanel.NavFrame.ExitBtn.Visible = true
+    if gui and gui.Viewer then
+        gui.Viewer.MarkInfo.Text = "NO MARKS PLACED"
+        for _, btn in pairs({"Prev","Next","Exit"}) do
+            local b = gui.Viewer:FindFirstChild(btn)
+            if b then b.Visible = false end
+        end
+        gui.Viewer.Exit.Visible = true
     end
 end
 
@@ -334,295 +254,185 @@ local function viewMark(index)
     camera.CameraType = Enum.CameraType.Scriptable
     camera.CFrame = CFrame.new(mark.position, mark.position + mark.lookVector)
     
-    -- Update UI
-    if gui and gui:FindFirstChild("ViewPanel") then
-        local panel = gui.ViewPanel
-        panel.ViewInfo.Text = "MARK " .. index .. "/" .. #marks
-        
-        panel.NavFrame.PrevBtn.Visible = (index > 1)
-        panel.NavFrame.NextBtn.Visible = (index < #marks)
-        panel.NavFrame.ExitBtn.Visible = true
+    if gui and gui.Viewer then
+        gui.Viewer.MarkInfo.Text = "MARK "..index.."/"..#marks
+        gui.Viewer.Prev.Visible = index > 1
+        gui.Viewer.Next.Visible = index < #marks
+        gui.Viewer.Exit.Visible = true
     end
 end
 
-local function toggleFreeCamera()
-    isFreeCam = not isFreeCam
+-- Camera Control
+local function toggleFreeCam()
+    freeCam = not freeCam
     
-    if isFreeCam then
-        -- Enable free camera
+    if freeCam then
         camera.CameraType = Enum.CameraType.Scriptable
-        
-        -- Save original camera position
-        if not camera:FindFirstChild("OriginalCFrame") then
-            local value = Instance.new("CFrameValue")
-            value.Name = "OriginalCFrame"
-            value.Value = camera.CFrame
-            value.Parent = camera
-        end
-        
-        -- Freeze player
         if player.Character then
-            local humanoid = player.Character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.PlatformStand = true
-            end
+            local hum = player.Character:FindFirstChild("Humanoid")
+            if hum then hum.PlatformStand = true end
         end
-        
-        -- Update button
-        if gui then
-            gui.MainPanel.ToggleCam.Text = "EXIT CAM"
-            gui.MainPanel.ToggleCam.BackgroundColor3 = Color3.fromRGB(220, 70, 70)
-        end
-        
-        print("[Camera Cheat] Free camera enabled")
+        gui.MainPanel.FreeCam.Text = "EXIT CAM"
+        gui.MainPanel.FreeCam.BackgroundColor3 = Color3.fromRGB(220, 70, 70)
     else
-        -- Disable free camera
         camera.CameraType = Enum.CameraType.Custom
-        
-        -- Unfreeze player
         if player.Character then
-            local humanoid = player.Character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.PlatformStand = false
+            local hum = player.Character:FindFirstChild("Humanoid")
+            if hum then 
+                hum.PlatformStand = false
+                camera.CameraSubject = hum
             end
         end
-        
-        -- Update button
-        if gui then
-            gui.MainPanel.ToggleCam.Text = "FREE CAM"
-            gui.MainPanel.ToggleCam.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
-        end
-        
-        print("[Camera Cheat] Free camera disabled")
+        gui.MainPanel.FreeCam.Text = "FREE CAMERA"
+        gui.MainPanel.FreeCam.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
     end
 end
 
-local function toggleViewMode()
+local function toggleViewer()
     if gui then
-        local viewPanel = gui.ViewPanel
-        viewPanel.Visible = not viewPanel.Visible
-        
-        if viewPanel.Visible and #marks > 0 then
+        gui.Viewer.Visible = not gui.Viewer.Visible
+        if gui.Viewer.Visible and #marks > 0 then
             viewMark(1)
-        else
-            camera.CameraType = isFreeCam and Enum.CameraType.Scriptable or Enum.CameraType.Custom
+        elseif not gui.Viewer.Visible then
+            camera.CameraType = freeCam and Enum.CameraType.Scriptable or Enum.CameraType.Custom
         end
     end
 end
 
--- Setup GUI and Events
-gui = createCheatGUI()
+-- Initialize
+gui = createUI()
 
--- Button hover effects
-local function setupButton(button)
-    local originalColor = button.BackgroundColor3
-    
-    button.MouseButton1Down:Connect(function()
-        button.BackgroundColor3 = originalColor * 0.7
-    end)
-    
-    button.MouseButton1Up:Connect(function()
-        button.BackgroundColor3 = originalColor
-    end)
-    
-    button.MouseEnter:Connect(function()
-        if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-            button.BackgroundColor3 = originalColor * 1.1
-        end
-    end)
-    
-    button.MouseLeave:Connect(function()
-        button.BackgroundColor3 = originalColor
-    end)
-end
-
--- Apply effects to all buttons
-for _, button in pairs(gui:GetDescendants()) do
-    if button:IsA("TextButton") then
-        setupButton(button)
+-- Setup all buttons
+for _, btn in pairs(gui:GetDescendants()) do
+    if btn:IsA("TextButton") then
+        setupButton(btn)
     end
 end
 
--- Button click events
-gui.MainPanel.ToggleCam.MouseButton1Click:Connect(toggleFreeCamera)
+-- Button Events
+gui.MainPanel.FreeCam.MouseButton1Click:Connect(toggleFreeCam)
 
 gui.MainPanel.PlaceMark.MouseButton1Click:Connect(function()
-    if isFreeCam then
+    if freeCam then
         createMark(camera.CFrame.Position, camera.CFrame.LookVector)
-    else
-        warn("[Camera Cheat] Enable free camera first!")
     end
 end)
 
-gui.MainPanel.ViewMarks.MouseButton1Click:Connect(toggleViewMode)
+gui.MainPanel.ViewMarks.MouseButton1Click:Connect(toggleViewer)
 
-gui.MainPanel.ClearMarks.MouseButton1Click:Connect(clearAllMarks)
+gui.MainPanel.Clear.MouseButton1Click:Connect(clearMarks)
 
-gui.MainPanel.SpeedControl.SpeedUp.MouseButton1Click:Connect(function()
-    CAM_SPEED = math.min(CAM_SPEED + 5, MAX_SPEED)
-    gui.MainPanel.SpeedControl.SpeedLabel.Text = "SPEED: " .. CAM_SPEED
+gui.Viewer.Prev.MouseButton1Click:Connect(function()
+    if currentMark > 1 then viewMark(currentMark - 1) end
 end)
 
-gui.MainPanel.SpeedControl.SpeedDown.MouseButton1Click:Connect(function()
-    CAM_SPEED = math.max(CAM_SPEED - 5, MIN_SPEED)
-    gui.MainPanel.SpeedControl.SpeedLabel.Text = "SPEED: " .. CAM_SPEED
+gui.Viewer.Next.MouseButton1Click:Connect(function()
+    if currentMark < #marks then viewMark(currentMark + 1) end
 end)
 
--- View panel navigation
-gui.ViewPanel.NavFrame.PrevBtn.MouseButton1Click:Connect(function()
-    if currentMark > 1 then
-        viewMark(currentMark - 1)
-    end
-end)
-
-gui.ViewPanel.NavFrame.NextBtn.MouseButton1Click:Connect(function()
-    if currentMark < #marks then
-        viewMark(currentMark + 1)
-    end
-end)
-
-gui.ViewPanel.NavFrame.ExitBtn.MouseButton1Click:Connect(toggleViewMode)
+gui.Viewer.Exit.MouseButton1Click:Connect(toggleViewer)
 
 -- Hotkeys
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
+UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F then
-        toggleFreeCamera()
-    elseif input.KeyCode == Enum.KeyCode.M and isFreeCam then
+        toggleFreeCam()
+    elseif input.KeyCode == Enum.KeyCode.M and freeCam then
         createMark(camera.CFrame.Position, camera.CFrame.LookVector)
     elseif input.KeyCode == Enum.KeyCode.V then
-        toggleViewMode()
+        toggleViewer()
     elseif input.KeyCode == Enum.KeyCode.C then
-        clearAllMarks()
+        clearMarks()
     elseif input.KeyCode == Enum.KeyCode.LeftBracket then
-        CAM_SPEED = math.max(CAM_SPEED - 5, MIN_SPEED)
-        if gui then gui.MainPanel.SpeedControl.SpeedLabel.Text = "SPEED: " .. CAM_SPEED end
+        CAM_SPEED = math.max(CAM_SPEED - SPEED_INCREMENT, MIN_SPEED)
+        updateInfo()
     elseif input.KeyCode == Enum.KeyCode.RightBracket then
-        CAM_SPEED = math.min(CAM_SPEED + 5, MAX_SPEED)
-        if gui then gui.MainPanel.SpeedControl.SpeedLabel.Text = "SPEED: " .. CAM_SPEED end
+        CAM_SPEED = math.min(CAM_SPEED + SPEED_INCREMENT, MAX_SPEED)
+        updateInfo()
     end
-end)
-
--- Mouse wheel for speed
-mouse.WheelForward:Connect(function()
-    if isFreeCam then
-        CAM_SPEED = math.min(CAM_SPEED + 5, MAX_SPEED)
-        if gui then gui.MainPanel.SpeedControl.SpeedLabel.Text = "SPEED: " .. CAM_SPEED end
-    end
-end)
-
-mouse.WheelBackward:Connect(function()
-    if isFreeCam then
-        CAM_SPEED = math.max(CAM_SPEED - 5, MIN_SPEED)
-        if gui then gui.MainPanel.SpeedControl.SpeedLabel.Text = "SPEED: " .. CAM_SPEED end
-    end
-end)
-
--- Free camera movement
-local cameraInput = {
-    W = false,
-    A = false,
-    S = false,
-    D = false,
-    Q = false,
-    E = false
-}
-
-UserInputService.InputBegan:Connect(function(input)
-    if not isFreeCam then return end
     
-    if input.KeyCode == Enum.KeyCode.W then cameraInput.W = true
-    elseif input.KeyCode == Enum.KeyCode.A then cameraInput.A = true
-    elseif input.KeyCode == Enum.KeyCode.S then cameraInput.S = true
-    elseif input.KeyCode == Enum.KeyCode.D then cameraInput.D = true
-    elseif input.KeyCode == Enum.KeyCode.Q then cameraInput.Q = true
-    elseif input.KeyCode == Enum.KeyCode.E then cameraInput.E = true
+    if freeCam then
+        if input.KeyCode == Enum.KeyCode.W then moveInput.W = true
+        elseif input.KeyCode == Enum.KeyCode.A then moveInput.A = true
+        elseif input.KeyCode == Enum.KeyCode.S then moveInput.S = true
+        elseif input.KeyCode == Enum.KeyCode.D then moveInput.D = true
+        elseif input.KeyCode == Enum.KeyCode.Q then moveInput.Q = true
+        elseif input.KeyCode == Enum.KeyCode.E then moveInput.E = true
+        end
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if not isFreeCam then return end
-    
-    if input.KeyCode == Enum.KeyCode.W then cameraInput.W = false
-    elseif input.KeyCode == Enum.KeyCode.A then cameraInput.A = false
-    elseif input.KeyCode == Enum.KeyCode.S then cameraInput.S = false
-    elseif input.KeyCode == Enum.KeyCode.D then cameraInput.D = false
-    elseif input.KeyCode == Enum.KeyCode.Q then cameraInput.Q = false
-    elseif input.KeyCode == Enum.KeyCode.E then cameraInput.E = false
+    if freeCam then
+        if input.KeyCode == Enum.KeyCode.W then moveInput.W = false
+        elseif input.KeyCode == Enum.KeyCode.A then moveInput.A = false
+        elseif input.KeyCode == Enum.KeyCode.S then moveInput.S = false
+        elseif input.KeyCode == Enum.KeyCode.D then moveInput.D = false
+        elseif input.KeyCode == Enum.KeyCode.Q then moveInput.Q = false
+        elseif input.KeyCode == Enum.KeyCode.E then moveInput.E = false
+        end
     end
 end)
 
--- Camera movement loop
-RunService.RenderStepped:Connect(function(deltaTime)
-    if isFreeCam then
-        local moveVector = Vector3.new(0, 0, 0)
+-- Mouse wheel speed
+mouse.WheelForward:Connect(function()
+    if freeCam then
+        CAM_SPEED = math.min(CAM_SPEED + SPEED_INCREMENT, MAX_SPEED)
+        updateInfo()
+    end
+end)
+
+mouse.WheelBackward:Connect(function()
+    if freeCam then
+        CAM_SPEED = math.max(CAM_SPEED - SPEED_INCREMENT, MIN_SPEED)
+        updateInfo()
+    end
+end)
+
+-- Camera Movement
+RunService.RenderStepped:Connect(function(delta)
+    if freeCam then
+        local move = Vector3.new(0,0,0)
         
-        if cameraInput.W then moveVector = moveVector + camera.CFrame.LookVector end
-        if cameraInput.S then moveVector = moveVector - camera.CFrame.LookVector end
-        if cameraInput.D then moveVector = moveVector + camera.CFrame.RightVector end
-        if cameraInput.A then moveVector = moveVector - camera.CFrame.RightVector end
-        if cameraInput.E then moveVector = moveVector + Vector3.new(0, 1, 0) end
-        if cameraInput.Q then moveVector = moveVector - Vector3.new(0, 1, 0) end
+        if moveInput.W then move = move + camera.CFrame.LookVector end
+        if moveInput.S then move = move - camera.CFrame.LookVector end
+        if moveInput.D then move = move + camera.CFrame.RightVector end
+        if moveInput.A then move = move - camera.CFrame.RightVector end
+        if moveInput.E then move = move + Vector3.new(0,1,0) end
+        if moveInput.Q then move = move - Vector3.new(0,1,0) end
         
-        if moveVector.Magnitude > 0 then
-            camera.CFrame = camera.CFrame + (moveVector.Unit * CAM_SPEED * deltaTime)
+        if move.Magnitude > 0 then
+            camera.CFrame = camera.CFrame + (move.Unit * CAM_SPEED * delta)
         end
         
-        -- Mouse look
         if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-            local delta = UserInputService:GetMouseDelta()
-            local yaw = delta.X * 0.003
-            local pitch = delta.Y * 0.003
-            
-            camera.CFrame = camera.CFrame * CFrame.fromOrientation(-pitch, -yaw, 0)
+            local mouseDelta = UserInputService:GetMouseDelta()
+            camera.CFrame = camera.CFrame * CFrame.fromOrientation(
+                -mouseDelta.Y * 0.003,
+                -mouseDelta.X * 0.003,
+                0
+            )
         end
     end
 end)
 
--- Notification
-local function notify(msg)
-    print("[Camera Cheat] " .. msg)
-    
-    -- Optional: Create notification
-    local notif = Instance.new("ScreenGui")
-    notif.Name = "Notification_" .. math.random(1000, 9999)
-    notif.Parent = game.CoreGui
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 300, 0, 60)
-    frame.Position = UDim2.new(0.5, -150, 0.1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-    frame.BorderSizePixel = 0
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = frame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = "📷 " .. msg
-    label.TextColor3 = C
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 14
-    label.Parent = frame
-    
-    frame.Parent = notif
-    
-    task.wait(3)
-    notif:Destroy()
-end
+-- Auto-inject notification
+local notify = Instance.new("ScreenGui", game.CoreGui)
+local frame = Instance.new("Frame", notify)
+frame.Size = UDim2.new(0, 300, 0, 60)
+frame.Position = UDim2.new(0.5, -150, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+frame.BorderSizePixel = 0
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
-notify("Camera Cheat v3.0 loaded! by sherikyt")
-notify("Hotkeys: F=Free Cam, M=Mark, V=View, C=Clear")
-notify("Mouse wheel = Speed, RMB = Rotate")
+local label = Instance.new("TextLabel", frame)
+label.Size = UDim2.new(1, 0, 1, 0)
+label.BackgroundTransparency = 1
+label.Text = "🎥 Camera Control v2.0 loaded!\nby sherikyt | F, M, V, C keys"
+label.TextColor3 = Color3.white
+label.Font = Enum.Font.GothamBold
+label.TextSize = 14
 
-print("=== Camera Cheat v3.0 ===")
-print("Creator: sherikyt")
-print("Features:")
-print("- Free Camera Movement (WASD + QE)")
-print("- Place Marks (10 max)")
-print("- View Marks with Navigation")
-print("- Adjustable Speed Control")
-print("==========================")
+task.wait(3)
+notify:Destroy()
+
+print("Camera Control v2.0 by sherikyt - Ready!")
