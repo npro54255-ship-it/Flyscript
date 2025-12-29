@@ -1,16 +1,17 @@
--- Security Camera System by sherikyt
+-- Mobile Security Camera System by sherikyt
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
 local config = {
     maxCameras = 5,
     cameraFOV = 70,
-    panSpeed = 50,
-    zoomSpeed = 5
+    panSpeed = 30,
+    zoomSpeed = 3
 }
 
 local state = {
@@ -21,104 +22,218 @@ local state = {
     zoomLevel = 1
 }
 
--- Simple GUI without complex UI
+-- Mobile GUI with big touch buttons
 local gui = Instance.new("ScreenGui")
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Name = "MobileCameraSystem"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
 
--- Status label
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(0, 200, 0, 50)
-status.Position = UDim2.new(0, 10, 0, 10)
-status.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-status.BackgroundTransparency = 0.3
-status.Text = "Cameras: 0/5\nPress P to place\nM to monitor"
-status.TextColor3 = Color3.fromRGB(255, 255, 255)
-status.Font = Enum.Font.Gotham
-status.TextSize = 12
-status.TextWrapped = true
-status.Parent = gui
+-- Main control panel (big buttons for mobile)
+local controlPanel = Instance.new("Frame")
+controlPanel.Name = "ControlPanel"
+controlPanel.Size = UDim2.new(0, 300, 0, 200)
+controlPanel.Position = UDim2.new(0, 10, 1, -210)
+controlPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+controlPanel.BackgroundTransparency = 0.2
+controlPanel.Parent = gui
 
-Instance.new("UICorner", status).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", controlPanel).CornerRadius = UDim.new(0, 15)
 
--- Monitor overlay (hidden)
+-- Status display
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(1, -20, 0, 50)
+statusLabel.Position = UDim2.new(0, 10, 0, 10)
+statusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+statusLabel.BackgroundTransparency = 0.3
+statusLabel.Text = "📷 Cameras: 0/5\nTap buttons below"
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 14
+statusLabel.TextWrapped = true
+statusLabel.Parent = controlPanel
+
+Instance.new("UICorner", statusLabel).CornerRadius = UDim.new(0, 10)
+
+-- Big touch buttons for mobile
+local function createMobileButton(name, text, position, color)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0.9, 0, 0, 60)
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 16
+    button.TextWrapped = true
+    button.Parent = controlPanel
+    
+    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+    
+    -- Touch feedback
+    button.MouseButton1Down:Connect(function()
+        button.BackgroundTransparency = 0.4
+    end)
+    
+    button.MouseButton1Up:Connect(function()
+        button.BackgroundTransparency = 0
+        task.wait(0.1)
+        button.BackgroundTransparency = 0
+    end)
+    
+    return button
+end
+
+-- Create mobile buttons (big for touch)
+local placeButton = createMobileButton(
+    "PlaceButton",
+    "📷 PLACE CAMERA",
+    UDim2.new(0.05, 0, 0, 70),
+    Color3.fromRGB(0, 120, 255)
+)
+
+local monitorButton = createMobileButton(
+    "MonitorButton",
+    "👁️ MONITOR",
+    UDim2.new(0.05, 0, 0, 140),
+    Color3.fromRGB(150, 0, 255)
+)
+
+-- Monitor overlay (for camera view)
 local monitorOverlay = Instance.new("Frame")
+monitorOverlay.Name = "MonitorOverlay"
 monitorOverlay.Size = UDim2.new(1, 0, 1, 0)
 monitorOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 monitorOverlay.BackgroundTransparency = 0.95
 monitorOverlay.Visible = false
 monitorOverlay.Parent = gui
 
+-- Camera info display (top right)
 local cameraInfo = Instance.new("TextLabel")
-cameraInfo.Size = UDim2.new(0, 300, 0, 60)
-cameraInfo.Position = UDim2.new(1, -310, 0, 10)
+cameraInfo.Name = "CameraInfo"
+cameraInfo.Size = UDim2.new(0, 250, 0, 100)
+cameraInfo.Position = UDim2.new(1, -260, 0, 10)
 cameraInfo.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 cameraInfo.BackgroundTransparency = 0.7
-cameraInfo.Text = "Camera 0\nWASD: Move | QE: Zoom\n←→: Switch | R: Reset"
+cameraInfo.Text = "📷 Camera 0\n← → : Switch\nMove with joystick"
 cameraInfo.TextColor3 = Color3.fromRGB(255, 255, 255)
 cameraInfo.Font = Enum.Font.Gotham
 cameraInfo.TextSize = 14
 cameraInfo.TextWrapped = true
 cameraInfo.Parent = monitorOverlay
 
-Instance.new("UICorner", cameraInfo).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", cameraInfo).CornerRadius = UDim.new(0, 10)
 
--- SUPER SIMPLE Camera creation - Just store position
-local function createCamera(position, index)
-    -- Create a simple marker part
+-- Mobile joystick for camera control
+local joystickArea = Instance.new("Frame")
+joystickArea.Name = "JoystickArea"
+joystickArea.Size = UDim2.new(0, 150, 0, 150)
+joystickArea.Position = UDim2.new(0, 20, 1, -170)
+joystickArea.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+joystickArea.BackgroundTransparency = 0.8
+joystickArea.Visible = false
+joystickArea.Parent = monitorOverlay
+
+Instance.new("UICorner", joystickArea).CornerRadius = UDim.new(1, 0)
+
+local joystickCenter = Instance.new("Frame")
+joystickCenter.Name = "JoystickCenter"
+joystickCenter.Size = UDim2.new(0, 50, 0, 50)
+joystickCenter.Position = UDim2.new(0.5, -25, 0.5, -25)
+joystickCenter.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+joystickCenter.BackgroundTransparency = 0.5
+joystickCenter.Parent = joystickArea
+
+Instance.new("UICorner", joystickCenter).CornerRadius = UDim.new(1, 0)
+
+-- Mobile camera functions
+local function createCameraMarker(position, index)
+    -- Create simple floating marker
     local marker = Instance.new("Part")
-    marker.Name = "CameraMarker_" .. index
-    marker.Size = Vector3.new(1, 1, 1)
+    marker.Name = "MobileCamera_" .. index
+    marker.Size = Vector3.new(3, 3, 3)
     marker.Position = position
     marker.Anchored = true
     marker.CanCollide = false
-    marker.Transparency = 0.7
+    marker.Transparency = 0.5
     marker.Color = Color3.fromRGB(0, 150, 255)
-    marker.Parent = Workspace
+    marker.Material = EnumMaterial.Neon
     
-    -- Store camera data
+    -- Add light for visibility
+    local light = Instance.new("PointLight")
+    light.Color = Color3.fromRGB(0, 150, 255)
+    light.Brightness = 2
+    light.Range = 15
+    light.Parent = marker
+    
+    -- Add billboard with camera number
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "CameraNumber"
+    billboard.Size = UDim2.new(0, 100, 0, 100)
+    billboard.StudsOffset = Vector3.new(0, 4, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = marker
+    
+    local numberLabel = Instance.new("TextLabel")
+    numberLabel.Size = UDim2.new(1, 0, 1, 0)
+    numberLabel.BackgroundTransparency = 1
+    numberLabel.Text = "📷 " .. index
+    numberLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    numberLabel.Font = Enum.Font.GothamBold
+    numberLabel.TextSize = 18
+    numberLabel.Parent = billboard
+    
+    marker.Parent = Workspace
+    return marker
+end
+
+local function updateStatus()
+    local count = #state.cameras
+    if state.isMonitoring then
+        statusLabel.Text = string.format("📷 Monitoring\nCamera %d/%d\n← → to switch", 
+            state.cameraIndex, count)
+        monitorButton.Text = "⏹️ EXIT MONITOR"
+    else
+        statusLabel.Text = string.format("📷 Cameras: %d/%d\nTap to place cameras", 
+            count, config.maxCameras)
+        monitorButton.Text = "👁️ MONITOR"
+    end
+end
+
+local function placeCamera()
+    if #state.cameras >= config.maxCameras then
+        statusLabel.Text = "Max 5 cameras reached!"
+        return
+    end
+    
+    local character = player.Character
+    if not character then
+        statusLabel.Text = "No character found"
+        return
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        statusLabel.Text = "Cannot place camera"
+        return
+    end
+    
+    -- Place camera 20 units above character
+    local cameraPos = hrp.Position + Vector3.new(0, 20, 0)
+    local index = #state.cameras + 1
+    
+    local marker = createCameraMarker(cameraPos, index)
+    
     local cameraData = {
-        position = position,
+        position = cameraPos,
         marker = marker,
         index = index,
         rotation = Vector2.new(0, 0),
         fov = config.cameraFOV
     }
     
-    return cameraData
-end
-
-local function updateStatus()
-    local count = #state.cameras
-    if state.isMonitoring then
-        status.Text = string.format("Monitoring\nCamera %d/%d\n←→ to switch", 
-            state.cameraIndex, count)
-    else
-        status.Text = string.format("Cameras: %d/%d\nP: Place camera\nM: Monitor mode", 
-            count, config.maxCameras)
-    end
-end
-
-local function placeCamera()
-    if #state.cameras >= config.maxCameras then
-        print("Max cameras reached")
-        return
-    end
-    
-    local character = player.Character
-    if not character then return end
-    
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    -- Place camera 15 units above and 5 units in front
-    local offset = hrp.CFrame.LookVector * 5 + Vector3.new(0, 15, 0)
-    local position = hrp.Position + offset
-    
-    local index = #state.cameras + 1
-    local cameraData = createCamera(position, index)
-    
     table.insert(state.cameras, cameraData)
-    print("Camera placed at:", position)
     updateStatus()
 end
 
@@ -129,6 +244,8 @@ local function clearAllCameras()
         end
     end
     state.cameras = {}
+    state.currentCamera = nil
+    state.cameraIndex = 0
     updateStatus()
 end
 
@@ -150,14 +267,18 @@ local function switchCamera(direction)
     state.currentCamera = state.cameras[state.cameraIndex]
     
     if state.currentCamera then
-        cameraInfo.Text = string.format("Camera %d/%d\nWASD: Move | QE: Zoom\n←→: Switch | R: Reset",
+        cameraInfo.Text = string.format("📷 Camera %d/%d\n← → : Switch\nMove with joystick",
             state.cameraIndex, #state.cameras)
         
         -- Update marker colors
         for i, cam in ipairs(state.cameras) do
             if cam.marker then
-                cam.marker.Color = (i == state.cameraIndex) and 
-                    Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 150, 255)
+                local light = cam.marker:FindFirstChild("PointLight")
+                if light then
+                    light.Color = (i == state.cameraIndex) and 
+                        Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 150, 255)
+                    light.Brightness = (i == state.cameraIndex) and 5 or 2
+                end
             end
         end
     end
@@ -167,7 +288,7 @@ end
 
 local function startMonitoring()
     if #state.cameras == 0 then
-        print("No cameras to monitor")
+        statusLabel.Text = "No cameras placed!"
         return
     end
     
@@ -175,21 +296,15 @@ local function startMonitoring()
     state.cameraIndex = 1
     state.currentCamera = state.cameras[1]
     
-    -- Switch camera type
+    -- Switch to scriptable camera
     Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+    
+    -- Show monitor UI
     monitorOverlay.Visible = true
+    joystickArea.Visible = true
     
-    -- Update markers
-    for i, cam in ipairs(state.cameras) do
-        if cam.marker then
-            cam.marker.Color = (i == 1) and 
-                Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 150, 255)
-        end
-    end
-    
-    cameraInfo.Text = string.format("Camera 1/%d\nWASD: Move | QE: Zoom\n←→: Switch | R: Reset",
-        #state.cameras)
-    
+    -- Update first camera
+    switchCamera("next")
     updateStatus()
 end
 
@@ -198,27 +313,77 @@ local function stopMonitoring()
     
     -- Return to normal camera
     Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-    monitorOverlay.Visible = false
     
-    -- Reset marker colors
+    -- Hide monitor UI
+    monitorOverlay.Visible = false
+    joystickArea.Visible = false
+    
+    -- Reset marker lights
     for _, cam in ipairs(state.cameras) do
         if cam.marker then
-            cam.marker.Color = Color3.fromRGB(0, 150, 255)
+            local light = cam.marker:FindFirstChild("PointLight")
+            if light then
+                light.Color = Color3.fromRGB(0, 150, 255)
+                light.Brightness = 2
+            end
         end
     end
     
     updateStatus()
 end
 
-local function toggleMonitoring()
-    if state.isMonitoring then
-        stopMonitoring()
-    else
-        startMonitoring()
-    end
-end
+-- Mobile joystick control
+local joystickActive = false
+local joystickStartPos = nil
+local joystickCenterPos = nil
 
--- Camera control loop
+joystickArea.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        joystickActive = true
+        joystickStartPos = input.Position
+        joystickCenterPos = joystickCenter.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if joystickActive and input.UserInputType == Enum.UserInputType.Touch then
+        local currentPos = input.Position
+        local delta = currentPos - joystickStartPos
+        
+        -- Limit joystick movement
+        local maxMove = 50
+        local moveX = math.clamp(delta.X, -maxMove, maxMove)
+        local moveY = math.clamp(delta.Y, -maxMove, maxMove)
+        
+        joystickCenter.Position = UDim2.new(
+            joystickCenterPos.X.Scale,
+            joystickCenterPos.X.Offset + moveX,
+            joystickCenterPos.Y.Scale,
+            joystickCenterPos.Y.Offset + moveY
+        )
+        
+        -- Control camera with joystick
+        if state.isMonitoring and state.currentCamera then
+            local normalizedX = moveX / maxMove
+            local normalizedY = moveY / maxMove
+            
+            state.currentCamera.rotation = Vector2.new(
+                state.currentCamera.rotation.X + normalizedX * 0.05,
+                math.clamp(state.currentCamera.rotation.Y + normalizedY * 0.05, -1.5, 1.5)
+            )
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        joystickActive = false
+        -- Return joystick to center
+        joystickCenter.Position = joystickCenterPos or UDim2.new(0.5, -25, 0.5, -25)
+    end
+end)
+
+-- Camera movement loop
 local monitorConnection
 local function setupMonitorControls()
     if monitorConnection then
@@ -230,14 +395,13 @@ local function setupMonitorControls()
         
         local camera = Workspace.CurrentCamera
         local camData = state.currentCamera
-        
-        -- Calculate camera position with offset based on rotation
         local basePos = camData.position
+        
+        -- Calculate camera position based on rotation
         local yaw = camData.rotation.X
         local pitch = camData.rotation.Y
+        local distance = 20 * state.zoomLevel
         
-        -- Calculate offset from rotation
-        local distance = 15 * state.zoomLevel
         local offset = Vector3.new(
             math.sin(yaw) * math.cos(pitch) * distance,
             math.sin(pitch) * distance,
@@ -249,78 +413,80 @@ local function setupMonitorControls()
         -- Set camera
         camera.CFrame = CFrame.new(cameraPos, basePos)
         camera.FieldOfView = camData.fov / state.zoomLevel
-        
-        -- Handle controls
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            camData.rotation = Vector2.new(
-                camData.rotation.X - delta * config.panSpeed,
-                camData.rotation.Y
-            )
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            camData.rotation = Vector2.new(
-                camData.rotation.X + delta * config.panSpeed,
-                camData.rotation.Y
-            )
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            camData.rotation = Vector2.new(
-                camData.rotation.X,
-                math.max(camData.rotation.Y - delta * config.panSpeed, -1.5)
-            )
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            camData.rotation = Vector2.new(
-                camData.rotation.X,
-                math.min(camData.rotation.Y + delta * config.panSpeed, 1.5)
-            )
-        end
-        
-        -- Zoom
-        if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
-            state.zoomLevel = math.min(state.zoomLevel + delta * config.zoomSpeed, 5)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.E) then
-            state.zoomLevel = math.max(state.zoomLevel - delta * config.zoomSpeed, 0.5)
-        end
     end)
 end
 
--- Keyboard controls
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
-    
-    if input.KeyCode == Enum.KeyCode.P then
-        placeCamera()
-        
-    elseif input.KeyCode == Enum.KeyCode.M then
-        toggleMonitoring()
-        
-    elseif input.KeyCode == Enum.KeyCode.C then
-        clearAllCameras()
-        
-    elseif state.isMonitoring then
-        if input.KeyCode == Enum.KeyCode.Right then
-            switchCamera("next")
-        elseif input.KeyCode == Enum.KeyCode.Left then
-            switchCamera("prev")
-        elseif input.KeyCode == Enum.KeyCode.R then
-            -- Reset current camera
-            if state.currentCamera then
-                state.currentCamera.rotation = Vector2.new(0, 0)
-                state.zoomLevel = 1
-            end
-        end
+-- Button events for mobile
+placeButton.MouseButton1Click:Connect(placeCamera)
+
+monitorButton.MouseButton1Click:Connect(function()
+    if state.isMonitoring then
+        stopMonitoring()
+    else
+        startMonitoring()
     end
 end)
 
--- Initialize
+-- Mobile swipe gestures for camera switching
+local touchStart = nil
+local touchStartTime = 0
+
+UserInputService.TouchStarted:Connect(function(touch, processed)
+    if processed then return end
+    
+    touchStart = touch.Position
+    touchStartTime = tick()
+    
+    -- Long press (2 seconds) to clear all cameras
+    task.spawn(function()
+        task.wait(2)
+        if touchStart and (tick() - touchStartTime) >= 2 then
+            clearAllCameras()
+            touchStart = nil
+        end
+    end)
+end)
+
+UserInputService.TouchEnded:Connect(function(touch, processed)
+    if processed or not touchStart then return end
+    
+    local touchEnd = touch.Position
+    local delta = touchEnd - touchStart
+    local swipeDistance = delta.X
+    
+    -- Swipe left/right to switch cameras in monitor mode
+    if state.isMonitoring and math.abs(swipeDistance) > 50 then
+        if swipeDistance > 0 then
+            -- Swipe right - previous camera
+            switchCamera("prev")
+        else
+            -- Swipe left - next camera
+            switchCamera("next")
+        end
+    end
+    
+    touchStart = nil
+end)
+
+-- Pinch to zoom in monitor mode
+local lastPinchDistance = nil
+UserInputService.TouchPinch:Connect(function(touchPositions, scale, velocity, state, processed)
+    if processed or not state.isMonitoring then return end
+    
+    if scale > 1 then
+        -- Pinch out - zoom in
+        state.zoomLevel = math.min(state.zoomLevel + 0.5, 5)
+    elseif scale < 1 then
+        -- Pinch in - zoom out
+        state.zoomLevel = math.max(state.zoomLevel - 0.5, 0.5)
+    end
+end)
+
+-- Setup and initialize
 setupMonitorControls()
 updateStatus()
 
-print("Camera System by sherikyt loaded")
-print("Controls:")
-print("P - Place camera (max 5)")
-print("M - Toggle monitor mode")
-print("C - Clear all cameras")
-print("In monitor: WASD to move, QE to zoom, ←→ to switch")
+print("📱 Mobile Camera System by sherikyt loaded")
+print("Big buttons for touch control")
+print("Swipe left/right to switch cameras")
+print("Pinch to zoom in monitor mode")
