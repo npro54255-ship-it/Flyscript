@@ -4,7 +4,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local StarterGui = game:GetService("StarterGui")
 
 -- Check if mobile
@@ -18,10 +17,10 @@ end
 -- Configuration
 local CONFIG = {
     MoveSpeed = 10,
-    Sensitivity = 0.5,
+    Sensitivity = 0.3,
     Smoothness = 0.8,
-    JoystickSize = 120,
-    ButtonSize = 60
+    JoystickSize = 100,
+    ButtonSize = 50
 }
 
 -- Variables
@@ -44,60 +43,63 @@ screenGui.Name = "FreeCameraMobileUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = StarterGui
 
--- Toggle Button (Camera icon in corner)
+-- Toggle Button (Left Top Corner)
 local toggleButton = Instance.new("ImageButton")
 toggleButton.Name = "ToggleButton"
 toggleButton.Image = "rbxassetid://7072717646" -- Camera icon
-toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 toggleButton.BackgroundTransparency = 0.3
-toggleButton.Position = UDim2.new(1, -70, 0, 20)
-toggleButton.Size = UDim2.new(0, 50, 0, 50)
-toggleButton.AnchorPoint = Vector2.new(1, 0)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.Size = UDim2.new(0, CONFIG.ButtonSize, 0, CONFIG.ButtonSize)
 toggleButton.Parent = screenGui
 
-local toggleLabel = Instance.new("TextLabel")
-toggleLabel.Name = "ToggleLabel"
-toggleLabel.Text = "Free Cam"
-toggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleLabel.TextSize = 12
-toggleLabel.Font = Enum.Font.GothamBold
-toggleLabel.BackgroundTransparency = 1
-toggleLabel.Position = UDim2.new(0, 0, 1, 5)
-toggleLabel.Size = UDim2.new(1, 0, 0, 20)
-toggleLabel.Parent = toggleButton
-
--- Control Panel (shows when active)
+-- Control Panel (appears next to button when active)
 local controlPanel = Instance.new("Frame")
 controlPanel.Name = "ControlPanel"
-controlPanel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-controlPanel.BackgroundTransparency = 0.7
+controlPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+controlPanel.BackgroundTransparency = 0.2
 controlPanel.BorderSizePixel = 0
-controlPanel.Position = UDim2.new(0.5, -150, 0.5, -100)
-controlPanel.Size = UDim2.new(0, 300, 0, 200)
-controlPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+controlPanel.Position = UDim2.new(0, CONFIG.ButtonSize + 20, 0, 10)
+controlPanel.Size = UDim2.new(0, 180, 0, 180)
 controlPanel.Visible = false
 controlPanel.Parent = screenGui
 
+-- Panel Header
+local panelHeader = Instance.new("Frame")
+panelHeader.Name = "PanelHeader"
+panelHeader.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+panelHeader.BorderSizePixel = 0
+panelHeader.Size = UDim2.new(1, 0, 0, 30)
+panelHeader.Parent = controlPanel
+
 local panelTitle = Instance.new("TextLabel")
 panelTitle.Name = "PanelTitle"
-panelTitle.Text = "Free Camera Active"
+panelTitle.Text = "FREE CAMERA"
 panelTitle.TextColor3 = Color3.fromRGB(100, 255, 100)
-panelTitle.TextSize = 16
+panelTitle.TextSize = 14
 panelTitle.Font = Enum.Font.GothamBold
 panelTitle.BackgroundTransparency = 1
-panelTitle.Size = UDim2.new(1, 0, 0, 30)
-panelTitle.Parent = controlPanel
+panelTitle.Size = UDim2.new(1, 0, 1, 0)
+panelTitle.Parent = panelHeader
 
--- Joystick for movement
-local joystickFrame = Instance.new("Frame")
-joystickFrame.Name = "JoystickFrame"
-joystickFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-joystickFrame.BackgroundTransparency = 0.7
-joystickFrame.BorderSizePixel = 0
-joystickFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
-joystickFrame.Size = UDim2.new(0, CONFIG.JoystickSize, 0, CONFIG.JoystickSize)
-joystickFrame.Parent = controlPanel
+-- Joystick Area
+local joystickArea = Instance.new("Frame")
+joystickArea.Name = "JoystickArea"
+joystickArea.BackgroundTransparency = 1
+joystickArea.Position = UDim2.new(0, 10, 0, 40)
+joystickArea.Size = UDim2.new(0, CONFIG.JoystickSize, 0, CONFIG.JoystickSize)
+joystickArea.Parent = controlPanel
 
+-- Joystick Background
+local joystickBg = Instance.new("Frame")
+joystickBg.Name = "JoystickBg"
+joystickBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+joystickBg.BackgroundTransparency = 0.5
+joystickBg.BorderSizePixel = 0
+joystickBg.Size = UDim2.new(1, 0, 1, 0)
+joystickBg.Parent = joystickArea
+
+-- Joystick Knob
 local joystickKnob = Instance.new("Frame")
 joystickKnob.Name = "JoystickKnob"
 joystickKnob.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
@@ -106,38 +108,39 @@ joystickKnob.BorderSizePixel = 0
 joystickKnob.Size = UDim2.new(0, 40, 0, 40)
 joystickKnob.AnchorPoint = Vector2.new(0.5, 0.5)
 joystickKnob.Position = UDim2.new(0.5, 0, 0.5, 0)
-joystickKnob.Parent = joystickFrame
+joystickKnob.Parent = joystickArea
 
+-- Joystick Label
 local joystickLabel = Instance.new("TextLabel")
 joystickLabel.Name = "JoystickLabel"
-joystickLabel.Text = "Move"
-joystickLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-joystickLabel.TextSize = 14
+joystickLabel.Text = "MOVE"
+joystickLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+joystickLabel.TextSize = 12
 joystickLabel.Font = Enum.Font.Gotham
 joystickLabel.BackgroundTransparency = 1
 joystickLabel.Position = UDim2.new(0, 0, 1, 5)
-joystickLabel.Size = UDim2.new(1, 0, 0, 20)
-joystickLabel.Parent = joystickFrame
+joystickLabel.Size = UDim2.new(1, 0, 0, 15)
+joystickLabel.Parent = joystickArea
 
--- Speed controls
-local speedFrame = Instance.new("Frame")
-speedFrame.Name = "SpeedFrame"
-speedFrame.BackgroundTransparency = 1
-speedFrame.Position = UDim2.new(0.6, 0, 0.3, 0)
-speedFrame.Size = UDim2.new(0, 100, 0, 120)
-speedFrame.Parent = controlPanel
+-- Speed Controls (right side)
+local speedArea = Instance.new("Frame")
+speedArea.Name = "SpeedArea"
+speedArea.BackgroundTransparency = 1
+speedArea.Position = UDim2.new(1, -80, 0, 40)
+speedArea.Size = UDim2.new(0, 70, 0, CONFIG.JoystickSize)
+speedArea.Parent = controlPanel
 
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Name = "SpeedLabel"
-speedLabel.Text = "Speed: " .. CONFIG.MoveSpeed
+speedLabel.Text = "SPEED: " .. CONFIG.MoveSpeed
 speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedLabel.TextSize = 14
-speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 12
+speedLabel.Font = Enum.Font.GothamBold
 speedLabel.BackgroundTransparency = 1
 speedLabel.Size = UDim2.new(1, 0, 0, 20)
-speedLabel.Parent = speedFrame
+speedLabel.Parent = speedArea
 
--- Speed buttons
+-- Speed Up Button
 local speedUpButton = Instance.new("TextButton")
 speedUpButton.Name = "SpeedUpButton"
 speedUpButton.Text = "+"
@@ -145,11 +148,11 @@ speedUpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedUpButton.TextSize = 18
 speedUpButton.Font = Enum.Font.GothamBold
 speedUpButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-speedUpButton.Position = UDim2.new(0.5, -15, 0.3, 0)
-speedUpButton.Size = UDim2.new(0, 30, 0, 30)
-speedUpButton.AnchorPoint = Vector2.new(0.5, 0)
-speedUpButton.Parent = speedFrame
+speedUpButton.Position = UDim2.new(0, 0, 0.3, 0)
+speedUpButton.Size = UDim2.new(1, 0, 0, 30)
+speedUpButton.Parent = speedArea
 
+-- Speed Down Button
 local speedDownButton = Instance.new("TextButton")
 speedDownButton.Name = "SpeedDownButton"
 speedDownButton.Text = "-"
@@ -157,34 +160,34 @@ speedDownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedDownButton.TextSize = 18
 speedDownButton.Font = Enum.Font.GothamBold
 speedDownButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-speedDownButton.Position = UDim2.new(0.5, -15, 0.6, 0)
-speedDownButton.Size = UDim2.new(0, 30, 0, 30)
-speedDownButton.AnchorPoint = Vector2.new(0.5, 0)
-speedDownButton.Parent = speedFrame
+speedDownButton.Position = UDim2.new(0, 0, 0.7, 0)
+speedDownButton.Size = UDim2.new(1, 0, 0, 30)
+speedDownButton.Parent = speedArea
 
 -- Instructions
 local instructions = Instance.new("TextLabel")
 instructions.Name = "Instructions"
-instructions.Text = "Drag screen to look around\nTap Exit to return to normal"
-instructions.TextColor3 = Color3.fromRGB(200, 200, 200)
-instructions.TextSize = 12
+instructions.Text = "Drag screen to look around"
+instructions.TextColor3 = Color3.fromRGB(180, 180, 180)
+instructions.TextSize = 11
 instructions.Font = Enum.Font.Gotham
 instructions.TextWrapped = true
 instructions.BackgroundTransparency = 1
-instructions.Position = UDim2.new(0.1, 0, 0.8, 0)
-instructions.Size = UDim2.new(0.8, 0, 0, 40)
+instructions.Position = UDim2.new(0, 10, 1, -45)
+instructions.Size = UDim2.new(1, -20, 0, 35)
 instructions.Parent = controlPanel
 
--- Exit button
+-- Exit Button (small at bottom)
 local exitButton = Instance.new("TextButton")
 exitButton.Name = "ExitButton"
-exitButton.Text = "Exit Free Cam"
-exitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-exitButton.TextSize = 14
+exitButton.Text = "EXIT"
+exitButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+exitButton.TextSize = 12
 exitButton.Font = Enum.Font.GothamBold
-exitButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-exitButton.Position = UDim2.new(0.3, 0, 0.9, -30)
-exitButton.Size = UDim2.new(0.4, 0, 0, 30)
+exitButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+exitButton.BackgroundTransparency = 0.5
+exitButton.Position = UDim2.new(0.5, -40, 1, -25)
+exitButton.Size = UDim2.new(0, 80, 0, 20)
 exitButton.Visible = false
 exitButton.Parent = screenGui
 
@@ -204,7 +207,6 @@ local function enableFreeCamera()
     
     -- Update UI
     toggleButton.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-    toggleLabel.Text = "Free Cam ON"
     controlPanel.Visible = true
     exitButton.Visible = true
 end
@@ -215,7 +217,9 @@ local function disableFreeCamera()
     
     -- Reset camera
     camera.CameraType = originalCameraType or Enum.CameraType.Custom
-    camera.CFrame = originalCFrame or CFrame.new()
+    if originalCFrame then
+        camera.CFrame = originalCFrame
+    end
     
     -- Reset movement
     movementVector = Vector3.new()
@@ -227,8 +231,7 @@ local function disableFreeCamera()
     joystickKnob.Position = UDim2.new(0.5, 0, 0.5, 0)
     
     -- Update UI
-    toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    toggleLabel.Text = "Free Cam"
+    toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     controlPanel.Visible = false
     exitButton.Visible = false
 end
@@ -249,37 +252,35 @@ end)
 
 -- Speed controls
 speedUpButton.MouseButton1Click:Connect(function()
-    CONFIG.MoveSpeed = math.min(CONFIG.MoveSpeed + 2, 50)
-    speedLabel.Text = "Speed: " .. CONFIG.MoveSpeed
+    CONFIG.MoveSpeed = math.min(CONFIG.MoveSpeed + 2, 30)
+    speedLabel.Text = "SPEED: " .. CONFIG.MoveSpeed
 end)
 
 speedDownButton.MouseButton1Click:Connect(function()
     CONFIG.MoveSpeed = math.max(CONFIG.MoveSpeed - 2, 1)
-    speedLabel.Text = "Speed: " .. CONFIG.MoveSpeed
+    speedLabel.Text = "SPEED: " .. CONFIG.MoveSpeed
 end)
 
 -- Joystick controls
-local joystickCenter = Vector2.new()
-
-joystickFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch and not joystickTouch then
+joystickArea.InputBegan:Connect(function(input)
+    if freeCameraEnabled and input.UserInputType == Enum.UserInputType.Touch and not joystickTouch then
         joystickTouch = input
-        joystickCenter = Vector2.new(
-            joystickFrame.AbsolutePosition.X + joystickFrame.AbsoluteSize.X / 2,
-            joystickFrame.AbsolutePosition.Y + joystickFrame.AbsoluteSize.Y / 2
-        )
     end
 end)
 
-joystickFrame.InputChanged:Connect(function(input)
-    if input == joystickTouch then
+joystickArea.InputChanged:Connect(function(input)
+    if freeCameraEnabled and input == joystickTouch then
         local touchPos = input.Position
-        local delta = touchPos - joystickCenter
+        local areaPos = joystickArea.AbsolutePosition
+        local areaSize = joystickArea.AbsoluteSize
+        
+        local center = areaPos + areaSize / 2
+        local delta = touchPos - center
         local maxDistance = CONFIG.JoystickSize / 2 - 20
         
         -- Clamp joystick position
         local distance = math.min(delta.Magnitude, maxDistance)
-        local direction = delta.Unit
+        local direction = delta.Magnitude > 0 and delta.Unit or Vector2.new(0, 0)
         
         -- Update joystick visual
         local knobPos = direction * distance
@@ -289,15 +290,19 @@ joystickFrame.InputChanged:Connect(function(input)
         )
         
         -- Calculate movement vector
-        movementVector = Vector3.new(
-            direction.X * (distance / maxDistance),
-            0,
-            -direction.Y * (distance / maxDistance)
-        )
+        if distance > 5 then  -- Dead zone
+            movementVector = Vector3.new(
+                direction.X * (distance / maxDistance),
+                0,
+                -direction.Y * (distance / maxDistance)
+            )
+        else
+            movementVector = Vector3.new()
+        end
     end
 end)
 
-joystickFrame.InputEnded:Connect(function(input)
+joystickArea.InputEnded:Connect(function(input)
     if input == joystickTouch then
         joystickTouch = nil
         movementVector = Vector3.new()
@@ -316,8 +321,7 @@ end)
 
 screenGui.InputChanged:Connect(function(input)
     if freeCameraEnabled and input == lookTouch then
-        local delta = input.Delta
-        lookDelta = Vector2.new(delta.X, delta.Y)
+        lookDelta = input.Delta
     end
 end)
 
@@ -337,9 +341,8 @@ RunService.RenderStepped:Connect(function(deltaTime)
             local pitch = -lookDelta.Y * CONFIG.Sensitivity * 0.01
             
             -- Apply rotation to camera
-            local currentRot = cameraCFrame - cameraCFrame.Position
             local yawRot = CFrame.fromAxisAngle(Vector3.new(0, 1, 0), yaw)
-            local pitchRot = CFrame.fromAxisAngle(currentRot.RightVector, pitch)
+            local pitchRot = CFrame.fromAxisAngle(cameraCFrame.RightVector, pitch)
             
             cameraCFrame = cameraCFrame * yawRot * pitchRot
         end
@@ -351,12 +354,12 @@ RunService.RenderStepped:Connect(function(deltaTime)
             -- Transform movement to camera space
             local forward = cameraCFrame.LookVector
             local right = cameraCFrame.RightVector
-            local up = cameraCFrame.UpVector
+            local up = Vector3.new(0, 1, 0)  -- Always move up/down relative to world
             
             local worldMove = 
                 right * moveDelta.X +
-                up * moveDelta.Y +
-                forward * moveDelta.Z
+                up * moveDelta.Z +  -- Using Z for up/down (joystick vertical)
+                forward * moveDelta.Z * 0.5  -- Forward movement
             
             cameraCFrame = cameraCFrame + worldMove
         end
@@ -373,11 +376,24 @@ player.CharacterAdded:Connect(function()
     end
 end)
 
-game:GetService("GuiService").MenuOpened:Connect(function()
+-- Auto-disable when menu opens
+UserInputService.MenuOpened:Connect(function()
     if freeCameraEnabled then
         disableFreeCamera()
     end
 end)
 
-print("Free Camera Mobile System by sherikyt loaded!")
-print("Tap the camera icon in the top-right corner to toggle free camera")
+-- Handle GUI removal
+screenGui.AncestryChanged:Connect(function()
+    if not screenGui.Parent then
+        if freeCameraEnabled then
+            disableFreeCamera()
+        end
+    end
+end)
+
+print("==================================")
+print("Free Camera Mobile by sherikyt")
+print("Menu location: LEFT TOP CORNER")
+print("Tap camera icon to toggle")
+print("==================================")
