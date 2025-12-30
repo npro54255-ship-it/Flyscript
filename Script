@@ -1,17 +1,19 @@
--- Free Camera Mobile System by sherikyt
--- For mobile devices - Works with Scriptware Mobile
+-- Enhanced Free Camera Mobile System by sherikyt
+-- With Marks System and Gradient UI
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
 
 -- Configuration
 local CONFIG = {
     MoveSpeed = 8,
     Sensitivity = 0.5,
     JoystickSize = 80,
-    ButtonSize = 50
+    ButtonSize = 50,
+    Smoothness = 0.8
 }
 
 -- Variables
@@ -21,6 +23,9 @@ local freeCameraEnabled = false
 local originalCFrame
 local originalCameraType
 local cameraCFrame = CFrame.new()
+local marks = {}
+local viewingMarks = false
+local currentMarkIndex = 0
 
 -- Movement
 local movementVector = Vector3.new()
@@ -28,189 +33,365 @@ local joystickTouch = nil
 local lookTouch = nil
 local lookDelta = Vector2.new()
 
--- Create ScreenGui
+-- Create Main GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SherikytFreeCam"
+screenGui.Name = "SherikytEnhancedCam"
 screenGui.ResetOnSpawn = false
-screenGui.DisplayOrder = 999
 screenGui.Parent = StarterGui
 
--- Toggle Button (Simple design)
-local toggleButton = Instance.new("ImageButton")
-toggleButton.Name = "ToggleButton"
-toggleButton.Image = "rbxassetid://7072717646"
-toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-toggleButton.BackgroundTransparency = 0.2
-toggleButton.Position = UDim2.new(0, 20, 0, 20)
-toggleButton.Size = UDim2.new(0, CONFIG.ButtonSize, 0, CONFIG.ButtonSize)
-toggleButton.ZIndex = 10
-toggleButton.Parent = screenGui
+-- Gradient Background Frame
+local gradientBackground = Instance.new("Frame")
+gradientBackground.Name = "GradientBackground"
+gradientBackground.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+gradientBackground.BackgroundTransparency = 0.9
+gradientBackground.BorderSizePixel = 0
+gradientBackground.Position = UDim2.new(0, 10, 0, 10)
+gradientBackground.Size = UDim2.new(0, 250, 0, 350)
+gradientBackground.Visible = true
+gradientBackground.Parent = screenGui
 
--- Status indicator
-local statusLight = Instance.new("Frame")
-statusLight.Name = "StatusLight"
-statusLight.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-statusLight.BorderSizePixel = 0
-statusLight.Position = UDim2.new(0.8, 0, 0.8, 0)
-statusLight.Size = UDim2.new(0, 10, 0, 10)
-statusLight.ZIndex = 11
-statusLight.Parent = toggleButton
+-- Add gradient effect using UIGradient
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 50)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(40, 40, 70)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 50))
+})
+gradient.Rotation = 45
+gradient.Parent = gradientBackground
 
--- Control Panel
-local controlPanel = Instance.new("Frame")
-controlPanel.Name = "ControlPanel"
-controlPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-controlPanel.BackgroundTransparency = 0.1
-controlPanel.BorderSizePixel = 1
-controlPanel.BorderColor3 = Color3.fromRGB(60, 60, 60)
-controlPanel.Position = UDim2.new(0, CONFIG.ButtonSize + 30, 0, 20)
-controlPanel.Size = UDim2.new(0, 200, 0, 150)
-controlPanel.Visible = false
-controlPanel.ZIndex = 9
-controlPanel.Parent = screenGui
+-- Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+closeButton.TextSize = 16
+closeButton.Font = Enum.Font.GothamBold
+closeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+closeButton.Position = UDim2.new(1, -30, 0, 5)
+closeButton.Size = UDim2.new(0, 25, 0, 25)
+closeButton.Parent = gradientBackground
 
 -- Title
 local title = Instance.new("TextLabel")
 title.Name = "Title"
-title.Text = "FREE CAMERA"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 14
+title.Text = "FREE CAMERA v2.0"
+title.TextColor3 = Color3.fromRGB(100, 200, 255)
+title.TextSize = 16
 title.Font = Enum.Font.GothamBold
 title.BackgroundTransparency = 1
-title.Size = UDim2.new(1, 0, 0, 25)
-title.Parent = controlPanel
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Parent = gradientBackground
 
--- Status text
+-- Status
 local statusText = Instance.new("TextLabel")
 statusText.Name = "StatusText"
-statusText.Text = "OFF"
+statusText.Text = "Status: OFF"
 statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-statusText.TextSize = 12
+statusText.TextSize = 14
 statusText.Font = Enum.Font.Gotham
 statusText.BackgroundTransparency = 1
-statusText.Position = UDim2.new(0, 0, 0, 25)
-statusText.Size = UDim2.new(1, 0, 0, 20)
-statusText.Parent = controlPanel
+statusText.Position = UDim2.new(0, 10, 0, 30)
+statusText.Size = UDim2.new(1, -20, 0, 25)
+statusText.Parent = gradientBackground
+
+-- Toggle Button
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Text = "ACTIVATE FREE CAMERA"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 14
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.BackgroundColor3 = Color3.fromRGB(60, 100, 180)
+toggleButton.BackgroundTransparency = 0.2
+toggleButton.Position = UDim2.new(0.1, 0, 0.15, 0)
+toggleButton.Size = UDim2.new(0.8, 0, 0, 40)
+toggleButton.Parent = gradientBackground
 
 -- Joystick Area
-local joystickFrame = Instance.new("Frame")
-joystickFrame.Name = "JoystickFrame"
-joystickFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-joystickFrame.BackgroundTransparency = 0.3
-joystickFrame.BorderSizePixel = 0
-joystickFrame.Position = UDim2.new(0.1, 0, 0.4, 0)
-joystickFrame.Size = UDim2.new(0, CONFIG.JoystickSize, 0, CONFIG.JoystickSize)
-joystickFrame.Parent = controlPanel
+local joystickArea = Instance.new("Frame")
+joystickArea.Name = "JoystickArea"
+joystickArea.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+joystickArea.BackgroundTransparency = 0.7
+joystickArea.BorderSizePixel = 0
+joystickArea.Position = UDim2.new(0.1, 0, 0.3, 0)
+joystickArea.Size = UDim2.new(0, CONFIG.JoystickSize, 0, CONFIG.JoystickSize)
+joystickArea.Visible = false
+joystickArea.Parent = gradientBackground
 
--- Joystick Knob
 local joystickKnob = Instance.new("Frame")
 joystickKnob.Name = "JoystickKnob"
 joystickKnob.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-joystickKnob.BackgroundTransparency = 0.2
+joystickKnob.BackgroundTransparency = 0.3
 joystickKnob.BorderSizePixel = 0
 joystickKnob.Size = UDim2.new(0, 30, 0, 30)
 joystickKnob.AnchorPoint = Vector2.new(0.5, 0.5)
 joystickKnob.Position = UDim2.new(0.5, 0, 0.5, 0)
-joystickKnob.Parent = joystickFrame
+joystickKnob.Parent = joystickArea
 
 -- Speed Controls
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
 speedFrame.BackgroundTransparency = 1
-speedFrame.Position = UDim2.new(0.6, 0, 0.4, 0)
-speedFrame.Size = UDim2.new(0, 60, 0, CONFIG.JoystickSize)
-speedFrame.Parent = controlPanel
+speedFrame.Position = UDim2.new(0.6, 0, 0.3, 0)
+speedFrame.Size = UDim2.new(0, 100, 0, CONFIG.JoystickSize)
+speedFrame.Visible = false
+speedFrame.Parent = gradientBackground
 
-local speedText = Instance.new("TextLabel")
-speedText.Name = "SpeedText"
-speedText.Text = "SPEED: " .. CONFIG.MoveSpeed
-speedText.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedText.TextSize = 12
-speedText.Font = Enum.Font.Gotham
-speedText.BackgroundTransparency = 1
-speedText.Size = UDim2.new(1, 0, 0, 20)
-speedText.Parent = speedFrame
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Name = "SpeedLabel"
+speedLabel.Text = "SPEED: " .. CONFIG.MoveSpeed
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.TextSize = 12
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.BackgroundTransparency = 1
+speedLabel.Size = UDim2.new(1, 0, 0, 20)
+speedLabel.Parent = speedFrame
 
 local speedUpBtn = Instance.new("TextButton")
 speedUpBtn.Name = "SpeedUpBtn"
-speedUpBtn.Text = "+"
+speedUpBtn.Text = "▲"
 speedUpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedUpBtn.TextSize = 16
+speedUpBtn.TextSize = 14
 speedUpBtn.Font = Enum.Font.GothamBold
-speedUpBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+speedUpBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 100)
 speedUpBtn.Position = UDim2.new(0, 0, 0.3, 0)
 speedUpBtn.Size = UDim2.new(1, 0, 0, 25)
 speedUpBtn.Parent = speedFrame
 
 local speedDownBtn = Instance.new("TextButton")
 speedDownBtn.Name = "SpeedDownBtn"
-speedDownBtn.Text = "-"
+speedDownBtn.Text = "▼"
 speedDownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedDownBtn.TextSize = 16
+speedDownBtn.TextSize = 14
 speedDownBtn.Font = Enum.Font.GothamBold
-speedDownBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+speedDownBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 100)
 speedDownBtn.Position = UDim2.new(0, 0, 0.7, 0)
 speedDownBtn.Size = UDim2.new(1, 0, 0, 25)
 speedDownBtn.Parent = speedFrame
 
+-- Marks Section
+local marksFrame = Instance.new("Frame")
+marksFrame.Name = "MarksFrame"
+marksFrame.BackgroundTransparency = 1
+marksFrame.Position = UDim2.new(0, 10, 0.6, 0)
+marksFrame.Size = UDim2.new(1, -20, 0, 120)
+marksFrame.Visible = false
+marksFrame.Parent = gradientBackground
+
+local marksTitle = Instance.new("TextLabel")
+marksTitle.Name = "MarksTitle"
+marksTitle.Text = "MARKS SYSTEM"
+marksTitle.TextColor3 = Color3.fromRGB(100, 255, 150)
+marksTitle.TextSize = 14
+marksTitle.Font = Enum.Font.GothamBold
+marksTitle.BackgroundTransparency = 1
+marksTitle.Size = UDim2.new(1, 0, 0, 20)
+marksTitle.Parent = marksFrame
+
+-- Add Mark Button
+local addMarkBtn = Instance.new("TextButton")
+addMarkBtn.Name = "AddMarkBtn"
+addMarkBtn.Text = "ADD MARK"
+addMarkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+addMarkBtn.TextSize = 12
+addMarkBtn.Font = Enum.Font.GothamBold
+addMarkBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+addMarkBtn.Position = UDim2.new(0, 0, 0.2, 0)
+addMarkBtn.Size = UDim2.new(0.48, 0, 0, 30)
+addMarkBtn.Parent = marksFrame
+
+-- View Marks Button
+local viewMarksBtn = Instance.new("TextButton")
+viewMarksBtn.Name = "ViewMarksBtn"
+viewMarksBtn.Text = "VIEW MARKS"
+viewMarksBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+viewMarksBtn.TextSize = 12
+viewMarksBtn.Font = Enum.Font.GothamBold
+viewMarksBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 80)
+viewMarksBtn.Position = UDim2.new(0.52, 0, 0.2, 0)
+viewMarksBtn.Size = UDim2.new(0.48, 0, 0, 30)
+viewMarksBtn.Parent = marksFrame
+
+-- Clear Marks Button
+local clearMarksBtn = Instance.new("TextButton")
+clearMarksBtn.Name = "ClearMarksBtn"
+clearMarksBtn.Text = "CLEAR ALL MARKS"
+clearMarksBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+clearMarksBtn.TextSize = 12
+clearMarksBtn.Font = Enum.Font.GothamBold
+clearMarksBtn.BackgroundColor3 = Color3.fromRGB(70, 40, 40)
+clearMarksBtn.Position = UDim2.new(0, 0, 0.5, 0)
+clearMarksBtn.Size = UDim2.new(1, 0, 0, 30)
+clearMarksBtn.Parent = marksFrame
+
+-- Current Mark Display
+local currentMarkLabel = Instance.new("TextLabel")
+currentMarkLabel.Name = "CurrentMarkLabel"
+currentMarkLabel.Text = "Marks: 0"
+currentMarkLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+currentMarkLabel.TextSize = 11
+currentMarkLabel.Font = Enum.Font.Gotham
+currentMarkLabel.BackgroundTransparency = 1
+currentMarkLabel.Position = UDim2.new(0, 0, 0.85, 0)
+currentMarkLabel.Size = UDim2.new(1, 0, 0, 15)
+currentMarkLabel.Parent = marksFrame
+
+-- Exit Button (only visible when camera is active)
+local exitButton = Instance.new("TextButton")
+exitButton.Name = "ExitButton"
+exitButton.Text = "EXIT FREE CAMERA"
+exitButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+exitButton.TextSize = 14
+exitButton.Font = Enum.Font.GothamBold
+exitButton.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
+exitButton.Position = UDim2.new(0.1, 0, 0.95, -40)
+exitButton.Size = UDim2.new(0.8, 0, 0, 30)
+exitButton.Visible = false
+exitButton.Parent = gradientBackground
+
 -- Instructions
 local instructions = Instance.new("TextLabel")
 instructions.Name = "Instructions"
-instructions.Text = "Drag screen to look around"
-instructions.TextColor3 = Color3.fromRGB(180, 180, 180)
+instructions.Text = "Drag screen to look around\nMarks will appear as blue squares"
+instructions.TextColor3 = Color3.fromRGB(180, 180, 220)
 instructions.TextSize = 11
 instructions.Font = Enum.Font.Gotham
 instructions.TextWrapped = true
 instructions.BackgroundTransparency = 1
-instructions.Position = UDim2.new(0, 10, 0.8, 0)
-instructions.Size = UDim2.new(1, -20, 0, 30)
-instructions.Parent = controlPanel
+instructions.Position = UDim2.new(0, 10, 0.9, 0)
+instructions.Size = UDim2.new(1, -20, 0, 40)
+instructions.Visible = false
+instructions.Parent = gradientBackground
 
--- Exit Button
-local exitButton = Instance.new("TextButton")
-exitButton.Name = "ExitButton"
-exitButton.Text = "EXIT"
-exitButton.TextColor3 = Color3.fromRGB(255, 100, 100)
-exitButton.TextSize = 12
-exitButton.Font = Enum.Font.GothamBold
-exitButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-exitButton.Position = UDim2.new(0, 10, 0.9, 0)
-exitButton.Size = UDim2.new(1, -20, 0, 20)
-exitButton.Visible = false
-exitButton.ZIndex = 10
-exitButton.Parent = screenGui
+-- Create mark visualization in workspace
+local function createMarkVisual(position)
+    local markPart = Instance.new("Part")
+    markPart.Name = "FreeCamMark"
+    markPart.Size = Vector3.new(1, 1, 1)
+    markPart.Position = position
+    markPart.Anchored = true
+    markPart.CanCollide = false
+    markPart.Transparency = 0.3
+    markPart.Material = EnumMaterial.Neon
+    markPart.Color = Color3.fromRGB(0, 150, 255)
+    markPart.Parent = workspace
+    
+    -- Add glow effect
+    local pointLight = Instance.new("PointLight")
+    pointLight.Name = "MarkLight"
+    pointLight.Color = Color3.fromRGB(0, 150, 255)
+    pointLight.Range = 10
+    pointLight.Brightness = 1
+    pointLight.Parent = markPart
+    
+    -- Add billboard GUI
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "MarkBillboard"
+    billboard.Size = UDim2.new(0, 100, 0, 40)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+    
+    local label = Instance.new("TextLabel")
+    label.Text = "MARK #" .. #marks
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 14
+    label.Font = Enum.Font.GothamBold
+    label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    label.BackgroundTransparency = 0.5
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Parent = billboard
+    
+    billboard.Parent = markPart
+    
+    return markPart
+end
 
 -- Functions
-local function enableFreeCamera()
-    if freeCameraEnabled then return end
+local function updateMarksDisplay()
+    currentMarkLabel.Text = "Marks: " .. #marks
+end
+
+local function addMark()
+    if not freeCameraEnabled then return end
     
+    local markPosition = cameraCFrame.Position
+    table.insert(marks, {
+        position = markPosition,
+        rotation = cameraCFrame - markPosition,
+        visual = createMarkVisual(markPosition)
+    })
+    
+    updateMarksDisplay()
+end
+
+local function clearAllMarks()
+    for _, mark in ipairs(marks) do
+        if mark.visual and mark.visual.Parent then
+            mark.visual:Destroy()
+        end
+    end
+    marks = {}
+    updateMarksDisplay()
+end
+
+local function viewMarks()
+    if #marks == 0 then return end
+    
+    viewingMarks = not viewingMarks
+    
+    if viewingMarks then
+        currentMarkIndex = 1
+        viewMarksBtn.Text = "EXIT VIEW"
+        viewMarksBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        
+        -- Teleport to first mark
+        if marks[currentMarkIndex] then
+            cameraCFrame = CFrame.new(marks[currentMarkIndex].position) * marks[currentMarkIndex].rotation
+        end
+    else
+        viewMarksBtn.Text = "VIEW MARKS"
+        viewMarksBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 80)
+        currentMarkIndex = 0
+    end
+end
+
+local function nextMark()
+    if #marks == 0 then return end
+    currentMarkIndex = (currentMarkIndex % #marks) + 1
+    if marks[currentMarkIndex] then
+        cameraCFrame = CFrame.new(marks[currentMarkIndex].position) * marks[currentMarkIndex].rotation
+    end
+end
+
+local function enableFreeCamera()
     freeCameraEnabled = true
     
-    -- Save original state
+    -- Save original camera
     originalCFrame = camera.CFrame
     originalCameraType = camera.CameraType
     
-    -- Start from current position
+    -- Start with current position
     cameraCFrame = camera.CFrame
     
-    -- Enable scriptable camera
+    -- Set camera to scriptable
     camera.CameraType = Enum.CameraType.Scriptable
     
     -- Update UI
-    statusLight.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(60, 100, 200)
-    statusText.Text = "ON"
-    statusText.TextColor3 = Color3.fromRGB(50, 255, 50)
-    controlPanel.Visible = true
+    statusText.Text = "Status: ON"
+    statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+    toggleButton.Text = "FREE CAMERA ACTIVE"
+    toggleButton.BackgroundColor3 = Color3.fromRGB(80, 180, 100)
+    joystickArea.Visible = true
+    speedFrame.Visible = true
+    marksFrame.Visible = true
     exitButton.Visible = true
-    
-    print("[FreeCam] Enabled")
+    instructions.Visible = true
 end
 
 local function disableFreeCamera()
-    if not freeCameraEnabled then return end
-    
     freeCameraEnabled = false
+    viewingMarks = false
     
     -- Restore camera
     camera.CameraType = originalCameraType or Enum.CameraType.Custom
@@ -224,19 +405,30 @@ local function disableFreeCamera()
     lookTouch = nil
     lookDelta = Vector2.new()
     joystickKnob.Position = UDim2.new(0.5, 0, 0.5, 0)
+    currentMarkIndex = 0
     
     -- Update UI
-    statusLight.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    statusText.Text = "OFF"
+    statusText.Text = "Status: OFF"
     statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-    controlPanel.Visible = false
+    toggleButton.Text = "ACTIVATE FREE CAMERA"
+    toggleButton.BackgroundColor3 = Color3.fromRGB(60, 100, 180)
+    joystickArea.Visible = false
+    speedFrame.Visible = false
+    marksFrame.Visible = false
     exitButton.Visible = false
-    
-    print("[FreeCam] Disabled")
+    instructions.Visible = false
+    viewMarksBtn.Text = "VIEW MARKS"
+    viewMarksBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 80)
 end
 
--- Toggle button
+-- UI Connections
+closeButton.MouseButton1Click:Connect(function()
+    if freeCameraEnabled then
+        disableFreeCamera()
+    end
+    gradientBackground.Visible = false
+end)
+
 toggleButton.MouseButton1Click:Connect(function()
     if freeCameraEnabled then
         disableFreeCamera()
@@ -245,31 +437,33 @@ toggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Exit button
 exitButton.MouseButton1Click:Connect(disableFreeCamera)
 
--- Speed controls
 speedUpBtn.MouseButton1Click:Connect(function()
     CONFIG.MoveSpeed = math.min(CONFIG.MoveSpeed + 2, 20)
-    speedText.Text = "SPEED: " .. CONFIG.MoveSpeed
+    speedLabel.Text = "SPEED: " .. CONFIG.MoveSpeed
 end)
 
 speedDownBtn.MouseButton1Click:Connect(function()
     CONFIG.MoveSpeed = math.max(CONFIG.MoveSpeed - 2, 1)
-    speedText.Text = "SPEED: " .. CONFIG.MoveSpeed
+    speedLabel.Text = "SPEED: " .. CONFIG.MoveSpeed
 end)
 
--- Joystick input
-joystickFrame.InputBegan:Connect(function(input)
+addMarkBtn.MouseButton1Click:Connect(addMark)
+viewMarksBtn.MouseButton1Click:Connect(viewMarks)
+clearMarksBtn.MouseButton1Click:Connect(clearAllMarks)
+
+-- Joystick Input
+joystickArea.InputBegan:Connect(function(input)
     if freeCameraEnabled and input.UserInputType == Enum.UserInputType.Touch and not joystickTouch then
         joystickTouch = input
     end
 end)
 
-joystickFrame.InputChanged:Connect(function(input)
+joystickArea.InputChanged:Connect(function(input)
     if freeCameraEnabled and joystickTouch and input == joystickTouch then
-        local framePos = joystickFrame.AbsolutePosition
-        local frameSize = joystickFrame.AbsoluteSize
+        local framePos = joystickArea.AbsolutePosition
+        local frameSize = joystickArea.AbsoluteSize
         local center = framePos + frameSize / 2
         local touchPos = input.Position
         local delta = touchPos - center
@@ -290,7 +484,7 @@ joystickFrame.InputChanged:Connect(function(input)
     end
 end)
 
-joystickFrame.InputEnded:Connect(function(input)
+joystickArea.InputEnded:Connect(function(input)
     if input == joystickTouch then
         joystickTouch = nil
         movementVector = Vector3.new()
@@ -298,7 +492,7 @@ joystickFrame.InputEnded:Connect(function(input)
     end
 end)
 
--- Look controls (entire screen)
+-- Look Controls
 local lastTouchPos = Vector2.new()
 
 screenGui.InputBegan:Connect(function(input)
@@ -320,40 +514,52 @@ screenGui.InputEnded:Connect(function(input)
     if input == lookTouch then
         lookTouch = nil
         lookDelta = Vector2.new()
+        
+        -- Check for double tap to add mark
+        if freeCameraEnabled and not viewingMarks then
+            addMark()
+        end
     end
 end)
 
--- Main camera loop
+-- Camera Update Loop
 RunService.RenderStepped:Connect(function(deltaTime)
     if freeCameraEnabled then
-        -- Apply rotation
-        if lookDelta.Magnitude > 0 then
-            local yaw = -lookDelta.X * CONFIG.Sensitivity * 0.02
-            local pitch = -lookDelta.Y * CONFIG.Sensitivity * 0.02
+        -- Handle mark viewing mode
+        if viewingMarks and #marks > 0 then
+            -- Smoothly move between marks
+            local targetMark = marks[currentMarkIndex]
+            if targetMark then
+                local targetPos = targetMark.position + targetMark.rotation.LookVector * 5
+                local targetCFrame = CFrame.new(targetPos, targetMark.position)
+                cameraCFrame = cameraCFrame:Lerp(targetCFrame, 0.1)
+            end
+        else
+            -- Normal free camera movement
+            if lookDelta.Magnitude > 0 then
+                local yaw = -lookDelta.X * CONFIG.Sensitivity * 0.02
+                local pitch = -lookDelta.Y * CONFIG.Sensitivity * 0.02
+                
+                local yawCF = CFrame.fromAxisAngle(Vector3.new(0, 1, 0), yaw)
+                local pitchCF = CFrame.fromAxisAngle(cameraCFrame.RightVector, pitch)
+                
+                cameraCFrame = cameraCFrame * yawCF * pitchCF
+            end
             
-            -- Apply rotations
-            local yawCF = CFrame.fromAxisAngle(Vector3.new(0, 1, 0), yaw)
-            local pitchCF = CFrame.fromAxisAngle(cameraCFrame.RightVector, pitch)
-            
-            cameraCFrame = cameraCFrame * yawCF * pitchCF
-        end
-        
-        -- Apply movement
-        if movementVector.Magnitude > 0 then
-            local moveAmount = movementVector * CONFIG.MoveSpeed * deltaTime * 60
-            
-            -- Get camera axes
-            local right = cameraCFrame.RightVector
-            local forward = cameraCFrame.LookVector
-            local up = Vector3.new(0, 1, 0)
-            
-            -- Calculate movement
-            local move = (right * moveAmount.X) + (up * moveAmount.Y) + (forward * moveAmount.Z)
-            cameraCFrame = cameraCFrame + move
+            if movementVector.Magnitude > 0 then
+                local moveAmount = movementVector * CONFIG.MoveSpeed * deltaTime * 60
+                
+                local right = cameraCFrame.RightVector
+                local forward = cameraCFrame.LookVector
+                local up = Vector3.new(0, 1, 0)
+                
+                local move = (right * moveAmount.X) + (up * moveAmount.Z) + (forward * -moveAmount.Y)
+                cameraCFrame = cameraCFrame + move
+            end
         end
         
         -- Apply to camera
-        camera.CFrame = cameraCFrame
+        camera.CFrame = cameraCFrame:Lerp(cameraCFrame, CONFIG.Smoothness)
     end
 end)
 
@@ -362,27 +568,17 @@ player.CharacterAdded:Connect(function()
     if freeCameraEnabled then
         disableFreeCamera()
     end
+    clearAllMarks()
 end)
 
-game:GetService("GuiService").MenuOpened:Connect(function()
-    if freeCameraEnabled then
-        disableFreeCamera()
-    end
-end)
+-- Initialize
+updateMarksDisplay()
 
--- Debug info
 print("========================================")
-print("Free Camera Mobile v2.0 by sherikyt")
-print("Loaded successfully!")
-print("Button position: Top Left (20, 20)")
-print("Toggle key: Tap camera icon")
+print("Enhanced Free Camera Mobile by sherikyt")
+print("Features:")
+print("- Beautiful gradient UI")
+print("- Marks system with visual markers")
+print("- View marks mode")
+print("- Closeable menu")
 print("========================================")
-
--- Wait for game to load
-wait(1)
-
--- Initial UI setup
-exitButton.Position = UDim2.new(0, 20, 0, CONFIG.ButtonSize + 30)
-exitButton.Size = UDim2.new(0, CONFIG.ButtonSize, 0, 25)
-
-return "Free Camera Mobile System loaded successfully!"
