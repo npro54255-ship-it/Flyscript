@@ -1,365 +1,387 @@
--- Compact Mobile Fly & Mark System
+-- Free Camera Mobile System by sherikyt
+-- For mobile devices - Tap camera icon to toggle
+
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
 
+-- Check if mobile
+local IS_MOBILE = UserInputService.TouchEnabled
+
+if not IS_MOBILE then
+    warn("This script is designed for mobile devices!")
+    return
+end
+
+-- Configuration
+local CONFIG = {
+    MoveSpeed = 10,
+    MouseSensitivity = 0.5,
+    Smoothness = 0.8,
+    JoystickSize = 120,
+    ButtonSize = 60
+}
+
+-- UI Elements
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FreeCameraMobileUI"
+ScreenGui.ResetOnSpawn = false
+
+-- Main container
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.BackgroundTransparency = 0.8
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.8, 0, 0.5, -100)
+MainFrame.Size = UDim2.new(0, 150, 0, 400)
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Text = "Free Camera"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
+Title.Font = Enum.Font.GothamBold
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Parent = MainFrame
+
+-- Status label
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Text = "OFF"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+StatusLabel.TextSize = 14
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 0, 0, 40)
+StatusLabel.Size = UDim2.new(1, 0, 0, 30)
+StatusLabel.Parent = MainFrame
+
+-- Toggle button (Camera icon)
+local ToggleButton = Instance.new("ImageButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Image = "rbxassetid://7072717646" -- Camera icon
+ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleButton.Position = UDim2.new(0.5, -CONFIG.ButtonSize/2, 0, 80)
+ToggleButton.Size = UDim2.new(0, CONFIG.ButtonSize, 0, CONFIG.ButtonSize)
+ToggleButton.AnchorPoint = Vector2.new(0.5, 0)
+ToggleButton.Parent = MainFrame
+
+-- Joystick for movement
+local JoystickFrame = Instance.new("Frame")
+JoystickFrame.Name = "JoystickFrame"
+JoystickFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+JoystickFrame.BackgroundTransparency = 0.7
+JoystickFrame.BorderSizePixel = 0
+JoystickFrame.Position = UDim2.new(0, 20, 0, 160)
+JoystickFrame.Size = UDim2.new(0, CONFIG.JoystickSize, 0, CONFIG.JoystickSize)
+JoystickFrame.Visible = false
+JoystickFrame.Parent = MainFrame
+
+-- Joystick knob
+local JoystickKnob = Instance.new("Frame")
+JoystickKnob.Name = "JoystickKnob"
+JoystickKnob.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+JoystickKnob.BackgroundTransparency = 0.3
+JoystickKnob.BorderSizePixel = 0
+JoystickKnob.Size = UDim2.new(0, 40, 0, 40)
+JoystickKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+JoystickKnob.Position = UDim2.new(0.5, 0, 0.5, 0)
+JoystickKnob.Parent = JoystickFrame
+
+-- Look controls area
+local LookFrame = Instance.new("Frame")
+LookFrame.Name = "LookFrame"
+LookFrame.BackgroundTransparency = 1
+LookFrame.Size = UDim2.new(1, 0, 0.5, 0)
+LookFrame.Position = UDim2.new(0, 0, 0.5, 0)
+LookFrame.Visible = false
+LookFrame.Parent = ScreenGui
+
+-- Speed controls
+local SpeedFrame = Instance.new("Frame")
+SpeedFrame.Name = "SpeedFrame"
+SpeedFrame.BackgroundTransparency = 1
+SpeedFrame.Position = UDim2.new(0, 20, 0, 300)
+SpeedFrame.Size = UDim2.new(1, -40, 0, 80)
+SpeedFrame.Parent = MainFrame
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Name = "SpeedLabel"
+SpeedLabel.Text = "Speed: " .. CONFIG.MoveSpeed
+SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedLabel.TextSize = 14
+SpeedLabel.Font = Enum.Font.Gotham
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Size = UDim2.new(1, 0, 0, 20)
+SpeedLabel.Parent = SpeedFrame
+
+-- Speed slider
+local SpeedSlider = Instance.new("Frame")
+SpeedSlider.Name = "SpeedSlider"
+SpeedSlider.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+SpeedSlider.BorderSizePixel = 0
+SpeedSlider.Position = UDim2.new(0, 0, 0, 30)
+SpeedSlider.Size = UDim2.new(1, 0, 0, 20)
+SpeedSlider.Parent = SpeedFrame
+
+local SpeedFill = Instance.new("Frame")
+SpeedFill.Name = "SpeedFill"
+SpeedFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+SpeedFill.BorderSizePixel = 0
+SpeedFill.Size = UDim2.new(0.5, 0, 1, 0)
+SpeedFill.Parent = SpeedSlider
+
+local SpeedKnob = Instance.new("Frame")
+SpeedKnob.Name = "SpeedKnob"
+SpeedKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SpeedKnob.BorderSizePixel = 0
+SpeedKnob.Size = UDim2.new(0, 10, 1.5, 0)
+SpeedKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+SpeedKnob.Position = UDim2.new(0.5, 0, 0.5, 0)
+SpeedKnob.Parent = SpeedSlider
+
+-- Parent UI
+ScreenGui.Parent = CoreGui
+
+-- Variables
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local camera = workspace.CurrentCamera
+local freeCameraEnabled = false
+local originalCFrame
+local originalFocus
+local cameraCFrame = CFrame.new()
 
--- State
-local markers = {}
-local isFlying = false
-local isViewing = false
-local currentMarker = 0
-local flyPos = Vector3.new(0, 0, 0)
-local viewAngle = Vector2.new(0, 0)
-local flyDir = {F=false, B=false, L=false, R=false, U=false, D=false}
+-- Movement vectors
+local movementVector = Vector3.new()
+local joystickTouch = nil
+local joystickCenter = Vector2.new()
+local lookTouch = nil
+local lookStartPos = Vector2.new()
 
--- Create simple GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "FlyMarkSystem"
-gui.Parent = playerGui
+-- Speed control
+local currentSpeed = CONFIG.MoveSpeed
+local minSpeed = 1
+local maxSpeed = 50
 
--- Main buttons panel
-local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 200, 0, 250)
-panel.Position = UDim2.new(0.02, 0, 0.3, 0)
-panel.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-panel.BorderSizePixel = 0
-panel.Parent = gui
-
-Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 10)
-
--- Status display
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -20, 0, 60)
-status.Position = UDim2.new(0, 10, 0, 10)
-status.BackgroundTransparency = 1
-status.Text = "FLIGHT SYSTEM\nMarkers: 0/5"
-status.TextColor3 = Color3.fromRGB(200, 200, 255)
-status.Font = Enum.Font.Gotham
-status.TextSize = 14
-status.TextWrapped = true
-status.Parent = panel
-
--- Button creation
-local function createBtn(name, text, posY, color)
-    local btn = Instance.new("TextButton")
-    btn.Name = name
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.Position = UDim2.new(0.05, 0, posY, 0)
-    btn.BackgroundColor3 = color
-    btn.Text = text
-    btn.TextColor3 = Color3.white
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 14
-    btn.AutoButtonColor = false
-    btn.Parent = panel
-    
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    
-    -- Simple hover effect
-    btn.MouseEnter:Connect(function()
-        btn.BackgroundColor3 = color * 1.2
-    end)
-    btn.MouseLeave:Connect(function()
-        btn.BackgroundColor3 = color
-    end)
-    
-    return btn
+-- Update speed display
+local function updateSpeedDisplay()
+    SpeedLabel.Text = "Speed: " .. math.floor(currentSpeed)
+    local fillAmount = (currentSpeed - minSpeed) / (maxSpeed - minSpeed)
+    SpeedFill.Size = UDim2.new(fillAmount, 0, 1, 0)
+    SpeedKnob.Position = UDim2.new(fillAmount, 0, 0.5, 0)
 end
 
--- Create main buttons
-local flyBtn = createBtn("FlyBtn", "🎮 FLY MODE", 0.3, Color3.fromRGB(0, 150, 255))
-local markBtn = createBtn("MarkBtn", "📍 MARK SPOT", 0.48, Color3.fromRGB(255, 180, 0))
-local viewBtn = createBtn("ViewBtn", "👁 VIEW MARKS", 0.66, Color3.fromRGB(150, 0, 255))
-local clearBtn = createBtn("ClearBtn", "🗑 CLEAR ALL", 0.84, Color3.fromRGB(255, 60, 60))
+-- Touch events for speed slider
+local speedSliderTouch = nil
 
--- Fly controls (hidden initially)
-local flyPanel = Instance.new("Frame")
-flyPanel.Size = UDim2.new(1, -40, 0, 200)
-flyPanel.Position = UDim2.new(0, 20, 1, -210)
-flyPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
-flyPanel.Visible = false
-flyPanel.Parent = gui
-
-Instance.new("UICorner", flyPanel).CornerRadius = UDim.new(0, 10)
-
--- Simple fly buttons
-local function createFlyBtn(text, pos)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 60, 0, 60)
-    btn.Position = pos
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-    btn.Text = text
-    btn.TextColor3 = Color3.white
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 20
-    btn.Parent = flyPanel
-    
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-    
-    return btn
-end
-
-local flyF = createFlyBtn("F", UDim2.new(0.3, -30, 0.2, -30))
-local flyB = createFlyBtn("B", UDim2.new(0.7, -30, 0.2, -30))
-local flyL = createFlyBtn("L", UDim2.new(0.1, -30, 0.5, -30))
-local flyR = createFlyBtn("R", UDim2.new(0.9, -30, 0.5, -30))
-local flyU = createFlyBtn("U", UDim2.new(0.3, -30, 0.8, -30))
-local flyD = createFlyBtn("D", UDim2.new(0.7, -30, 0.8, -30))
-local exitFly = createBtn("ExitFly", "EXIT FLY", 0.8, Color3.fromRGB(255, 60, 60))
-exitFly.Size = UDim2.new(0.8, 0, 0, 35)
-exitFly.Position = UDim2.new(0.1, 0, 1, -40)
-exitFly.Parent = flyPanel
-
--- Marker functions
-local function createMarker(pos, idx)
-    local marker = Instance.new("Part")
-    marker.Name = "Mark_" .. idx
-    marker.Size = Vector3.new(2, 2, 2)
-    marker.Position = pos
-    marker.Anchored = true
-    marker.CanCollide = false
-    marker.Transparency = 0.4
-    marker.Color = Color3.fromHSV(idx/8, 1, 1)
-    marker.Parent = Workspace
-    
-    local light = Instance.new("PointLight")
-    light.Color = marker.Color
-    light.Brightness = 2
-    light.Range = 10
-    light.Parent = marker
-    
-    return marker
-end
-
-local function updateUI()
-    local count = #markers
-    if isFlying then
-        status.Text = string.format("FLYING MODE\nMarkers: %d/5\nUse buttons to move", count)
-    elseif isViewing then
-        status.Text = string.format("VIEWING MARK %d/%d\nTap to rotate", currentMarker, count)
-    else
-        status.Text = string.format("FLIGHT SYSTEM\nMarkers: %d/5\nReady", count)
-    end
-end
-
-local function placeMarker()
-    if #markers >= 5 then return end
-    
-    local cam = Workspace.CurrentCamera
-    local pos = cam.CFrame.Position
-    
-    local marker = createMarker(pos, #markers + 1)
-    table.insert(markers, {position = pos, part = marker})
-    
-    updateUI()
-end
-
-local function clearMarkers()
-    for _, m in ipairs(markers) do
-        if m.part then m.part:Destroy() end
-    end
-    markers = {}
-    currentMarker = 0
-    updateUI()
-end
-
-local function startFlying()
-    if isFlying then return end
-    
-    isFlying = true
-    isViewing = false
-    local cam = Workspace.CurrentCamera
-    flyPos = cam.CFrame.Position
-    
-    cam.CameraType = Enum.CameraType.Scriptable
-    flyPanel.Visible = true
-    panel.Visible = false
-    
-    updateUI()
-end
-
-local function stopFlying()
-    isFlying = false
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-    flyPanel.Visible = false
-    panel.Visible = true
-    updateUI()
-end
-
-local function startViewing()
-    if #markers == 0 then return end
-    
-    isViewing = true
-    isFlying = false
-    currentMarker = 1
-    
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
-    flyPanel.Visible = false
-    panel.Visible = false
-    
-    updateUI()
-end
-
-local function stopViewing()
-    isViewing = false
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-    panel.Visible = true
-    updateUI()
-end
-
-local function switchMarker(dir)
-    if #markers == 0 then return end
-    
-    if dir == "next" then
-        currentMarker = currentMarker + 1
-        if currentMarker > #markers then currentMarker = 1 end
-    else
-        currentMarker = currentMarker - 1
-        if currentMarker < 1 then currentMarker = #markers end
-    end
-    
-    updateUI()
-end
-
--- Button connections
-flyBtn.MouseButton1Click:Connect(startFlying)
-markBtn.MouseButton1Click:Connect(placeMarker)
-viewBtn.MouseButton1Click:Connect(startViewing)
-clearBtn.MouseButton1Click:Connect(clearMarkers)
-exitFly.MouseButton1Click:Connect(stopFlying)
-
--- Fly control connections
-flyF.MouseButton1Down:Connect(function() flyDir.F = true end)
-flyF.MouseButton1Up:Connect(function() flyDir.F = false end)
-flyB.MouseButton1Down:Connect(function() flyDir.B = true end)
-flyB.MouseButton1Up:Connect(function() flyDir.B = false end)
-flyL.MouseButton1Down:Connect(function() flyDir.L = true end)
-flyL.MouseButton1Up:Connect(function() flyDir.L = false end)
-flyR.MouseButton1Down:Connect(function() flyDir.R = true end)
-flyR.MouseButton1Up:Connect(function() flyDir.R = false end)
-flyU.MouseButton1Down:Connect(function() flyDir.U = true end)
-flyU.MouseButton1Up:Connect(function() flyDir.U = false end)
-flyD.MouseButton1Down:Connect(function() flyDir.D = true end)
-flyD.MouseButton1Up:Connect(function() flyDir.D = false end)
-
--- Keyboard shortcuts
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.F then
-        if isFlying then stopFlying() else startFlying() end
-    elseif input.KeyCode == Enum.KeyCode.M then
-        placeMarker()
-    elseif input.KeyCode == Enum.KeyCode.V then
-        if isViewing then stopViewing() else startViewing() end
-    elseif input.KeyCode == Enum.KeyCode.C then
-        clearMarkers()
-    elseif input.KeyCode == Enum.KeyCode.H then
-        panel.Visible = not panel.Visible
-    end
-end)
-
--- Main loop
-RunService.Heartbeat:Connect(function(dt)
-    if isFlying then
-        local cam = Workspace.CurrentCamera
-        local move = Vector3.new(0, 0, 0)
-        
-        if flyDir.F then move = move + cam.CFrame.LookVector end
-        if flyDir.B then move = move - cam.CFrame.LookVector end
-        if flyDir.R then move = move + cam.CFrame.RightVector end
-        if flyDir.L then move = move - cam.CFrame.RightVector end
-        if flyDir.U then move = move + Vector3.new(0, 1, 0) end
-        if flyDir.D then move = move - Vector3.new(0, 1, 0) end
-        
-        if move.Magnitude > 0 then
-            move = move.Unit * 25 * dt
-            flyPos = flyPos + move
-        end
-        
-        cam.CFrame = CFrame.new(flyPos, flyPos + cam.CFrame.LookVector)
-        
-    elseif isViewing and #markers > 0 then
-        local cam = Workspace.CurrentCamera
-        local mark = markers[currentMarker]
-        
-        if mark then
-            local time = tick()
-            local radius = 12
-            local height = 5
-            
-            local x = math.cos(time * 0.3) * radius
-            local z = math.sin(time * 0.3) * radius
-            
-            local pos = mark.position + Vector3.new(x, height, z)
-            local look = mark.position + Vector3.new(0, 2, 0)
-            
-            cam.CFrame = cam.CFrame:Lerp(CFrame.new(pos, look), 5 * dt)
-        end
-    end
-end)
-
--- Touch rotation for viewing
-local touchStart
-local origAngle
-
-UserInputService.TouchStarted:Connect(function(touch)
-    if not isViewing then return end
-    touchStart = touch.Position
-    origAngle = viewAngle
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if not isViewing or not touchStart or input.UserInputType ~= Enum.UserInputType.Touch then
-        return
-    end
-    
-    local delta = input.Position - touchStart
-    viewAngle = Vector2.new(
-        origAngle.X - delta.X * 0.005,
-        origAngle.Y - delta.Y * 0.005
-    )
-end)
-
-UserInputService.InputEnded:Connect(function(input)
+SpeedSlider.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch then
-        touchStart = nil
+        speedSliderTouch = input
     end
 end)
 
--- Initial update
-updateUI()
-
--- Load notification
-task.spawn(function()
-    local notify = Instance.new("TextLabel")
-    notify.Size = UDim2.new(0, 250, 0, 60)
-    notify.Position = UDim2.new(0.5, -125, 0.1, 0)
-    notify.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-    notify.Text = "Flight System Loaded\nF=Fly, M=Mark, V=View"
-    notify.TextColor3 = Color3.white
-    notify.Font = Enum.Font.GothamMedium
-    notify.TextSize = 14
-    notify.Parent = gui
-    
-    Instance.new("UICorner", notify).CornerRadius = UDim.new(0, 10)
-    
-    task.wait(2)
-    
-    for i = 0, 1, 0.1 do
-        notify.BackgroundTransparency = i
-        notify.TextTransparency = i
-        task.wait(0.05)
+SpeedSlider.InputChanged:Connect(function(input)
+    if input == speedSliderTouch then
+        local sliderPos = input.Position.X - SpeedSlider.AbsolutePosition.X
+        local sliderWidth = SpeedSlider.AbsoluteSize.X
+        local normalizedPos = math.clamp(sliderPos / sliderWidth, 0, 1)
+        
+        currentSpeed = minSpeed + (maxSpeed - minSpeed) * normalizedPos
+        updateSpeedDisplay()
     end
+end)
+
+SpeedSlider.InputEnded:Connect(function(input)
+    if input == speedSliderTouch then
+        speedSliderTouch = nil
+    end
+end)
+
+-- Initialize speed
+updateSpeedDisplay()
+
+-- Enable free camera
+local function enableFreeCamera()
+    freeCameraEnabled = true
+    StatusLabel.Text = "ON"
+    StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
     
-    notify:Destroy()
+    -- Store original camera state
+    originalCFrame = camera.CFrame
+    originalFocus = camera.Focus
+    
+    -- Start with current camera position
+    cameraCFrame = camera.CFrame
+    
+    -- Show controls
+    JoystickFrame.Visible = true
+    LookFrame.Visible = true
+    
+    -- Enable camera control
+    camera.CameraType = Enum.CameraType.Scriptable
+end
+
+-- Disable free camera
+local function disableFreeCamera()
+    freeCameraEnabled = false
+    StatusLabel.Text = "OFF"
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    
+    -- Hide controls
+    JoystickFrame.Visible = false
+    LookFrame.Visible = false
+    
+    -- Reset camera
+    camera.CameraType = Enum.CameraType.Custom
+    camera.CFrame = originalCFrame
+    camera.Focus = originalFocus
+    
+    -- Reset movement
+    movementVector = Vector3.new()
+    joystickTouch = nil
+    lookTouch = nil
+end
+
+-- Toggle free camera
+ToggleButton.MouseButton1Click:Connect(function()
+    if freeCameraEnabled then
+        disableFreeCamera()
+    else
+        enableFreeCamera()
+    end
 end)
 
--- Cleanup
-gui.Destroying:Connect(function()
-    clearMarkers()
+-- Joystick controls
+JoystickFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch and not joystickTouch then
+        joystickTouch = input
+        joystickCenter = Vector2.new(
+            JoystickFrame.AbsolutePosition.X + JoystickFrame.AbsoluteSize.X / 2,
+            JoystickFrame.AbsolutePosition.Y + JoystickFrame.AbsoluteSize.Y / 2
+        )
+        JoystickKnob.Position = UDim2.new(0.5, 0, 0.5, 0)
+    end
 end)
 
-print("Compact Flight System loaded!")
+JoystickFrame.InputChanged:Connect(function(input)
+    if input == joystickTouch then
+        local touchPos = input.Position
+        local delta = touchPos - joystickCenter
+        local maxDistance = CONFIG.JoystickSize / 2 - 20
+        
+        -- Clamp joystick position
+        local distance = math.min(delta.Magnitude, maxDistance)
+        local direction = delta.Unit
+        
+        -- Update joystick visual
+        local knobPos = direction * distance
+        JoystickKnob.Position = UDim2.new(
+            0.5, knobPos.X,
+            0.5, knobPos.Y
+        )
+        
+        -- Calculate movement vector
+        movementVector = Vector3.new(
+            direction.X * (distance / maxDistance),
+            0,
+            -direction.Y * (distance / maxDistance)
+        )
+    end
+end)
+
+JoystickFrame.InputEnded:Connect(function(input)
+    if input == joystickTouch then
+        joystickTouch = nil
+        movementVector = Vector3.new()
+        -- Reset joystick visual
+        JoystickKnob.Position = UDim2.new(0.5, 0, 0.5, 0)
+    end
+end)
+
+-- Look controls
+LookFrame.InputBegan:Connect(function(input)
+    if freeCameraEnabled and input.UserInputType == Enum.UserInputType.Touch and not lookTouch then
+        lookTouch = input
+        lookStartPos = input.Position
+    end
+end)
+
+LookFrame.InputChanged:Connect(function(input)
+    if freeCameraEnabled and input == lookTouch then
+        local delta = input.Position - lookStartPos
+        lookStartPos = input.Position
+        
+        -- Apply rotation
+        local yaw = -delta.X * CONFIG.MouseSensitivity * 0.01
+        local pitch = -delta.Y * CONFIG.MouseSensitivity * 0.01
+        
+        -- Apply rotation to camera
+        local currentRot = cameraCFrame - cameraCFrame.Position
+        local yawRot = CFrame.fromAxisAngle(Vector3.new(0, 1, 0), yaw)
+        local pitchRot = CFrame.fromAxisAngle(currentRot.RightVector, pitch)
+        
+        cameraCFrame = cameraCFrame * yawRot * pitchRot
+    end
+end)
+
+LookFrame.InputEnded:Connect(function(input)
+    if input == lookTouch then
+        lookTouch = nil
+    end
+end)
+
+-- Camera update loop
+RunService.RenderStepped:Connect(function(deltaTime)
+    if freeCameraEnabled then
+        -- Apply movement
+        local moveDelta = movementVector * currentSpeed * deltaTime
+        
+        if moveDelta.Magnitude > 0 then
+            -- Transform movement to camera space
+            local forward = cameraCFrame.LookVector
+            local right = cameraCFrame.RightVector
+            local up = cameraCFrame.UpVector
+            
+            local worldMove = 
+                right * moveDelta.X +
+                up * moveDelta.Y +
+                forward * moveDelta.Z
+            
+            cameraCFrame = cameraCFrame + worldMove
+        end
+        
+        -- Apply smoothed camera update
+        camera.CFrame = camera.CFrame:Lerp(cameraCFrame, CONFIG.Smoothness)
+        camera.Focus = camera.CFrame * CFrame.new(0, 0, -10)
+    end
+end)
+
+-- Cleanup on player leaving
+player.CharacterAdded:Connect(function()
+    if freeCameraEnabled then
+        disableFreeCamera()
+    end
+end)
+
+game:GetService("CoreGui").ChildRemoved:Connect(function(child)
+    if child == ScreenGui then
+        if freeCameraEnabled then
+            disableFreeCamera()
+        end
+    end
+end)
+
+-- Initial setup
+LookFrame.Size = UDim2.new(1, 0, 1, 0)
+
+print("Free Camera Mobile System by sherikyt loaded!")
+print("Tap the camera icon to toggle free camera")
+print("Use joystick for movement, drag screen to look around")
