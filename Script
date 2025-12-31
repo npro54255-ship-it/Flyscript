@@ -402,13 +402,13 @@ local function playTrollTransition()
     local demonOut = TweenService:Create(demonEmoji, TweenInfo.new(0.8), {TextTransparency = 1})
     
     fadeIn:Play()
-    wait(0.3)
+    task.wait(0.3)
     demonIn:Play()
-    wait(0.8)
+    task.wait(0.8)
     demonOut:Play()
-    wait(0.5)
+    task.wait(0.5)
     fadeOut:Play()
-    wait(0.3)
+    task.wait(0.3)
     
     demonEmoji.Visible = false
 end
@@ -563,7 +563,7 @@ local function switchMarker(dir)
     updateFlyStatus()
 end
 
--- ============ DASH FUNCTION ============
+-- ============ DASH FUNCTION (ИСПРАВЛЕНА) ============
 local function createSilhouette(position, color)
     local silhouette = Instance.new("Part")
     silhouette.Size = Vector3.new(2, 4, 1)
@@ -580,107 +580,135 @@ end
 
 local function dashForward()
     local character = player.Character
-    if not character then return end
+    if not character then 
+        print("No character found!")
+        return 
+    end
     
     local hrp = character:FindFirstChild("HumanoidRootPart")
     local humanoid = character:FindFirstChild("Humanoid")
     
-    if hrp and humanoid then
-        -- Store position for silhouette
-        local startPos = hrp.Position
-        local dashColor = Color3.fromRGB(255, 50, 50)
-        
-        -- Create silhouette at start position
-        local silhouette = createSilhouette(startPos, dashColor)
-        
-        -- Dash forward
-        local lookVector = hrp.CFrame.LookVector
-        local velocity = lookVector * config.dashPower
-        
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        
-        -- Apply impulse for dash
-        local bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.Velocity = velocity
-        bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
-        bodyVelocity.Parent = hrp
-        
-        -- Remove after dash
-        game:GetService("Debris"):AddItem(bodyVelocity, 0.3)
-        
-        -- Animate silhouette fade out
-        local fadeTween = TweenService:Create(
-            silhouette,
-            TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {Transparency = 1}
-        )
-        fadeTween:Play()
-        
-        -- Remove silhouette after animation
-        game:GetService("Debris"):AddItem(silhouette, 1.5)
-        
-        -- Visual feedback on dash button
-        dashBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-        task.wait(0.2)
-        dashBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    if not hrp or not humanoid then
+        print("No HRP or Humanoid found!")
+        return
     end
+    
+    print("Dashing forward...")
+    
+    -- Store position for silhouette
+    local startPos = hrp.Position
+    local dashColor = Color3.fromRGB(255, 50, 50)
+    
+    -- Create silhouette at start position
+    local silhouette = createSilhouette(startPos, dashColor)
+    
+    -- Dash forward in direction character is facing
+    local lookVector = hrp.CFrame.LookVector
+    local velocity = lookVector * config.dashPower
+    
+    -- Apply velocity directly to HRP
+    hrp.Velocity = velocity
+    
+    -- Visual feedback on dash button
+    dashBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+    
+    -- Animate silhouette fade out
+    local fadeTween = TweenService:Create(
+        silhouette,
+        TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {Transparency = 1}
+    )
+    fadeTween:Play()
+    
+    -- Remove silhouette after animation
+    game:GetService("Debris"):AddItem(silhouette, 2)
+    
+    -- Reset button color
+    task.wait(0.2)
+    dashBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    
+    print("Dash completed!")
 end
 
 -- ============ TROLL FUNCTIONS (ИСПРАВЛЕНЫ) ============
 local function teleportToPlayer(username)
-    if username == "" then
+    print("Attempting to teleport to:", username)
+    
+    if username == "" or username == nil then
         status.Text = "ENTER USERNAME!"
-        wait(1.5)
+        task.wait(1.5)
         updateUI()
         return
     end
     
-    -- Ищем игрока точным совпадением по имени
-    local targetPlayer = Players:FindFirstChild(username)
+    -- Ищем игрока
+    local targetPlayer = nil
     
-    -- Если не нашли по точному имени, ищем по частичному совпадению
-    if not targetPlayer then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if string.lower(plr.Name) == string.lower(username) then
-                targetPlayer = plr
-                break
-            end
+    -- Проверяем всех игроков в игре
+    for _, plr in pairs(Players:GetPlayers()) do
+        print("Checking player:", plr.Name, "DisplayName:", plr.DisplayName)
+        
+        -- Проверяем точное совпадение имени
+        if plr.Name == username then
+            targetPlayer = plr
+            print("Found exact match!")
+            break
         end
-    end
-    
-    -- Если все еще не нашли, пробуем частичное совпадение
-    if not targetPlayer then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if string.find(string.lower(plr.Name), string.lower(username)) then
-                targetPlayer = plr
-                break
-            end
+        
+        -- Проверяем совпадение DisplayName
+        if plr.DisplayName and plr.DisplayName == username then
+            targetPlayer = plr
+            print("Found display name match!")
+            break
+        end
+        
+        -- Проверяем частичное совпадение (без учета регистра)
+        if string.lower(plr.Name):find(string.lower(username)) then
+            targetPlayer = plr
+            print("Found partial name match!")
+            break
         end
     end
     
     if not targetPlayer then
         status.Text = "PLAYER NOT FOUND!"
-        wait(1.5)
+        print("Player not found:", username)
+        task.wait(1.5)
         updateUI()
         return
     end
     
-    local character = player.Character
-    local targetCharacter = targetPlayer.Character
+    print("Found target player:", targetPlayer.Name)
     
-    if not character or not targetCharacter then
-        status.Text = "CHARACTER NOT FOUND!"
-        wait(1.5)
+    local character = player.Character
+    if not character then
+        status.Text = "NO CHARACTER!"
+        task.wait(1.5)
         updateUI()
         return
     end
     
     local hrp = character:FindFirstChild("HumanoidRootPart")
-    local targetHrp = targetCharacter:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        status.Text = "NO ROOTPART!"
+        task.wait(1.5)
+        updateUI()
+        return
+    end
     
-    if not hrp or not targetHrp then
-        status.Text = "ERROR: NO ROOTPART!"
-        wait(1.5)
+    -- Ждем пока у цели появится персонаж
+    local targetCharacter = targetPlayer.Character
+    if not targetCharacter then
+        status.Text = "TARGET HAS NO CHARACTER!"
+        task.wait(1.5)
+        updateUI()
+        return
+    end
+    
+    local targetHrp = targetCharacter:WaitForChild("HumanoidRootPart", 2)
+    if not targetHrp then
+        status.Text = "TARGET NO ROOTPART!"
+        task.wait(1.5)
         updateUI()
         return
     end
@@ -695,14 +723,16 @@ local function teleportToPlayer(username)
         humanoid:ChangeState(Enum.HumanoidStateType.Falling)
     end
     
-    wait(0.5)
+    task.wait(0.5)
     
-    -- Телепортируемся к игроку
-    hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 3, 0)
+    -- Телепортируемся к игроку (немного выше и спереди)
+    hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 3, 2)
     
     status.Text = "👹 ARRIVED AT " .. string.upper(targetPlayer.Name) .. "!"
     
-    wait(2)
+    print("Successfully teleported to:", targetPlayer.Name)
+    
+    task.wait(2)
     updateUI()
 end
 
@@ -728,6 +758,8 @@ trollBtn.MouseButton1Click:Connect(openTrollMenu)
 exitBtn.MouseButton1Click:Connect(function() if state.flying then stopFlying() elseif state.viewing then stopViewing() end end)
 teleportBtn.MouseButton1Click:Connect(teleportToCamera)
 flyMarkBtn.MouseButton1Click:Connect(function() if state.flying then placeMarker(state.flyPos) end end)
+
+-- DASH BUTTON EVENT
 dashBtn.MouseButton1Click:Connect(dashForward)
 
 speedDown.MouseButton1Click:Connect(function() changeSpeed(-5) end)
@@ -744,19 +776,48 @@ viewRight.MouseButton1Down:Connect(function() viewCtrl.right = true end) viewRig
 zoomIn.MouseButton1Click:Connect(function() state.zoom = math.max(0.5, state.zoom - 0.2) updateFlyStatus() end)
 zoomOut.MouseButton1Click:Connect(function() state.zoom = math.min(3, state.zoom + 0.2) updateFlyStatus() end)
 
-trollTeleportBtn.MouseButton1Click:Connect(function() teleportToPlayer(usernameInput.Text) end)
-closeTrollBtn.MouseButton1Click:Connect(function() trollGui.Visible = false; main.Visible = true end)
-usernameInput.FocusLost:Connect(function(enter) if enter then teleportToPlayer(usernameInput.Text) end end)
+trollTeleportBtn.MouseButton1Click:Connect(function() 
+    print("Troll teleport button clicked!")
+    teleportToPlayer(usernameInput.Text) 
+end)
+
+closeTrollBtn.MouseButton1Click:Connect(function() 
+    trollGui.Visible = false
+    main.Visible = true 
+    print("Troll GUI closed")
+end)
+
+usernameInput.FocusLost:Connect(function(enterPressed) 
+    if enterPressed then
+        print("Enter pressed in username input")
+        teleportToPlayer(usernameInput.Text) 
+    end
+end)
 
 -- Movement buttons
-moveForward.MouseButton1Down:Connect(function() flyDir.forward = true end) moveForward.MouseButton1Up:Connect(function() flyDir.forward = false end)
-moveBack.MouseButton1Down:Connect(function() flyDir.back = true end) moveBack.MouseButton1Up:Connect(function() flyDir.back = false end)
-moveLeft.MouseButton1Down:Connect(function() flyDir.left = true end) moveLeft.MouseButton1Up:Connect(function() flyDir.left = false end)
-moveRight.MouseButton1Down:Connect(function() flyDir.right = true end) moveRight.MouseButton1Up:Connect(function() flyDir.right = false end)
-moveUp.MouseButton1Down:Connect(function() flyDir.up = true end) moveUp.MouseButton1Up:Connect(function() flyDir.up = false end)
-moveDown.MouseButton1Down:Connect(function() flyDir.down = true end) moveDown.MouseButton1Up:Connect(function() flyDir.down = false end)
-lookLeft.MouseButton1Down:Connect(function() camRot.left = true end) lookLeft.MouseButton1Up:Connect(function() camRot.left = false end)
-lookRight.MouseButton1Down:Connect(function() camRot.right = true end) lookRight.MouseButton1Up:Connect(function() camRot.right = false end)
+moveForward.MouseButton1Down:Connect(function() flyDir.forward = true end) 
+moveForward.MouseButton1Up:Connect(function() flyDir.forward = false end)
+
+moveBack.MouseButton1Down:Connect(function() flyDir.back = true end) 
+moveBack.MouseButton1Up:Connect(function() flyDir.back = false end)
+
+moveLeft.MouseButton1Down:Connect(function() flyDir.left = true end) 
+moveLeft.MouseButton1Up:Connect(function() flyDir.left = false end)
+
+moveRight.MouseButton1Down:Connect(function() flyDir.right = true end) 
+moveRight.MouseButton1Up:Connect(function() flyDir.right = false end)
+
+moveUp.MouseButton1Down:Connect(function() flyDir.up = true end) 
+moveUp.MouseButton1Up:Connect(function() flyDir.up = false end)
+
+moveDown.MouseButton1Down:Connect(function() flyDir.down = true end) 
+moveDown.MouseButton1Up:Connect(function() flyDir.down = false end)
+
+lookLeft.MouseButton1Down:Connect(function() camRot.left = true end) 
+lookLeft.MouseButton1Up:Connect(function() camRot.left = false end)
+
+lookRight.MouseButton1Down:Connect(function() camRot.right = true end) 
+lookRight.MouseButton1Up:Connect(function() camRot.right = false end)
 
 -- Main loop
 RunService.Heartbeat:Connect(function(delta)
@@ -857,6 +918,9 @@ end)
 -- Init
 updateUI()
 print("🎮 Ultimate Mobile System loaded!")
+print("✨ Fly Mode: Free camera + markers")
+print("👿 Button: Switch to Troll Mode")
+print("😈 Troll Mode: Teleport to players + DASH")
 
 -- Cleanup
 gui.Destroying:Connect(function()
