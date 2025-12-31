@@ -14,12 +14,13 @@ local config = {
     flySpeed = 25,
     cameraFOV = 70,
     minSpeed = 5,
-    maxSpeed = 100
+    maxSpeed = 100,
+    dashPower = 50
 }
 
 -- State
 local state = {
-    mode = "fly", -- fly or troll
+    mode = "fly",
     markers = {},
     flying = false,
     viewing = false,
@@ -45,7 +46,8 @@ local trollColors = {
     bg = Color3.fromRGB(40, 0, 0),
     primary = Color3.fromRGB(255, 50, 50),
     secondary = Color3.fromRGB(255, 0, 0),
-    light = Color3.fromRGB(255, 200, 200)
+    light = Color3.fromRGB(255, 200, 200),
+    red = Color3.fromRGB(255, 30, 30)
 }
 
 -- Create UI
@@ -224,7 +226,22 @@ zoomIn.Parent = viewPanel
 local zoomOut = createBtn("ZoomOut", "➖", UDim2.new(0.85, 0, 0.7, 0), UDim2.new(0.1, 0, 0.3, 0), flyColors.green)
 zoomOut.Parent = viewPanel
 
--- Troll GUI
+-- ============ DASH BUTTON ============
+local dashBtn = Instance.new("TextButton")
+dashBtn.Size = UDim2.new(0, 80, 0, 80)
+dashBtn.Position = UDim2.new(1, -90, 1, -90)
+dashBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+dashBtn.BackgroundTransparency = 0.3
+dashBtn.Text = "DASH"
+dashBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+dashBtn.Font = Enum.Font.SciFi
+dashBtn.TextSize = 20
+dashBtn.Visible = false
+dashBtn.ZIndex = 10
+dashBtn.Parent = gui
+Instance.new("UICorner", dashBtn).CornerRadius = UDim.new(0.5, 0)
+
+-- ============ TROLL GUI ============
 local trollGui = Instance.new("Frame")
 trollGui.Size = UDim2.new(0, 280, 0, 200)
 trollGui.Position = UDim2.new(0.5, -140, 0.5, -100)
@@ -235,12 +252,15 @@ trollGui.ZIndex = 50
 trollGui.Parent = gui
 Instance.new("UICorner", trollGui).CornerRadius = UDim.new(0, 15)
 
+-- Retro style font for troll mode
+local retroFont = Enum.Font.SciFi
+
 local trollTitle = Instance.new("TextLabel")
 trollTitle.Size = UDim2.new(1, 0, 0, 40)
 trollTitle.BackgroundTransparency = 1
 trollTitle.Text = "👹 TROLL TELEPORT"
 trollTitle.TextColor3 = trollColors.light
-trollTitle.Font = Enum.Font.GothamBold
+trollTitle.Font = retroFont
 trollTitle.TextSize = 20
 trollTitle.Parent = trollGui
 
@@ -257,9 +277,9 @@ usernameInput.Size = UDim2.new(1, -20, 1, -10)
 usernameInput.Position = UDim2.new(0, 10, 0, 5)
 usernameInput.BackgroundTransparency = 1
 usernameInput.Text = ""
-usernameInput.PlaceholderText = "Enter username..."
+usernameInput.PlaceholderText = "Enter exact username..."
 usernameInput.TextColor3 = trollColors.light
-usernameInput.Font = Enum.Font.Gotham
+usernameInput.Font = retroFont
 usernameInput.TextSize = 16
 usernameInput.Parent = inputFrame
 
@@ -269,7 +289,7 @@ trollTeleportBtn.Position = UDim2.new(0, 10, 0, 115)
 trollTeleportBtn.BackgroundColor3 = trollColors.secondary
 trollTeleportBtn.Text = "⚡ TELEPORT"
 trollTeleportBtn.TextColor3 = trollColors.light
-trollTeleportBtn.Font = Enum.Font.GothamBold
+trollTeleportBtn.Font = retroFont
 trollTeleportBtn.TextSize = 18
 trollTeleportBtn.Parent = trollGui
 Instance.new("UICorner", trollTeleportBtn).CornerRadius = UDim.new(0, 10)
@@ -280,7 +300,7 @@ closeTrollBtn.Position = UDim2.new(1, -35, 0, 5)
 closeTrollBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 closeTrollBtn.Text = "✕"
 closeTrollBtn.TextColor3 = trollColors.light
-closeTrollBtn.Font = Enum.Font.GothamBold
+closeTrollBtn.Font = retroFont
 closeTrollBtn.TextSize = 20
 closeTrollBtn.Parent = trollGui
 Instance.new("UICorner", closeTrollBtn).CornerRadius = UDim.new(0, 15)
@@ -341,8 +361,13 @@ local function updateUI()
     status.TextColor3 = colors.light
     title.Text = isTroll and "😈 TROLL MODE" or "✨ Fly & Marks"
     title.TextColor3 = colors.light
+    title.Font = isTroll and retroFont or Enum.Font.GothamBold
     modeBtn.BackgroundColor3 = colors.secondary
     modeBtn.Text = isTroll and "✨" or "👿"
+    modeBtn.Font = isTroll and retroFont or Enum.Font.GothamBold
+    
+    -- Retro font for status in troll mode
+    status.Font = isTroll and retroFont or Enum.Font.Gotham
     
     flyBtn.Visible = not isTroll
     markBtn.Visible = not isTroll
@@ -350,8 +375,11 @@ local function updateUI()
     clearBtn.Visible = not isTroll
     trollBtn.Visible = isTroll
     
+    -- Show/hide dash button
+    dashBtn.Visible = isTroll
+    
     if isTroll then
-        status.Text = "TROLL MODE!\nReady for mischief... 😈"
+        status.Text = "TROLL MODE ACTIVATED!\nREADY FOR MISCHIEF... 😈"
     else
         local count = #state.markers
         status.Text = string.format("Markers: %d/5", count)
@@ -535,54 +563,147 @@ local function switchMarker(dir)
     updateFlyStatus()
 end
 
--- Troll functions
+-- ============ DASH FUNCTION ============
+local function createSilhouette(position, color)
+    local silhouette = Instance.new("Part")
+    silhouette.Size = Vector3.new(2, 4, 1)
+    silhouette.Position = position
+    silhouette.Anchored = true
+    silhouette.CanCollide = false
+    silhouette.Transparency = 0.5
+    silhouette.Color = color
+    silhouette.Material = EnumMaterial.Neon
+    silhouette.Parent = Workspace
+    
+    return silhouette
+end
+
+local function dashForward()
+    local character = player.Character
+    if not character then return end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChild("Humanoid")
+    
+    if hrp and humanoid then
+        -- Store position for silhouette
+        local startPos = hrp.Position
+        local dashColor = Color3.fromRGB(255, 50, 50)
+        
+        -- Create silhouette at start position
+        local silhouette = createSilhouette(startPos, dashColor)
+        
+        -- Dash forward
+        local lookVector = hrp.CFrame.LookVector
+        local velocity = lookVector * config.dashPower
+        
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        
+        -- Apply impulse for dash
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = velocity
+        bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+        bodyVelocity.Parent = hrp
+        
+        -- Remove after dash
+        game:GetService("Debris"):AddItem(bodyVelocity, 0.3)
+        
+        -- Animate silhouette fade out
+        local fadeTween = TweenService:Create(
+            silhouette,
+            TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Transparency = 1}
+        )
+        fadeTween:Play()
+        
+        -- Remove silhouette after animation
+        game:GetService("Debris"):AddItem(silhouette, 1.5)
+        
+        -- Visual feedback on dash button
+        dashBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        task.wait(0.2)
+        dashBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end
+
+-- ============ TROLL FUNCTIONS (ИСПРАВЛЕНЫ) ============
 local function teleportToPlayer(username)
     if username == "" then
-        status.Text = "Enter username!"
+        status.Text = "ENTER USERNAME!"
         wait(1.5)
         updateUI()
         return
     end
     
-    local target
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr.Name:lower():find(username:lower()) or plr.DisplayName:lower():find(username:lower()) then
-            target = plr
-            break
+    -- Ищем игрока точным совпадением по имени
+    local targetPlayer = Players:FindFirstChild(username)
+    
+    -- Если не нашли по точному имени, ищем по частичному совпадению
+    if not targetPlayer then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if string.lower(plr.Name) == string.lower(username) then
+                targetPlayer = plr
+                break
+            end
         end
     end
     
-    if not target then
-        status.Text = "Player not found!"
+    -- Если все еще не нашли, пробуем частичное совпадение
+    if not targetPlayer then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if string.find(string.lower(plr.Name), string.lower(username)) then
+                targetPlayer = plr
+                break
+            end
+        end
+    end
+    
+    if not targetPlayer then
+        status.Text = "PLAYER NOT FOUND!"
         wait(1.5)
         updateUI()
         return
     end
     
-    local char = player.Character
-    local targetChar = target.Character
+    local character = player.Character
+    local targetCharacter = targetPlayer.Character
     
-    if char and targetChar then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
-        
-        if hrp and targetHrp then
-            trollGui.Visible = false
-            main.Visible = true
-            
-            status.Text = "👹 TO " .. target.Name .. "..."
-            
-            local humanoid = char:FindFirstChild("Humanoid")
-            if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Falling) end
-            
-            wait(0.5)
-            hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 0)
-            status.Text = "👹 AT " .. target.Name .. "!"
-            
-            wait(2)
-            updateUI()
-        end
+    if not character or not targetCharacter then
+        status.Text = "CHARACTER NOT FOUND!"
+        wait(1.5)
+        updateUI()
+        return
     end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    local targetHrp = targetCharacter:FindFirstChild("HumanoidRootPart")
+    
+    if not hrp or not targetHrp then
+        status.Text = "ERROR: NO ROOTPART!"
+        wait(1.5)
+        updateUI()
+        return
+    end
+    
+    trollGui.Visible = false
+    main.Visible = true
+    
+    status.Text = "👹 TELEPORTING TO " .. string.upper(targetPlayer.Name) .. "..."
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then 
+        humanoid:ChangeState(Enum.HumanoidStateType.Falling)
+    end
+    
+    wait(0.5)
+    
+    -- Телепортируемся к игроку
+    hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 3, 0)
+    
+    status.Text = "👹 ARRIVED AT " .. string.upper(targetPlayer.Name) .. "!"
+    
+    wait(2)
+    updateUI()
 end
 
 local function openTrollMenu()
@@ -607,6 +728,7 @@ trollBtn.MouseButton1Click:Connect(openTrollMenu)
 exitBtn.MouseButton1Click:Connect(function() if state.flying then stopFlying() elseif state.viewing then stopViewing() end end)
 teleportBtn.MouseButton1Click:Connect(teleportToCamera)
 flyMarkBtn.MouseButton1Click:Connect(function() if state.flying then placeMarker(state.flyPos) end end)
+dashBtn.MouseButton1Click:Connect(dashForward)
 
 speedDown.MouseButton1Click:Connect(function() changeSpeed(-5) end)
 speedUp.MouseButton1Click:Connect(function() changeSpeed(5) end)
