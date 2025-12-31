@@ -600,3 +600,454 @@ gui.Destroying:Connect(function()
     clearMarkers()
     markerFolder:Destroy()
 end)
+-- Reverse Mode System by sherikyt
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Colors
+local colors = {
+    normal = {
+        bg = Color3.fromRGB(30, 30, 40),
+        primary = Color3.fromRGB(138, 43, 226),
+        secondary = Color3.fromRGB(186, 85, 211),
+        light = Color3.fromRGB(230, 230, 250)
+    },
+    reverse = {
+        bg = Color3.fromRGB(40, 0, 0),
+        primary = Color3.fromRGB(255, 50, 50),
+        secondary = Color3.fromRGB(255, 0, 0),
+        light = Color3.fromRGB(255, 200, 200),
+        dark = Color3.fromRGB(20, 0, 0)
+    }
+}
+
+local state = {
+    isReverseMode = false,
+    currentMode = "normal"
+}
+
+-- Create main GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "ReverseModeSystem"
+gui.Parent = playerGui
+
+-- Main container
+local mainContainer = Instance.new("Frame")
+mainContainer.Size = UDim2.new(0, 300, 0, 220)
+mainContainer.Position = UDim2.new(0, 10, 0, 10)
+mainContainer.BackgroundColor3 = colors.normal.bg
+mainContainer.BackgroundTransparency = 0.2
+mainContainer.Parent = gui
+
+local corner = Instance.new("UICorner", mainContainer)
+corner.CornerRadius = UDim.new(0, 15)
+
+-- Title with reverse button
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.BackgroundTransparency = 1
+titleBar.Parent = mainContainer
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0.7, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "🔀 Reverse Mode System"
+title.TextColor3 = colors.normal.light
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
+
+local reverseBtn = Instance.new("TextButton")
+reverseBtn.Size = UDim2.new(0, 40, 0, 40)
+reverseBtn.Position = UDim2.new(1, -40, 0, 0)
+reverseBtn.BackgroundColor3 = colors.normal.secondary
+reverseBtn.Text = "👿"
+reverseBtn.TextColor3 = colors.normal.light
+reverseBtn.Font = Enum.Font.GothamBold
+reverseBtn.TextSize = 24
+reverseBtn.Parent = titleBar
+Instance.new("UICorner", reverseBtn).CornerRadius = UDim.new(0, 8)
+
+-- Status display
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -20, 0, 60)
+status.Position = UDim2.new(0, 10, 0, 45)
+status.BackgroundColor3 = colors.normal.primary
+status.BackgroundTransparency = 0.3
+status.Text = "Normal Mode\nReady for trolling!"
+status.TextColor3 = colors.normal.light
+status.Font = Enum.Font.Gotham
+status.TextSize = 14
+status.TextWrapped = true
+status.Parent = mainContainer
+Instance.new("UICorner", status).CornerRadius = UDim.new(0, 10)
+
+-- Create button function
+local function createButton(name, text, pos, size, color, isReverse)
+    local currentColors = isReverse and colors.reverse or colors.normal
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundColor3 = color or currentColors.primary
+    btn.Text = text
+    btn.TextColor3 = currentColors.light
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.Parent = mainContainer
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    return btn
+end
+
+-- Normal mode buttons
+local trollBtn = createButton("TrollBtn", "👺 TROLL MODE", UDim2.new(0, 10, 0, 115), UDim2.new(1, -20, 0, 45), colors.normal.secondary)
+local infoBtn = createButton("InfoBtn", "ℹ️ INFO", UDim2.new(0, 10, 0, 170), UDim2.new(1, -20, 0, 35), colors.normal.primary)
+
+-- Reverse mode will only show troll button
+local reverseTrollBtn = createButton("ReverseTrollBtn", "👹 REVERSE TROLL", UDim2.new(0, 10, 0, 115), UDim2.new(1, -20, 0, 45), colors.reverse.primary, true)
+reverseTrollBtn.Visible = false
+
+-- Full screen red overlay for transition
+local redOverlay = Instance.new("Frame")
+redOverlay.Size = UDim2.new(1, 0, 1, 0)
+redOverlay.Position = UDim2.new(0, 0, 0, 0)
+redOverlay.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+redOverlay.BackgroundTransparency = 1
+redOverlay.ZIndex = 100
+redOverlay.Parent = gui
+
+-- Demon emoji
+local demonEmoji = Instance.new("TextLabel")
+demonEmoji.Size = UDim2.new(0, 150, 0, 150)
+demonEmoji.Position = UDim2.new(0.5, -75, 0.5, -75)
+demonEmoji.BackgroundTransparency = 1
+demonEmoji.Text = "👿"
+demonEmoji.TextColor3 = Color3.fromRGB(255, 255, 255)
+demonEmoji.Font = Enum.Font.GothamBold
+demonEmoji.TextSize = 120
+demonEmoji.Visible = false
+demonEmoji.ZIndex = 101
+demonEmoji.Parent = gui
+
+-- Troll mode GUI (hidden initially)
+local trollGui = Instance.new("Frame")
+trollGui.Size = UDim2.new(0, 280, 0, 200)
+trollGui.Position = UDim2.new(0.5, -140, 0.5, -100)
+trollGui.BackgroundColor3 = colors.normal.bg
+trollGui.BackgroundTransparency = 0.3
+trollGui.Visible = false
+trollGui.ZIndex = 50
+trollGui.Parent = gui
+Instance.new("UICorner", trollGui).CornerRadius = UDim.new(0, 15)
+
+local trollTitle = Instance.new("TextLabel")
+trollTitle.Size = UDim2.new(1, 0, 0, 40)
+trollTitle.BackgroundTransparency = 1
+trollTitle.Text = "👺 TROLL TELEPORT"
+trollTitle.TextColor3 = colors.normal.light
+trollTitle.Font = Enum.Font.GothamBold
+trollTitle.TextSize = 20
+trollTitle.Parent = trollGui
+
+local inputFrame = Instance.new("Frame")
+inputFrame.Size = UDim2.new(1, -20, 0, 50)
+inputFrame.Position = UDim2.new(0, 10, 0, 50)
+inputFrame.BackgroundColor3 = colors.normal.primary
+inputFrame.BackgroundTransparency = 0.2
+inputFrame.Parent = trollGui
+Instance.new("UICorner", inputFrame).CornerRadius = UDim.new(0, 10)
+
+local usernameInput = Instance.new("TextBox")
+usernameInput.Size = UDim2.new(1, -20, 1, -10)
+usernameInput.Position = UDim2.new(0, 10, 0, 5)
+usernameInput.BackgroundTransparency = 1
+usernameInput.Text = ""
+usernameInput.PlaceholderText = "Enter player username..."
+usernameInput.TextColor3 = colors.normal.light
+usernameInput.Font = Enum.Font.Gotham
+usernameInput.TextSize = 16
+usernameInput.Parent = inputFrame
+
+local teleportBtn = Instance.new("TextButton")
+teleportBtn.Size = UDim2.new(1, -20, 0, 45)
+teleportBtn.Position = UDim2.new(0, 10, 0, 115)
+teleportBtn.BackgroundColor3 = colors.normal.secondary
+teleportBtn.Text = "⚡ TELEPORT"
+teleportBtn.TextColor3 = colors.normal.light
+teleportBtn.Font = Enum.Font.GothamBold
+teleportBtn.TextSize = 18
+teleportBtn.Parent = trollGui
+Instance.new("UICorner", teleportBtn).CornerRadius = UDim.new(0, 10)
+
+local closeTrollBtn = Instance.new("TextButton")
+closeTrollBtn.Size = UDim2.new(0, 30, 0, 30)
+closeTrollBtn.Position = UDim2.new(1, -35, 0, 5)
+closeTrollBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+closeTrollBtn.Text = "✕"
+closeTrollBtn.TextColor3 = colors.normal.light
+closeTrollBtn.Font = Enum.Font.GothamBold
+closeTrollBtn.TextSize = 20
+closeTrollBtn.Parent = trollGui
+Instance.new("UICorner", closeTrollBtn).CornerRadius = UDim.new(0, 15)
+
+-- Function to update UI colors
+local function updateUIColors(isReverse)
+    state.isReverseMode = isReverse
+    state.currentMode = isReverse and "reverse" or "normal"
+    
+    local currentColors = isReverse and colors.reverse or colors.normal
+    
+    -- Update main container
+    mainContainer.BackgroundColor3 = currentColors.bg
+    
+    -- Update status
+    status.BackgroundColor3 = currentColors.primary
+    status.TextColor3 = currentColors.light
+    
+    -- Update title
+    title.TextColor3 = currentColors.light
+    
+    -- Update reverse button
+    reverseBtn.BackgroundColor3 = currentColors.secondary
+    reverseBtn.TextColor3 = currentColors.light
+    
+    -- Show/hide buttons
+    trollBtn.Visible = not isReverse
+    infoBtn.Visible = not isReverse
+    reverseTrollBtn.Visible = isReverse
+    
+    -- Update status text
+    if isReverse then
+        status.Text = "REVERSE MODE ACTIVATED!\nDemonic powers unlocked... 👿"
+        reverseBtn.Text = "😇"  -- Angel emoji when in reverse mode
+    else
+        status.Text = "Normal Mode\nReady for trolling!"
+        reverseBtn.Text = "👿"  -- Demon emoji when in normal mode
+    end
+end
+
+-- Function for reverse mode transition
+local function activateReverseMode()
+    -- Red overlay animation
+    local fadeIn = TweenService:Create(
+        redOverlay,
+        TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {BackgroundTransparency = 0.2}
+    )
+    
+    local fadeOut = TweenService:Create(
+        redOverlay,
+        TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        {BackgroundTransparency = 1}
+    )
+    
+    -- Demon emoji animation
+    demonEmoji.Visible = true
+    demonEmoji.TextTransparency = 1
+    
+    local demonFadeIn = TweenService:Create(
+        demonEmoji,
+        TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {TextTransparency = 0}
+    )
+    
+    local demonFadeOut = TweenService:Create(
+        demonEmoji,
+        TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        {TextTransparency = 1}
+    )
+    
+    -- Play animations
+    fadeIn:Play()
+    wait(0.3)
+    
+    demonFadeIn:Play()
+    wait(0.8)
+    
+    demonFadeOut:Play()
+    wait(0.5)
+    
+    fadeOut:Play()
+    wait(0.3)
+    
+    -- Update UI after animation
+    updateUIColors(true)
+    
+    -- Hide demon emoji after animation
+    demonEmoji.Visible = false
+end
+
+-- Function for normal mode transition
+local function activateNormalMode()
+    -- Simple transition back
+    updateUIColors(false)
+    
+    -- Play subtle animation
+    local fade = TweenService:Create(
+        mainContainer,
+        TweenInfo.new(0.5, Enum.EasingStyle.Quad),
+        {BackgroundColor3 = colors.normal.bg}
+    )
+    fade:Play()
+end
+
+-- Troll teleport function
+local function teleportToPlayer(username)
+    if username == "" then
+        status.Text = "Enter a username!"
+        wait(1.5)
+        updateUIColors(state.isReverseMode)
+        return
+    end
+    
+    local targetPlayer = nil
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr.Name:lower():find(username:lower()) or plr.DisplayName:lower():find(username:lower()) then
+            targetPlayer = plr
+            break
+        end
+    end
+    
+    if not targetPlayer then
+        status.Text = "Player not found!"
+        wait(1.5)
+        updateUIColors(state.isReverseMode)
+        return
+    end
+    
+    local character = player.Character
+    local targetCharacter = targetPlayer.Character
+    
+    if character and targetCharacter then
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        local targetHrp = targetCharacter:FindFirstChild("HumanoidRootPart")
+        
+        if hrp and targetHrp then
+            trollGui.Visible = false
+            mainContainer.Visible = true
+            
+            if state.isReverseMode then
+                -- Reverse mode teleport (more dramatic)
+                status.Text = "👹 TELEPORTING TO " .. targetPlayer.Name .. "..."
+                
+                -- Add some effects
+                local humanoid = character:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Falling)
+                end
+                
+                wait(0.5)
+                hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 0)
+                status.Text = "👹 ARRIVED AT " .. targetPlayer.Name .. "!"
+            else
+                -- Normal mode teleport
+                status.Text = "Teleporting to " .. targetPlayer.Name
+                hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 3, 0)
+                status.Text = "Arrived at " .. targetPlayer.Name .. "!"
+            end
+            
+            wait(2)
+            updateUIColors(state.isReverseMode)
+        else
+            status.Text = "Error: No HumanoidRootPart"
+            wait(1.5)
+            updateUIColors(state.isReverseMode)
+        end
+    else
+        status.Text = "Error: Character not found"
+        wait(1.5)
+        updateUIColors(state.isReverseMode)
+    end
+end
+
+-- Button events
+reverseBtn.MouseButton1Click:Connect(function()
+    if state.isReverseMode then
+        activateNormalMode()
+    else
+        activateReverseMode()
+    end
+end)
+
+trollBtn.MouseButton1Click:Connect(function()
+    trollGui.Visible = true
+    mainContainer.Visible = false
+    usernameInput.Text = ""
+    usernameInput:CaptureFocus()
+end)
+
+reverseTrollBtn.MouseButton1Click:Connect(function()
+    trollGui.Visible = true
+    mainContainer.Visible = false
+    usernameInput.Text = ""
+    usernameInput:CaptureFocus()
+    
+    -- Update troll GUI for reverse mode
+    trollGui.BackgroundColor3 = colors.reverse.bg
+    trollTitle.TextColor3 = colors.reverse.light
+    trollTitle.Text = "👹 REVERSE TROLL"
+    inputFrame.BackgroundColor3 = colors.reverse.primary
+    usernameInput.TextColor3 = colors.reverse.light
+    usernameInput.PlaceholderText = "Enter victim username..."
+    teleportBtn.BackgroundColor3 = colors.reverse.secondary
+    teleportBtn.TextColor3 = colors.reverse.light
+    closeTrollBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+end)
+
+infoBtn.MouseButton1Click:Connect(function()
+    if state.isReverseMode then
+        status.Text = "REVERSE MODE:\nSpecial trolling powers!\nTeleport to any player."
+    else
+        status.Text = "NORMAL MODE:\nBasic trolling functions.\nClick 👿 to activate reverse mode!"
+    end
+    wait(3)
+    updateUIColors(state.isReverseMode)
+end)
+
+teleportBtn.MouseButton1Click:Connect(function()
+    teleportToPlayer(usernameInput.Text)
+end)
+
+closeTrollBtn.MouseButton1Click:Connect(function()
+    trollGui.Visible = false
+    mainContainer.Visible = true
+    
+    -- Reset troll GUI colors
+    if not state.isReverseMode then
+        trollGui.BackgroundColor3 = colors.normal.bg
+        trollTitle.TextColor3 = colors.normal.light
+        trollTitle.Text = "👺 TROLL TELEPORT"
+        inputFrame.BackgroundColor3 = colors.normal.primary
+        usernameInput.TextColor3 = colors.normal.light
+        usernameInput.PlaceholderText = "Enter player username..."
+        teleportBtn.BackgroundColor3 = colors.normal.secondary
+        teleportBtn.TextColor3 = colors.normal.light
+    end
+end)
+
+-- Enter key support
+usernameInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        teleportToPlayer(usernameInput.Text)
+    end
+end)
+
+-- Initialize
+updateUIColors(false)
+
+print("🔀 Reverse Mode System loaded!")
+print("Click 👿 button to activate Reverse Mode")
+print("Normal Mode: Basic trolling")
+print("Reverse Mode: Red theme with special effects")
+
+-- Cleanup
+gui.Destroying:Connect(function()
+    print("Reverse Mode System closed")
+end)
