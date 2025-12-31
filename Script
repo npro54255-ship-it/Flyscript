@@ -1,4 +1,4 @@
--- Ultimate Mobile System v2.0 by sherikyt
+-- Ultimate Mobile System v4.0
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
@@ -6,49 +6,36 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Enhanced Config
+-- Simple Config
 local config = {
     maxMarkers = 10,
     flySpeed = 50,
     cameraFOV = 80,
     minSpeed = 1,
-    maxSpeed = 500,
-    dashPower = 150,
-    speedBoostPower = 5,
-    jumpPower = 200,
-    invisDuration = 15,
-    noclipEnabled = false,
-    espEnabled = false,
-    aimbotEnabled = false
+    maxSpeed = 200
 }
 
--- Premium Colors
+-- Colors
 local flyColors = {
-    bg = Color3.fromRGB(15, 15, 25),
-    primary = Color3.fromRGB(138, 43, 226),
-    secondary = Color3.fromRGB(186, 85, 211),
-    light = Color3.fromRGB(240, 240, 255),
-    blue = Color3.fromRGB(0, 180, 255),
-    green = Color3.fromRGB(0, 230, 120),
-    red = Color3.fromRGB(255, 50, 50),
-    yellow = Color3.fromRGB(255, 215, 0)
+    bg = Color3.fromRGB(30, 30, 45),
+    primary = Color3.fromRGB(0, 150, 255),
+    secondary = Color3.fromRGB(100, 200, 255),
+    light = Color3.fromRGB(240, 240, 255)
 }
 
 local trollColors = {
-    bg = Color3.fromRGB(20, 0, 10),
-    primary = Color3.fromRGB(255, 20, 20),
-    secondary = Color3.fromRGB(255, 0, 100),
-    light = Color3.fromRGB(255, 180, 180),
-    dark = Color3.fromRGB(10, 0, 5),
-    purple = Color3.fromRGB(180, 0, 255),
-    orange = Color3.fromRGB(255, 100, 0)
+    bg = Color3.fromRGB(20, 0, 5),
+    primary = Color3.fromRGB(255, 0, 50),
+    secondary = Color3.fromRGB(255, 50, 100),
+    light = Color3.fromRGB(255, 180, 180)
 }
 
--- Advanced State
+-- State
 local state = {
     mode = "fly",
     markers = {},
@@ -59,110 +46,64 @@ local state = {
     viewAng = Vector2.new(0, 0),
     zoom = 1,
     speed = 50,
-    markerIndex = 0,
-    isSpeedBoost = false,
-    isInvisible = false,
-    isHighJump = false,
-    noclip = false,
-    esp = false,
-    aimbot = false,
-    xray = false,
-    flyNoClip = true,
-    infJump = false,
-    antiAfk = false,
-    autoFarm = false,
-    clickTp = false,
-    reach = false,
-    flyBoost = false,
-    godMode = false
+    markerIndex = 0
 }
 
--- Store original values
-local original = {
-    jumpPower = 50,
-    walkSpeed = 16,
-    gravity = 196.2,
-    brightness = 1,
-    fogEnd = 100000
-}
-
--- Create Main GUI
+-- Create GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "UltimateSystemPro"
+gui.Name = "UltimateMobileSystem"
 gui.ResetOnSpawn = false
-gui.Parent = playerGui
+gui.Parent = CoreGui
 
--- Main Container with shadow
+-- Main Container
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 320, 0, 280)
+main.Size = UDim2.new(0, 340, 0, 320)
 main.Position = UDim2.new(0, 10, 0, 10)
 main.BackgroundColor3 = flyColors.bg
 main.BackgroundTransparency = 0.1
 main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = main
-
-local shadow = Instance.new("ImageLabel")
-shadow.Size = UDim2.new(1, 10, 1, 10)
-shadow.Position = UDim2.new(0, -5, 0, -5)
-shadow.BackgroundTransparency = 1
-shadow.Image = "rbxassetid://1316045217"
-shadow.ImageColor3 = Color3.new(0, 0, 0)
-shadow.ImageTransparency = 0.8
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-shadow.Parent = main
-
--- Title Bar with gradient
+-- Title Bar
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, -20, 0, 45)
+titleBar.Size = UDim2.new(1, -20, 0, 50)
 titleBar.Position = UDim2.new(0, 10, 0, 10)
 titleBar.BackgroundTransparency = 1
 titleBar.Parent = main
-
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, flyColors.primary),
-    ColorSequenceKeypoint.new(1, flyColors.secondary)
-})
-gradient.Rotation = 90
 
 local titleBg = Instance.new("Frame")
 titleBg.Size = UDim2.new(1, 0, 1, 0)
 titleBg.BackgroundColor3 = flyColors.primary
 titleBg.Parent = titleBar
-gradient:Clone().Parent = titleBg
-Instance.new("UICorner", titleBg).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", titleBg).CornerRadius = UDim.new(0, 10)
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "🚀 ULTIMATE SYSTEM PRO"
+title.Text = "🚀 FLY MODE"
 title.TextColor3 = flyColors.light
 title.Font = Enum.Font.GothamBold
-title.TextSize = 16
+title.TextSize = 18
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = titleBar
 
 local modeBtn = Instance.new("TextButton")
-modeBtn.Size = UDim2.new(0, 45, 0, 45)
-modeBtn.Position = UDim2.new(1, -45, 0, 0)
+modeBtn.Size = UDim2.new(0, 50, 0, 50)
+modeBtn.Position = UDim2.new(1, -50, 0, 0)
 modeBtn.BackgroundColor3 = flyColors.secondary
 modeBtn.Text = "👿"
 modeBtn.TextColor3 = flyColors.light
 modeBtn.Font = Enum.Font.GothamBold
-modeBtn.TextSize = 22
+modeBtn.TextSize = 24
 modeBtn.Parent = titleBar
-Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0, 10)
 
 -- Status Panel
 local status = Instance.new("Frame")
 status.Size = UDim2.new(1, -20, 0, 70)
-status.Position = UDim2.new(0, 10, 0, 65)
-status.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-status.BackgroundTransparency = 0.3
+status.Position = UDim2.new(0, 10, 0, 70)
+status.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+status.BackgroundTransparency = 0.2
 status.Parent = main
 Instance.new("UICorner", status).CornerRadius = UDim.new(0, 10)
 
@@ -170,574 +111,532 @@ local statusText = Instance.new("TextLabel")
 statusText.Size = UDim2.new(1, -10, 1, -10)
 statusText.Position = UDim2.new(0, 5, 0, 5)
 statusText.BackgroundTransparency = 1
-statusText.Text = "Markers: 0/10\nStatus: Ready\nFPS: 60"
+statusText.Text = "Status: Ready\nMarkers: 0/10"
 statusText.TextColor3 = flyColors.light
 statusText.Font = Enum.Font.Gotham
-statusText.TextSize = 12
+statusText.TextSize = 14
 statusText.TextWrapped = true
-statusText.TextXAlignment = Enum.TextXAlignment.Left
 statusText.Parent = status
 
--- FPS Counter
-local lastTime = tick()
-local frameCount = 0
-local fps = 60
-
-local function updateFPS()
-    frameCount = frameCount + 1
-    local currentTime = tick()
-    if currentTime - lastTime >= 1 then
-        fps = math.floor(frameCount / (currentTime - lastTime))
-        frameCount = 0
-        lastTime = currentTime
-    end
-end
-
--- Button creator with hover effects
-local function createBtn(name, text, pos, size, color, isTroll)
-    local colors = isTroll and trollColors or flyColors
+-- Button Creator
+local function createBtn(name, text, pos, size, color)
     local btn = Instance.new("TextButton")
     btn.Name = name
     btn.Size = size
     btn.Position = pos
-    btn.BackgroundColor3 = color or colors.primary
+    btn.BackgroundColor3 = color
     btn.Text = text
-    btn.TextColor3 = colors.light
+    btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 12
-    btn.AutoButtonColor = false
     btn.Parent = main
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
-    
-    local hover = Instance.new("Frame")
-    hover.Size = UDim2.new(1, 0, 1, 0)
-    hover.BackgroundColor3 = Color3.new(1, 1, 1)
-    hover.BackgroundTransparency = 0.9
-    hover.Visible = false
-    hover.Parent = btn
-    Instance.new("UICorner", hover).CornerRadius = UDim.new(0, 8)
-    
-    btn.MouseEnter:Connect(function()
-        hover.Visible = true
-        btn.BackgroundColor3 = btn.BackgroundColor3:Lerp(Color3.new(1, 1, 1), 0.2)
-    end)
-    
-    btn.MouseLeave:Connect(function()
-        hover.Visible = false
-        btn.BackgroundColor3 = color or colors.primary
-    end)
-    
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
     return btn
 end
+-- Create Fly Mode Buttons (20 Simple Functions)
+local flyButtons = {}
 
--- Create fly mode buttons
-local function createFlyButtons()
-    local buttons = {}
-    
-    -- Row 1
-    buttons.flyBtn = createBtn("FlyBtn", "🚀 FLY MODE", UDim2.new(0, 10, 0, 145), UDim2.new(0.48, 0, 0, 30), flyColors.primary)
-    buttons.markBtn = createBtn("MarkBtn", "📍 ADD MARKER", UDim2.new(0.52, 0, 0, 145), UDim2.new(0.48, 0, 0, 30), flyColors.secondary)
-    
-    -- Row 2
-    buttons.viewBtn = createBtn("ViewBtn", "👁️ VIEW MARKS", UDim2.new(0, 10, 0, 180), UDim2.new(0.48, 0, 0, 30), flyColors.blue)
-    buttons.tpBtn = createBtn("TpBtn", "⚡ TELEPORT", UDim2.new(0.52, 0, 0, 180), UDim2.new(0.48, 0, 0, 30), flyColors.green)
-    
-    -- Row 3
-    buttons.clearBtn = createBtn("ClearBtn", "🗑️ CLEAR ALL", UDim2.new(0, 10, 0, 215), UDim2.new(0.48, 0, 0, 30), flyColors.red)
-    buttons.settingsBtn = createBtn("SettingsBtn", "⚙️ SETTINGS", UDim2.new(0.52, 0, 0, 215), UDim2.new(0.48, 0, 0, 30), flyColors.yellow)
-    
-    -- Row 4
-    buttons.noclipBtn = createBtn("NoclipBtn", "👻 NO CLIP", UDim2.new(0, 10, 0, 250), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(100, 100, 255))
-    buttons.infJumpBtn = createBtn("InfJumpBtn", "🦘 INF JUMP", UDim2.new(0.52, 0, 0, 250), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(0, 200, 100))
-    
-    return buttons
+-- Row 1
+flyButtons.flyBtn = createBtn("FlyBtn", "🚀 FLY", 
+    UDim2.new(0, 10, 0, 150), UDim2.new(0.48, 0, 0, 30), flyColors.primary)
+flyButtons.markBtn = createBtn("MarkBtn", "📍 MARK", 
+    UDim2.new(0.52, 0, 0, 150), UDim2.new(0.48, 0, 0, 30), flyColors.secondary)
+
+-- Row 2
+flyButtons.viewBtn = createBtn("ViewBtn", "👁️ VIEW", 
+    UDim2.new(0, 10, 0, 185), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(0, 180, 255))
+flyButtons.tpBtn = createBtn("TpBtn", "⚡ TP TO MARK", 
+    UDim2.new(0.52, 0, 0, 185), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(0, 200, 100))
+
+-- Row 3
+flyButtons.clearBtn = createBtn("ClearBtn", "🗑️ CLEAR", 
+    UDim2.new(0, 10, 0, 220), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(255, 100, 100))
+flyButtons.noclipBtn = createBtn("NoclipBtn", "👻 NO CLIP", 
+    UDim2.new(0.52, 0, 0, 220), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(150, 100, 255))
+
+-- Row 4
+flyButtons.infJumpBtn = createBtn("InfJumpBtn", "🦘 INF JUMP", 
+    UDim2.new(0, 10, 0, 255), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(0, 200, 150))
+flyButtons.speedBtn = createBtn("SpeedBtn", "🏃 SPEED", 
+    UDim2.new(0.52, 0, 0, 255), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(255, 150, 0))
+
+-- Row 5
+flyButtons.espBtn = createBtn("EspBtn", "👁️ ESP", 
+    UDim2.new(0, 10, 0, 290), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(255, 100, 200))
+flyButtons.xrayBtn = createBtn("XrayBtn", "🔍 X-RAY", 
+    UDim2.new(0.52, 0, 0, 290), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(100, 255, 100))
+
+-- Row 6
+flyButtons.antiAfkBtn = createBtn("AntiAfkBtn", "⏰ ANTI-AFK", 
+    UDim2.new(0, 10, 0, 325), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(255, 200, 0))
+flyButtons.clickTpBtn = createBtn("ClickTpBtn", "👆 CLICK TP", 
+    UDim2.new(0.52, 0, 0, 325), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(100, 200, 255))
+
+-- Row 7
+flyButtons.reachBtn = createBtn("ReachBtn", "👊 REACH", 
+    UDim2.new(0, 10, 0, 360), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(255, 100, 0))
+flyButtons.godBtn = createBtn("GodBtn", "🛡️ GOD MODE", 
+    UDim2.new(0.52, 0, 0, 360), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(255, 215, 0))
+
+-- Row 8
+flyButtons.highJumpBtn = createBtn("HighJumpBtn", "🦘 HIGH JUMP", 
+    UDim2.new(0, 10, 0, 395), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(0, 150, 255))
+flyButtons.flyBoostBtn = createBtn("FlyBoostBtn", "💨 FLY BOOST", 
+    UDim2.new(0.52, 0, 0, 395), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(0, 255, 255))
+
+-- Row 9
+flyButtons.aimbotBtn = createBtn("AimbotBtn", "🎯 AIMBOT", 
+    UDim2.new(0, 10, 0, 430), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(255, 50, 50))
+flyButtons.autoClickBtn = createBtn("AutoClickBtn", "🤖 AUTO CLICK", 
+    UDim2.new(0.52, 0, 0, 430), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(200, 100, 255))
+
+-- Row 10
+flyButtons.playerEspBtn = createBtn("PlayerEspBtn", "👥 PLAYER ESP", 
+    UDim2.new(0, 10, 0, 465), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(100, 255, 200))
+flyButtons.itemEspBtn = createBtn("ItemEspBtn", "📦 ITEM ESP", 
+    UDim2.new(0.52, 0, 0, 465), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(255, 150, 100))
+
+-- Scroll Frame for buttons
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -20, 0, 200)
+scrollFrame.Position = UDim2.new(0, 10, 0, 150)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.ScrollBarThickness = 5
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 340)
+scrollFrame.Parent = main
+
+-- Reparent buttons to scroll frame
+for _, btn in pairs(flyButtons) do
+    btn.Parent = scrollFrame
 end
 
--- Create troll mode buttons (5x2 grid for 10 functions)
-local function createTrollButtons()
-    local buttons = {}
-    local btnColors = {
-        trollColors.primary,
-        trollColors.secondary,
-        Color3.fromRGB(255, 50, 100),
-        Color3.fromRGB(180, 0, 255),
-        Color3.fromRGB(255, 100, 0),
-        Color3.fromRGB(0, 200, 200),
-        Color3.fromRGB(200, 200, 0),
-        Color3.fromRGB(100, 255, 100),
-        Color3.fromRGB(255, 0, 200),
-        Color3.fromRGB(0, 100, 255)
-    }
-    
-    for i = 1, 10 do
-        local row = math.floor((i-1)/2)
-        local col = (i-1)%2
-        local x = 10 + col * 155
-        local y = 145 + row * 35
-        
-        buttons["trollBtn"..i] = createBtn(
-            "TrollBtn"..i,
-            "LOADING...",
-            UDim2.new(0, x, 0, y),
-            UDim2.new(0, 150, 0, 30),
-            btnColors[i],
-            true
-        )
-        buttons["trollBtn"..i].Visible = false
-    end
-    
-    return buttons
-end
--- Create buttons
-local flyButtons = createFlyButtons()
-local trollButtons = createTrollButtons()
+-- Create Troll Mode Buttons (20 Hard Functions)
+local trollButtons = {}
+local trollBtnColors = {
+    Color3.fromRGB(255, 0, 50),    -- 1. RED
+    Color3.fromRGB(255, 50, 100),  -- 2. PINK
+    Color3.fromRGB(180, 0, 255),   -- 3. PURPLE
+    Color3.fromRGB(255, 100, 0),   -- 4. ORANGE
+    Color3.fromRGB(255, 0, 100),   -- 5. HOT PINK
+    Color3.fromRGB(200, 0, 0),     -- 6. DARK RED
+    Color3.fromRGB(255, 0, 200),   -- 7. MAGENTA
+    Color3.fromRGB(255, 150, 0),   -- 8. GOLD
+    Color3.fromRGB(150, 0, 255),   -- 9. VIOLET
+    Color3.fromRGB(255, 50, 50),   -- 10. RED
+    Color3.fromRGB(255, 0, 150),   -- 11. DEEP PINK
+    Color3.fromRGB(200, 50, 0),    -- 12. BROWN
+    Color3.fromRGB(255, 100, 100), -- 13. LIGHT RED
+    Color3.fromRGB(180, 50, 255),  -- 14. LAVENDER
+    Color3.fromRGB(255, 0, 0),     -- 15. BLOOD RED
+    Color3.fromRGB(255, 50, 0),    -- 16. FIRE
+    Color3.fromRGB(200, 0, 100),   -- 17. DEEP PURPLE
+    Color3.fromRGB(255, 100, 50),  -- 18. CORAL
+    Color3.fromRGB(150, 0, 0),     -- 19. DARK MAROON
+    Color3.fromRGB(255, 0, 255)    -- 20. PURE MAGENTA
+}
+-- Create Troll Mode buttons
+local trollFunctions = {
+    "1. TELEPORT GUN 🔫",      -- 1. Телепорт пушка
+    "2. PLAYER EXPLODE 💣",    -- 2. Взрыв игроков
+    "3. MASS TELEPORT 🌪️",    -- 3. Массовый телепорт
+    "4. SERVER CRASH ☢️",      -- 4. Крах сервера
+    "5. FLING PLAYERS 🌀",     -- 5. Выброс игроков
+    "6. ANTI-GRAVITY 🌌",      -- 6. Анти-гравитация
+    "7. BLACK HOLE ⚫",        -- 7. Черная дыра
+    "8. LAG MACHINE 🐌",       -- 8. Лаг машина
+    "9. INVISIBLE KILLER 👻",  -- 9. Невидимый убийца
+    "10. GOD MODE ☠️",         -- 10. Режим бога
+    "11. FORCEFIELD 🛡️",      -- 11. Силовое поле
+    "12. FREEZE PLAYERS ❄️",   -- 12. Заморозка игроков
+    "13. SUPER PUNCH 👊",      -- 13. Супер удар
+    "14. CHAOS MODE 🤪",       -- 14. Режим хаоса
+    "15. PLAYER CONTROL 🎮",   -- 15. Контроль игроков
+    "16. OBJECT RAIN ☔",       -- 16. Дождь объектов
+    "17. TIME STOP ⏱️",        -- 17. Остановка времени
+    "18. DIMENSION JUMP 🌌",   -- 18. Прыжок в измерение
+    "19. MIND CONTROL 🧠",     -- 19. Контроль разума
+    "20. APOCALYPSE 🌋"        -- 20. Апокалипсис
+}
 
--- Exit button (floating)
-local exitBtn = Instance.new("TextButton")
-exitBtn.Name = "ExitBtn"
-exitBtn.Size = UDim2.new(0, 80, 0, 35)
-exitBtn.Position = UDim2.new(0.5, -40, 0, 10)
-exitBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-exitBtn.Text = "✖ EXIT"
-exitBtn.TextColor3 = Color3.new(1, 1, 1)
-exitBtn.Font = Enum.Font.GothamBold
-exitBtn.TextSize = 14
-exitBtn.Visible = false
-exitBtn.Parent = gui
-Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 8)
-
--- Fly Controls Panel
-local flyPanel = Instance.new("Frame")
-flyPanel.Size = UDim2.new(1, 0, 0, 220)
-flyPanel.Position = UDim2.new(0, 0, 1, -220)
-flyPanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-flyPanel.BackgroundTransparency = 0.7
-flyPanel.Visible = false
-flyPanel.Parent = gui
-
--- Advanced control grid
-local function createControlBtn(text, pos, size)
-    local btn = Instance.new("TextButton")
-    btn.Size = size
-    btn.Position = pos
-    btn.BackgroundColor3 = flyColors.primary
-    btn.BackgroundTransparency = 0.3
-    btn.Text = text
-    btn.TextColor3 = flyColors.light
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 18
-    btn.AutoButtonColor = false
-    btn.Parent = flyPanel
+for i = 1, 20 do
+    local row = math.floor((i-1)/2)
+    local col = (i-1)%2
+    local x = 10 + col * 155
+    local y = 10 + row * 35
     
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0.3, 0)
-    
-    local hover = Instance.new("Frame")
-    hover.Size = UDim2.new(1, 0, 1, 0)
-    hover.BackgroundColor3 = Color3.new(1, 1, 1)
-    hover.BackgroundTransparency = 0.8
-    hover.Visible = false
-    hover.Parent = btn
-    
-    btn.MouseEnter:Connect(function() hover.Visible = true end)
-    btn.MouseLeave:Connect(function() hover.Visible = false end)
-    
-    return btn
+    trollButtons[i] = createBtn("TrollBtn"..i, trollFunctions[i], 
+        UDim2.new(0, x, 0, y), UDim2.new(0, 150, 0, 30), trollBtnColors[i])
+    trollButtons[i].Parent = scrollFrame
+    trollButtons[i].Visible = false
 end
 
--- Movement controls
-local moveForward = createControlBtn("⬆", UDim2.new(0.5, -25, 0.15, -25), UDim2.new(0, 50, 0, 50))
-local moveBack = createControlBtn("⬇", UDim2.new(0.5, -25, 0.85, -25), UDim2.new(0, 50, 0, 50))
-local moveLeft = createControlBtn("⬅", UDim2.new(0.2, -25, 0.5, -25), UDim2.new(0, 50, 0, 50))
-local moveRight = createControlBtn("➡", UDim2.new(0.8, -25, 0.5, -25), UDim2.new(0, 50, 0, 50))
-local moveUp = createControlBtn("↑", UDim2.new(0.2, -25, 0.15, -25), UDim2.new(0, 50, 0, 50))
-local moveDown = createControlBtn("↓", UDim2.new(0.8, -25, 0.15, -25), UDim2.new(0, 50, 0, 50))
-local lookLeft = createControlBtn("◀", UDim2.new(0.2, -25, 0.85, -25), UDim2.new(0, 50, 0, 50))
-local lookRight = createControlBtn("▶", UDim2.new(0.8, -25, 0.85, -25), UDim2.new(0, 50, 0, 50))
-
--- Speed control panel
-local speedPanel = Instance.new("Frame")
-speedPanel.Size = UDim2.new(0.6, 0, 0, 45)
-speedPanel.Position = UDim2.new(0.2, 0, 0, 10)
-speedPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-speedPanel.BackgroundTransparency = 0.5
-speedPanel.Visible = false
-speedPanel.Parent = gui
-Instance.new("UICorner", speedPanel).CornerRadius = UDim.new(0, 10)
-
-local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(0.4, 0, 1, 0)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Text = "SPEED: 50"
-speedLabel.TextColor3 = flyColors.light
-speedLabel.Font = Enum.Font.GothamBold
-speedLabel.TextSize = 14
-speedLabel.Parent = speedPanel
-
-local speedDown = createControlBtn("➖", UDim2.new(0.4, 0, 0, 5), UDim2.new(0, 35, 0, 35))
-speedDown.Parent = speedPanel
-local speedUp = createControlBtn("➕", UDim2.new(0.85, 0, 0, 5), UDim2.new(0, 35, 0, 35))
-speedUp.Parent = speedPanel
-
--- Advanced fly actions
-local flyActions = Instance.new("Frame")
-flyActions.Size = UDim2.new(0, 300, 0, 50)
-flyActions.Position = UDim2.new(0.5, -150, 0.5, 50)
-flyActions.BackgroundTransparency = 1
-flyActions.Visible = false
-flyActions.Parent = gui
-
-local teleportBtn = createControlBtn("⚡ TP TO CAM", UDim2.new(0, 0, 0, 0), UDim2.new(0.48, 0, 1, 0))
-teleportBtn.Parent = flyActions
-local flyMarkBtn = createControlBtn("📍 MARK POS", UDim2.new(0.52, 0, 0, 0), UDim2.new(0.48, 0, 1, 0))
-flyMarkBtn.Parent = flyActions
-
--- View Controls
-local viewPanel = Instance.new("Frame")
-viewPanel.Size = UDim2.new(1, 0, 0, 100)
-viewPanel.Position = UDim2.new(0, 0, 1, -100)
-viewPanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-viewPanel.BackgroundTransparency = 0.6
-viewPanel.Visible = false
-viewPanel.Parent = gui
-
-local prevBtn = createControlBtn("◀ PREV", UDim2.new(0.1, 0, 0.2, 0), UDim2.new(0.2, 0, 0.6, 0))
-prevBtn.Parent = viewPanel
-local nextBtn = createControlBtn("NEXT ▶", UDim2.new(0.7, 0, 0.2, 0), UDim2.new(0.2, 0, 0.6, 0))
-nextBtn.Parent = viewPanel
-
-local zoomLabel = Instance.new("TextLabel")
-zoomLabel.Size = UDim2.new(0.4, 0, 0.6, 0)
-zoomLabel.Position = UDim2.new(0.3, 0, 0.2, 0)
-zoomLabel.BackgroundTransparency = 1
-zoomLabel.Text = "ZOOM: 1.0x"
-zoomLabel.TextColor3 = flyColors.light
-zoomLabel.Font = Enum.Font.GothamBold
-zoomLabel.TextSize = 14
-zoomLabel.Parent = viewPanel
-
--- Advanced transition effects
-local transitionOverlay = Instance.new("Frame")
-transitionOverlay.Size = UDim2.new(1, 0, 1, 0)
-transitionOverlay.BackgroundColor3 = Color3.new(0, 0, 0)
-transitionOverlay.BackgroundTransparency = 1
-transitionOverlay.ZIndex = 100
-transitionOverlay.Parent = gui
-
-local modeText = Instance.new("TextLabel")
-modeText.Size = UDim2.new(0, 400, 0, 100)
-modeText.Position = UDim2.new(0.5, -200, 0.5, -50)
-modeText.BackgroundTransparency = 1
-modeText.Text = ""
-modeText.TextColor3 = Color3.new(1, 1, 1)
-modeText.Font = Enum.Font.GothamBold
-modeText.TextSize = 48
-modeText.TextStrokeTransparency = 0.5
-modeText.Visible = false
-modeText.ZIndex = 101
-modeText.Parent = gui
-
--- Enhanced marker system
+-- Marker System
 local markerFolder = Instance.new("Folder")
 markerFolder.Name = "UltimateMarkers"
 markerFolder.Parent = Workspace
 
+-- Create marker function
 local function createMarker(pos, index)
     local marker = Instance.new("Part")
     marker.Name = "Marker_" .. index
-    marker.Size = Vector3.new(2.5, 2.5, 2.5)
+    marker.Size = Vector3.new(3, 3, 3)
     marker.Position = pos
     marker.Anchored = true
     marker.CanCollide = false
-    marker.Transparency = 0.2
-    marker.Material = EnumMaterial.Neon
+    marker.Transparency = 0.3
     marker.Color = flyColors.primary
+    marker.Material = EnumMaterial.Neon
     marker.Parent = markerFolder
     
-    local glow = Instance.new("SurfaceLight")
-    glow.Color = flyColors.secondary
-    glow.Brightness = 2
-    glow.Range = 12
-    glow.Face = Enum.NormalId.Top
-    glow.Parent = marker
+    -- Click to teleport
+    local click = Instance.new("ClickDetector")
+    click.MaxActivationDistance = 50
+    click.Parent = marker
     
-    local pointLight = Instance.new("PointLight")
-    pointLight.Color = flyColors.secondary
-    pointLight.Brightness = 5
-    pointLight.Range = 15
-    pointLight.Parent = marker
+    click.MouseClick:Connect(function()
+        local char = player.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+                statusText.Text = "✅ Teleported to Marker #" .. index
+                task.wait(1)
+                updateUI()
+            end
+        end
+    end)
     
-    local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 100, 0, 40)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = marker
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = "📍 MARK " .. index
-    label.TextColor3 = flyColors.light
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 14
-    label.TextStrokeTransparency = 0
-    label.Parent = billboard
+    -- Light
+    local light = Instance.new("PointLight")
+    light.Color = flyColors.secondary
+    light.Brightness = 5
+    light.Range = 15
+    light.Parent = marker
     
     return marker
 end
 
--- Mode management
-local function playModeTransition(newMode)
-    local isTroll = newMode == "troll"
-    local text = isTroll and "😈 TROLL MODE" or "🚀 FLY MODE"
-    local color = isTroll and Color3.fromRGB(255, 0, 50) or Color3.fromRGB(0, 150, 255)
-    
-    modeText.Text = text
-    modeText.TextColor3 = color
-    modeText.Visible = true
-    
-    local fadeIn = TweenService:Create(transitionOverlay, TweenInfo.new(0.3), {BackgroundTransparency = 0.7})
-    local textIn = TweenService:Create(modeText, TweenInfo.new(0.3), {TextTransparency = 0})
-    
-    local fadeOut = TweenService:Create(transitionOverlay, TweenInfo.new(0.5), {BackgroundTransparency = 1})
-    local textOut = TweenService:Create(modeText, TweenInfo.new(0.5), {TextTransparency = 1})
-    
-    fadeIn:Play()
-    textIn:Play()
-    wait(0.8)
-    textOut:Play()
-    wait(0.5)
-    fadeOut:Play()
-    wait(0.3)
-    
-    modeText.Visible = false
-end
-
+-- Update UI
 local function updateUI()
     local isTroll = state.mode == "troll"
     local colors = isTroll and trollColors or flyColors
     
-    -- Update colors
     main.BackgroundColor3 = colors.bg
     titleBg.BackgroundColor3 = colors.primary
-    
-    if isTroll then
-        local trollGradient = Instance.new("UIGradient")
-        trollGradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, trollColors.primary),
-            ColorSequenceKeypoint.new(1, trollColors.secondary)
-        })
-        trollGradient.Rotation = 90
-        trollGradient.Parent = titleBg
-    end
-    
     title.Text = isTroll and "😈 TROLL MODE" or "🚀 FLY MODE"
     title.TextColor3 = colors.light
     modeBtn.BackgroundColor3 = colors.secondary
     modeBtn.Text = isTroll and "✨" or "👿"
     
-    -- Update status text
-    updateFPS()
-    local count = #state.markers
-    if isTroll then
-        statusText.Text = string.format("TROLL MODE ACTIVATED!\n10 Demonic Powers Ready\nFPS: %d", fps)
-    else
-        local statusLines = {
-            string.format("Markers: %d/10", count),
-            state.flying and "Status: Flying" or state.viewing and "Status: Viewing" or "Status: Ready",
-            string.format("FPS: %d", fps),
-            state.noclip and "NoClip: ON" or "NoClip: OFF",
-            state.infJump and "InfJump: ON" or "InfJump: OFF"
-        }
-        statusText.Text = table.concat(statusLines, "\n")
-    end
-    
     -- Show/hide buttons
-    for name, btn in pairs(flyButtons) do
+    for _, btn in pairs(flyButtons) do
         btn.Visible = not isTroll
     end
     
-    for i = 1, 10 do
-        trollButtons["trollBtn"..i].Visible = isTroll
+    for i = 1, 20 do
+        trollButtons[i].Visible = isTroll
+    end
+    
+    -- Update status
+    local count = #state.markers
+    if isTroll then
+        statusText.Text = "😈 TROLL MODE ACTIVATED\n20 HARDCORE FUNCTIONS"
+    else
+        statusText.Text = string.format("Markers: %d/10\nStatus: Ready", count)
+        if state.flying then
+            statusText.Text = string.format("Flying\nSpeed: %d\nMarkers: %d/10", state.speed, count)
+        end
     end
 end
 
--- Initialize troll button texts
-local trollFunctions = {
-    "1. PLAYER TP",
-    "2. SUPER DASH",
-    "3. SPEED x5",
-    "4. INVISIBLE",
-    "5. HIGH JUMP",
-    "6. GOD MODE",
-    "7. ANTI-AFK",
-    "8. ESP WALLS",
-    "9. AIMBOT",
-    "10. X-RAY"
-}
-
-for i, text in ipairs(trollFunctions) do
-    trollButtons["trollBtn"..i].Text = text
-end
-
--- Mode switch function
+-- Mode Switch
 local function switchMode()
-    playModeTransition(state.mode == "fly" and "troll" or "fly")
-    state.mode = state.mode == "fly" and "troll" or "fly"
+    if state.mode == "fly" then
+        state.mode = "troll"
+        -- Red screen effect
+        local redScreen = Instance.new("Frame")
+        redScreen.Size = UDim2.new(1, 0, 1, 0)
+        redScreen.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        redScreen.BackgroundTransparency = 0.7
+        redScreen.ZIndex = 1000
+        redScreen.Parent = gui
+        
+        TweenService:Create(redScreen, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+        task.wait(0.6)
+        redScreen:Destroy()
+    else
+        state.mode = "fly"
+    end
     updateUI()
 end
 
--- Fly functions
+-- Fly Mode Simple Functions
+
+-- 1. FLY MODE
 local flyDir = {forward=false, back=false, left=false, right=false, up=false, down=false}
 local camRot = {left=false, right=false}
 
-local function updateFlyStatus()
-    local count = #state.markers
-    local text = string.format("Markers: %d/10", count)
-    
-    if state.flying then
-        text = string.format("Flying Active\nMarkers: %d/10\nSpeed: %d\nNoClip: %s", 
-            count, state.speed, state.flyNoClip and "ON" or "OFF")
-    elseif state.viewing and count > 0 then
-        text = string.format("Viewing %d/%d\nZoom: %.1fx", state.markerIndex or 1, count, state.zoom)
-    end
-    
-    if state.noclip then
-        text = text .. "\nNoClip: ON"
-    end
-    if state.infJump then
-        text = text .. "\nInfJump: ON"
-    end
-    
-    statusText.Text = text
-end
-
-local function placeMarker(pos)
-    if #state.markers >= config.maxMarkers then
-        statusText.Text = "Maximum 10 markers reached!"
-        task.wait(1.5)
-        updateFlyStatus()
-        return false
-    end
-    
-    local index = #state.markers + 1
-    createMarker(pos, index)
-    table.insert(state.markers, {
-        position = pos,
-        index = index,
-        time = os.time()
-    })
-    
-    statusText.Text = string.format("✅ Marker #%d placed!", index)
-    task.wait(1)
-    updateFlyStatus()
-    return true
-end
-
-local function clearMarkers()
-    markerFolder:ClearAllChildren()
-    state.markers = {}
-    state.markerIndex = 0
-    statusText.Text = "✅ All markers cleared!"
-    task.wait(1)
-    updateFlyStatus()
-end
-
-local function changeSpeed(amount)
-    state.speed = math.clamp(state.speed + amount, config.minSpeed, config.maxSpeed)
-    speedLabel.Text = string.format("SPEED: %d", state.speed)
-    updateFlyStatus()
-end
-
 local function startFlying()
-    if state.flying or state.mode ~= "fly" then return end
-    
+    if state.flying then return end
     state.flying = true
+    
     local camera = Workspace.CurrentCamera
     state.flyPos = camera.CFrame.Position
-    
     local look = camera.CFrame.LookVector
     state.flyAng = Vector2.new(math.atan2(look.X, look.Z), math.asin(-look.Y))
     
     camera.CameraType = Enum.CameraType.Scriptable
     
-    -- Show controls
-    flyPanel.Visible = true
-    speedPanel.Visible = true
-    flyActions.Visible = true
-    exitBtn.Visible = true
-    main.Visible = false
+    -- Create flight controls
+    local flyPanel = Instance.new("Frame")
+    flyPanel.Size = UDim2.new(1, 0, 0, 250)
+    flyPanel.Position = UDim2.new(0, 0, 1, -250)
+    flyPanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    flyPanel.BackgroundTransparency = 0.6
+    flyPanel.Parent = gui
     
-    statusText.Text = "🚀 Fly Mode Active!\nUse controls to move"
+    -- Controls
+    local function addControl(text, pos)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 60, 0, 60)
+        btn.Position = pos
+        btn.BackgroundColor3 = flyColors.primary
+        btn.Text = text
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 20
+        btn.Parent = flyPanel
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0.5, 0)
+        return btn
+    end
+    
+    local forward = addControl("⬆", UDim2.new(0.5, -30, 0.15, -30))
+    local back = addControl("⬇", UDim2.new(0.5, -30, 0.85, -30))
+    local left = addControl("⬅", UDim2.new(0.2, -30, 0.5, -30))
+    local right = addControl("➡", UDim2.new(0.8, -30, 0.5, -30))
+    local up = addControl("↑", UDim2.new(0.2, -30, 0.15, -30))
+    local down = addControl("↓", UDim2.new(0.8, -30, 0.15, -30))
+    local camL = addControl("◀", UDim2.new(0.2, -30, 0.85, -30))
+    local camR = addControl("▶", UDim2.new(0.8, -30, 0.85, -30))
+    
+    forward.MouseButton1Down:Connect(function() flyDir.forward = true end)
+    forward.MouseButton1Up:Connect(function() flyDir.forward = false end)
+    back.MouseButton1Down:Connect(function() flyDir.back = true end)
+    back.MouseButton1Up:Connect(function() flyDir.back = false end)
+    left.MouseButton1Down:Connect(function() flyDir.left = true end)
+    left.MouseButton1Up:Connect(function() flyDir.left = false end)
+    right.MouseButton1Down:Connect(function() flyDir.right = true end)
+    right.MouseButton1Up:Connect(function() flyDir.right = false end)
+    up.MouseButton1Down:Connect(function() flyDir.up = true end)
+    up.MouseButton1Up:Connect(function() flyDir.up = false end)
+    down.MouseButton1Down:Connect(function() flyDir.down = true end)
+    down.MouseButton1Up:Connect(function() flyDir.down = false end)
+    camL.MouseButton1Down:Connect(function() camRot.left = true end)
+    camL.MouseButton1Up:Connect(function() camRot.left = false end)
+    camR.MouseButton1Down:Connect(function() camRot.right = true end)
+    camR.MouseButton1Up:Connect(function() camRot.right = false end)
+    
+    -- Exit button
+    local exitBtn = Instance.new("TextButton")
+    exitBtn.Size = UDim2.new(0, 80, 0, 35)
+    exitBtn.Position = UDim2.new(0.5, -40, 0, 10)
+    exitBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    exitBtn.Text = "✖ EXIT FLY"
+    exitBtn.TextColor3 = Color3.new(1, 1, 1)
+    exitBtn.Font = Enum.Font.GothamBold
+    exitBtn.TextSize = 14
+    exitBtn.Parent = gui
+    Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 8)
+    
+    exitBtn.MouseButton1Click:Connect(function()
+        state.flying = false
+        Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+        flyPanel:Destroy()
+        exitBtn:Destroy()
+        updateUI()
+    end)
+    
+    updateUI()
 end
 
-local function stopFlying()
-    if not state.flying then return end
+-- 2. PLACE MARKER
+local function placeMarker()
+    if #state.markers >= config.maxMarkers then
+        statusText.Text = "Max 10 markers!"
+        task.wait(1)
+        updateUI()
+        return
+    end
     
-    state.flying = false
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    local pos = Workspace.CurrentCamera.CFrame.Position
+    local index = #state.markers + 1
+    createMarker(pos, index)
+    table.insert(state.markers, {position = pos, index = index})
     
-    -- Hide controls
-    flyPanel.Visible = false
-    speedPanel.Visible = false
-    flyActions.Visible = false
-    exitBtn.Visible = false
-    main.Visible = true
-    
-    updateFlyStatus()
+    statusText.Text = "Marker #" .. index .. " placed!"
+    task.wait(1)
+    updateUI()
 end
--- NoClip function
-local function toggleNoClip()
-    state.noclip = not state.noclip
+-- 3. VIEW MARKERS
+local function viewMarkers()
+    if #state.markers == 0 then
+        statusText.Text = "No markers!"
+        task.wait(1)
+        updateUI()
+        return
+    end
     
-    if state.noclip then
-        statusText.Text = "✅ NoClip: ENABLED"
+    state.viewing = true
+    state.markerIndex = 1
+    
+    local camera = Workspace.CurrentCamera
+    camera.CameraType = Enum.CameraType.Scriptable
+    
+    -- View panel
+    local viewPanel = Instance.new("Frame")
+    viewPanel.Size = UDim2.new(1, 0, 0, 100)
+    viewPanel.Position = UDim2.new(0, 0, 1, -100)
+    viewPanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    viewPanel.BackgroundTransparency = 0.6
+    viewPanel.Parent = gui
+    
+    local prevBtn = createBtn("PrevBtn", "◀ PREV", 
+        UDim2.new(0.1, 0, 0.2, 0), UDim2.new(0.2, 0, 0.6, 0), flyColors.primary)
+    prevBtn.Parent = viewPanel
+    
+    local nextBtn = createBtn("NextBtn", "NEXT ▶", 
+        UDim2.new(0.7, 0, 0.2, 0), UDim2.new(0.2, 0, 0.6, 0), flyColors.primary)
+    nextBtn.Parent = viewPanel
+    
+    local exitViewBtn = Instance.new("TextButton")
+    exitViewBtn.Size = UDim2.new(0, 80, 0, 35)
+    exitViewBtn.Position = UDim2.new(0.5, -40, 0, 10)
+    exitViewBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    exitViewBtn.Text = "✖ EXIT VIEW"
+    exitViewBtn.TextColor3 = Color3.new(1, 1, 1)
+    exitViewBtn.Font = Enum.Font.GothamBold
+    exitViewBtn.TextSize = 14
+    exitViewBtn.Parent = gui
+    Instance.new("UICorner", exitViewBtn).CornerRadius = UDim.new(0, 8)
+    
+    local function updateView()
+        if state.markerIndex < 1 then state.markerIndex = 1 end
+        if state.markerIndex > #state.markers then state.markerIndex = #state.markers end
         
-        -- Create noclip loop
-        local noclipLoop = RunService.Stepped:Connect(function()
-            if not state.noclip then
-                noclipLoop:Disconnect()
-                return
-            end
+        local marker = state.markers[state.markerIndex]
+        if marker then
+            camera.CFrame = CFrame.new(marker.position + Vector3.new(0, 10, -15), marker.position)
+        end
+        statusText.Text = string.format("Viewing %d/%d", state.markerIndex, #state.markers)
+    end
+    
+    prevBtn.MouseButton1Click:Connect(function()
+        state.markerIndex = state.markerIndex - 1
+        updateView()
+    end)
+    
+    nextBtn.MouseButton1Click:Connect(function()
+        state.markerIndex = state.markerIndex + 1
+        updateView()
+    end)
+    
+    exitViewBtn.MouseButton1Click:Connect(function()
+        state.viewing = false
+        camera.CameraType = Enum.CameraType.Custom
+        viewPanel:Destroy()
+        exitViewBtn:Destroy()
+        updateUI()
+    end)
+    
+    updateView()
+end
+
+-- 4. TELEPORT TO MARKER
+local function teleportToMarker()
+    if #state.markers == 0 then
+        statusText.Text = "No markers!"
+        task.wait(1)
+        updateUI()
+        return
+    end
+    
+    -- Show marker list
+    local char = player.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Teleport to first marker
+    local marker = state.markers[1]
+    if marker then
+        hrp.CFrame = CFrame.new(marker.position + Vector3.new(0, 3, 0))
+        statusText.Text = "Teleported to Marker #1"
+        task.wait(1)
+        updateUI()
+    end
+end
+
+-- 5. CLEAR MARKERS
+local function clearMarkers()
+    markerFolder:ClearAllChildren()
+    state.markers = {}
+    state.markerIndex = 0
+    statusText.Text = "All markers cleared!"
+    task.wait(1)
+    updateUI()
+end
+
+-- 6. NO CLIP
+local noclipActive = false
+local noclipConnection
+
+local function toggleNoClip()
+    noclipActive = not noclipActive
+    
+    if noclipActive then
+        statusText.Text = "NoClip: ON"
+        flyButtons.noclipBtn.Text = "👻 NO CLIP ON"
+        
+        noclipConnection = RunService.Stepped:Connect(function()
+            if not noclipActive then return end
             
-            local character = player.Character
-            if character then
-                for _, part in pairs(character:GetDescendants()) do
+            local char = player.Character
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
                     if part:IsA("BasePart") then
                         part.CanCollide = false
                     end
                 end
             end
         end)
-        
-        -- Store connection for cleanup
-        state.noclipConnection = noclipLoop
     else
-        if state.noclipConnection then
-            state.noclipConnection:Disconnect()
-            state.noclipConnection = nil
+        if noclipConnection then
+            noclipConnection:Disconnect()
         end
-        statusText.Text = "❌ NoClip: DISABLED"
+        statusText.Text = "NoClip: OFF"
+        flyButtons.noclipBtn.Text = "👻 NO CLIP"
     end
     
     task.wait(1)
     updateUI()
 end
 
--- Infinite Jump function
-local function toggleInfiniteJump()
-    state.infJump = not state.infJump
+-- 7. INFINITE JUMP
+local infJumpActive = false
+
+local function toggleInfJump()
+    infJumpActive = not infJumpActive
     
-    if state.infJump then
-        statusText.Text = "✅ Infinite Jump: ENABLED"
+    if infJumpActive then
+        statusText.Text = "Inf Jump: ON"
+        flyButtons.infJumpBtn.Text = "🦘 INF JUMP ON"
         
         UserInputService.JumpRequest:Connect(function()
-            if state.infJump then
-                local character = player.Character
-                if character then
-                    local humanoid = character:FindFirstChild("Humanoid")
+            if infJumpActive then
+                local char = player.Character
+                if char then
+                    local humanoid = char:FindFirstChild("Humanoid")
                     if humanoid then
                         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                     end
@@ -745,506 +644,317 @@ local function toggleInfiniteJump()
             end
         end)
     else
-        statusText.Text = "❌ Infinite Jump: DISABLED"
+        statusText.Text = "Inf Jump: OFF"
+        flyButtons.infJumpBtn.Text = "🦘 INF JUMP"
     end
     
     task.wait(1)
     updateUI()
 end
 
--- Enhanced teleport function
-local function teleportToCamera()
-    if not state.flying then return end
+-- 8. SPEED BOOST
+local speedActive = false
+local originalSpeed = 16
+
+local function toggleSpeed()
+    speedActive = not speedActive
+    local char = player.Character
     
-    local character = player.Character
-    if character then
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            stopFlying()
-            
-            -- Add teleport effect
-            local effect = Instance.new("Part")
-            effect.Size = Vector3.new(5, 5, 5)
-            effect.Position = hrp.Position
-            effect.Anchored = true
-            effect.CanCollide = false
-            effect.Transparency = 0.7
-            effect.Color = flyColors.primary
-            effect.Material = EnumMaterial.Neon
-            effect.Parent = Workspace
-            
-            local light = Instance.new("PointLight")
-            light.Color = flyColors.secondary
-            light.Brightness = 10
-            light.Range = 20
-            light.Parent = effect
-            
-            -- Teleport
-            hrp.CFrame = CFrame.new(state.flyPos)
-            
-            -- Cleanup effect
-            task.wait(0.5)
-            effect:Destroy()
-            
-            statusText.Text = "✅ Teleported to camera position!"
-            task.wait(1)
-            updateFlyStatus()
+    if char and speedActive then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            originalSpeed = humanoid.WalkSpeed
+            humanoid.WalkSpeed = 50
+            statusText.Text = "Speed: 50"
+            flyButtons.speedBtn.Text = "🏃 SPEED ON"
+        end
+    elseif char then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = originalSpeed
+            statusText.Text = "Speed: Normal"
+            flyButtons.speedBtn.Text = "🏃 SPEED"
         end
     end
+    
+    task.wait(1)
+    updateUI()
 end
 
--- Start viewing markers
-local function startViewing()
-    if #state.markers == 0 or state.mode ~= "fly" then
-        statusText.Text = "❌ No markers placed!"
-        task.wait(1)
-        updateFlyStatus()
-        return
-    end
-    
-    state.viewing = true
-    state.markerIndex = 1
-    state.viewAng = Vector2.new(0, 0)
-    state.zoom = 1
-    
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
-    
-    viewPanel.Visible = true
-    exitBtn.Visible = true
-    main.Visible = false
-    
-    updateFlyStatus()
-end
+-- 9. ESP
+local espActive = false
+local espHighlights = {}
 
-local function stopViewing()
-    state.viewing = false
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+local function toggleESP()
+    espActive = not espActive
     
-    viewPanel.Visible = false
-    exitBtn.Visible = false
-    main.Visible = true
-    
-    updateFlyStatus()
-end
-
-local function switchMarker(dir)
-    if #state.markers == 0 then return end
-    state.markerIndex = dir == "next" and 
-        (state.markerIndex % #state.markers) + 1 or
-        (state.markerIndex - 2) % #state.markers + 1
-    zoomLabel.Text = string.format("ZOOM: %.1fx", state.zoom)
-    updateFlyStatus()
-end
-
--- ============ 10 ULTRA TROLL FUNCTIONS ============
-
--- 1. TELEPORT TO PLAYER (Enhanced)
-local function teleportToPlayer()
-    statusText.Text = "📝 Enter player name in chat..."
-    
-    local connection
-    connection = player.Chatted:Connect(function(msg)
-        if state.mode ~= "troll" then return end
+    if espActive then
+        statusText.Text = "ESP: ON"
+        flyButtons.espBtn.Text = "👁️ ESP ON"
         
-        for _, targetPlayer in pairs(Players:GetPlayers()) do
-            if string.lower(targetPlayer.Name):find(string.lower(msg)) and targetPlayer ~= player then
-                local character = player.Character
-                local targetCharacter = targetPlayer.Character
-                
-                if character and targetCharacter then
-                    local hrp = character:FindFirstChild("HumanoidRootPart")
-                    local targetHrp = targetCharacter:FindFirstChild("HumanoidRootPart")
-                    
-                    if hrp and targetHrp then
-                        -- Create teleport effect
-                        local effect = Instance.new("Part")
-                        effect.Size = Vector3.new(3, 3, 3)
-                        effect.Position = hrp.Position
-                        effect.Anchored = true
-                        effect.CanCollide = false
-                        effect.Transparency = 0.5
-                        effect.Color = Color3.fromRGB(255, 0, 0)
-                        effect.Material = EnumMaterial.Neon
-                        effect.Parent = Workspace
-                        
-                        -- Teleport
-                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 3, 0)
-                        
-                        -- Destroy effect
-                        task.wait(0.3)
-                        effect:Destroy()
-                        
-                        statusText.Text = string.format("✅ Teleported to %s!", targetPlayer.Name)
-                        task.wait(2)
-                        updateUI()
-                        
-                        connection:Disconnect()
-                        return
-                    end
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local char = target.Character
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "ESPHighlight"
+                    highlight.FillColor = Color3.fromRGB(255, 50, 50)
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.FillTransparency = 0.5
+                    highlight.Parent = hrp
+                    espHighlights[target] = highlight
                 end
             end
-        end
-    end)
-    
-    task.wait(10)
-    if connection then
-        connection:Disconnect()
-    end
-    statusText.Text = "Teleport: TIMEOUT"
-    task.wait(1)
-    updateUI()
-end
-
--- 2. SUPER DASH (Enhanced)
-local function superDash()
-    local character = player.Character
-    if not character then return end
-    
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character:FindFirstChild("Humanoid")
-    
-    if hrp and humanoid then
-        local lookVector = hrp.CFrame.LookVector
-        local velocity = lookVector * config.dashPower * 3 -- 3x more powerful
-        
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        
-        -- Create trail effect
-        local trail = Instance.new("Trail")
-        trail.Color = ColorSequence.new(Color3.fromRGB(255, 0, 100))
-        trail.Lifetime = 0.5
-        trail.Parent = hrp
-        
-        -- Apply velocity
-        local bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.Velocity = velocity
-        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
-        bodyVelocity.Parent = hrp
-        
-        -- Create explosion effect at destination
-        task.wait(0.2)
-        local explosion = Instance.new("Explosion")
-        explosion.Position = hrp.Position
-        explosion.BlastPressure = 0
-        explosion.BlastRadius = 10
-        explosion.Visible = false
-        explosion.Parent = Workspace
-        
-        -- Cleanup
-        game:GetService("Debris"):AddItem(bodyVelocity, 0.5)
-        game:GetService("Debris"):AddItem(trail, 1)
-        
-        statusText.Text = "⚡ SUPER DASH ACTIVATED!"
-        task.wait(1)
-        updateUI()
-    end
-end
-
--- 3. SPEED BOOST x5 (Enhanced)
-local function speedBoostX5()
-    if state.isSpeedBoost then return end
-    
-    state.isSpeedBoost = true
-    local character = player.Character
-    if not character then return end
-    
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        original.walkSpeed = humanoid.WalkSpeed
-        humanoid.WalkSpeed = original.walkSpeed * config.speedBoostPower
-        
-        trollButtons.trollBtn3.Text = "🏃 SPEED x5 ACTIVE"
-        trollButtons.trollBtn3.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        
-        -- Create speed lines effect
-        local speedEffect = Instance.new("Part")
-        speedEffect.Size = Vector3.new(20, 20, 20)
-        speedEffect.Position = hrp.Position
-        speedEffect.Anchored = true
-        speedEffect.CanCollide = false
-        speedEffect.Transparency = 1
-        speedEffect.Parent = character
-        
-        local particleEmitter = Instance.new("ParticleEmitter")
-        particleEmitter.Color = ColorSequence.new(Color3.fromRGB(255, 255, 0))
-        particleEmitter.Size = NumberSequence.new(0.5)
-        particleEmitter.Transparency = NumberSequence.new(0.5)
-        particleEmitter.Lifetime = NumberRange.new(0.5)
-        particleEmitter.Rate = 100
-        particleEmitter.Speed = NumberRange.new(5)
-        particleEmitter.Parent = speedEffect
-        
-        statusText.Text = "🏃 SPEED BOOST x5 ACTIVE!"
-        
-        task.wait(10)
-        
-        -- Restore speed
-        humanoid.WalkSpeed = original.walkSpeed
-        state.isSpeedBoost = false
-        speedEffect:Destroy()
-        
-        trollButtons.trollBtn3.Text = "3. SPEED x5"
-        trollButtons.trollBtn3.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
-        
-        statusText.Text = "Speed boost ended"
-        task.wait(1)
-        updateUI()
-    end
-end
-
--- 4. INVISIBLE (Enhanced)
-local function becomeInvisible()
-    if state.isInvisible then return end
-    
-    state.isInvisible = true
-    local character = player.Character
-    if not character then return end
-    
-    local originalProps = {}
-    
-    -- Make character transparent
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            originalProps[part] = {
-                Transparency = part.Transparency,
-                Material = part.Material
-            }
-            part.Transparency = 0.9
-            part.Material = EnumMaterial.Glass
-        end
-    end
-    
-    -- Add ghost effect
-    local ghostSound = Instance.new("Sound")
-    ghostSound.SoundId = "rbxassetid://9114828336"
-    ghostSound.Volume = 0.5
-    ghostSound.Parent = character
-    ghostSound:Play()
-    
-    trollButtons.trollBtn4.Text = "👻 INVISIBLE ACTIVE"
-    trollButtons.trollBtn4.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    
-    statusText.Text = "👻 INVISIBILITY ACTIVATED!"
-    
-    task.wait(config.invisDuration)
-    
-    -- Restore character
-    for part, props in pairs(originalProps) do
-        if part.Parent then
-            part.Transparency = props.Transparency
-            part.Material = props.Material
-        end
-    end
-    
-    ghostSound:Destroy()
-    state.isInvisible = false
-    
-    trollButtons.trollBtn4.Text = "4. INVISIBLE"
-    trollButtons.trollBtn4.BackgroundColor3 = Color3.fromRGB(180, 0, 255)
-    
-    statusText.Text = "Invisibility ended"
-    task.wait(1)
-    updateUI()
-end
-
--- 5. HIGH JUMP (Enhanced)
-local function highJump()
-    if state.isHighJump then return end
-    
-    state.isHighJump = true
-    local character = player.Character
-    if not character then return end
-    
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        original.jumpPower = humanoid.JumpPower
-        humanoid.JumpPower = config.jumpPower * 2 -- Double jump power
-        
-        trollButtons.trollBtn5.Text = "🦘 HIGH JUMP ACTIVE"
-        trollButtons.trollBtn5.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        
-        -- Jump effect
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        
-        statusText.Text = "🦘 HIGH JUMP ACTIVATED!"
-        
-        task.wait(15)
-        
-        -- Restore jump power
-        humanoid.JumpPower = original.jumpPower
-        state.isHighJump = false
-        
-        trollButtons.trollBtn5.Text = "5. HIGH JUMP"
-        trollButtons.trollBtn5.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-        
-        statusText.Text = "High jump ended"
-        task.wait(1)
-        updateUI()
-    end
-end
-
--- 6. GOD MODE (Invincibility)
-local function godMode()
-    state.godMode = not state.godMode
-    local character = player.Character
-    
-    if character and state.godMode then
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.MaxHealth = math.huge
-            humanoid.Health = math.huge
-            
-            -- Add aura effect
-            local aura = Instance.new("Part")
-            aura.Size = Vector3.new(10, 10, 10)
-            aura.Position = character:GetPivot().Position
-            aura.Anchored = true
-            aura.CanCollide = false
-            aura.Transparency = 0.7
-            aura.Color = Color3.fromRGB(255, 255, 0)
-            aura.Material = EnumMaterial.Neon
-            aura.Shape = Enum.PartType.Ball
-            aura.Parent = character
-            
-            trollButtons.trollBtn6.Text = "🛡️ GOD MODE ACTIVE"
-            trollButtons.trollBtn6.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
-            
-            statusText.Text = "🛡️ GOD MODE ACTIVATED!"
         end
     else
-        if character then
-            local humanoid = character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.MaxHealth = 100
-                humanoid.Health = 100
-            end
-            
-            -- Remove aura
-            for _, child in pairs(character:GetChildren()) do
-                if child.Name == "GodModeAura" then
-                    child:Destroy()
-                end
+        for target, highlight in pairs(espHighlights) do
+            if highlight then
+                highlight:Destroy()
             end
         end
-        
-        trollButtons.trollBtn6.Text = "6. GOD MODE"
-        trollButtons.trollBtn6.BackgroundColor3 = trollColors.primary
-        
-        statusText.Text = "God Mode disabled"
+        espHighlights = {}
+        statusText.Text = "ESP: OFF"
+        flyButtons.espBtn.Text = "👁️ ESP"
     end
     
     task.wait(1)
     updateUI()
 end
 
--- 7. ANTI-AFK
-local function antiAfk()
-    state.antiAfk = not state.antiAfk
+-- 10. X-RAY
+local xrayActive = false
+
+local function toggleXray()
+    xrayActive = not xrayActive
     
-    if state.antiAfk then
-        -- Simulate movement to prevent AFK
-        local afkLoop = RunService.Heartbeat:Connect(function()
-            if not state.antiAfk then
-                afkLoop:Disconnect()
-                return
-            end
+    if xrayActive then
+        Lighting.Brightness = 3
+        Lighting.FogEnd = 100000
+        
+        if Workspace:FindFirstChildOfClass("Terrain") then
+            Workspace:FindFirstChildOfClass("Terrain").Transparency = 0.6
+        end
+        
+        statusText.Text = "X-Ray: ON"
+        flyButtons.xrayBtn.Text = "🔍 X-RAY ON"
+    else
+        Lighting.Brightness = 1
+        Lighting.FogEnd = 100000
+        
+        if Workspace:FindFirstChildOfClass("Terrain") then
+            Workspace:FindFirstChildOfClass("Terrain").Transparency = 0
+        end
+        
+        statusText.Text = "X-Ray: OFF"
+        flyButtons.xrayBtn.Text = "🔍 X-RAY"
+    end
+    
+    task.wait(1)
+    updateUI()
+end
+
+-- 11. ANTI-AFK
+local antiAfkActive = false
+local antiAfkConnection
+
+local function toggleAntiAfk()
+    antiAfkActive = not antiAfkActive
+    
+    if antiAfkActive then
+        statusText.Text = "Anti-AFK: ON"
+        flyButtons.antiAfkBtn.Text = "⏰ ANTI-AFK ON"
+        
+        antiAfkConnection = RunService.Heartbeat:Connect(function()
+            if not antiAfkActive then return end
             
-            local character = player.Character
-            if character then
-                local hrp = character:FindFirstChild("HumanoidRootPart")
+            local char = player.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
                 if hrp then
-                    -- Slightly rotate to prevent AFK
                     hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(1), 0)
                 end
             end
         end)
-        
-        state.afkConnection = afkLoop
-        trollButtons.trollBtn7.Text = "⏰ ANTI-AFK ACTIVE"
-        trollButtons.trollBtn7.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        statusText.Text = "⏰ ANTI-AFK ACTIVATED!"
     else
-        if state.afkConnection then
-            state.afkConnection:Disconnect()
-            state.afkConnection = nil
+        if antiAfkConnection then
+            antiAfkConnection:Disconnect()
         end
-        trollButtons.trollBtn7.Text = "7. ANTI-AFK"
-        trollButtons.trollBtn7.BackgroundColor3 = Color3.fromRGB(0, 200, 200)
-        statusText.Text = "Anti-AFK disabled"
+        statusText.Text = "Anti-AFK: OFF"
+        flyButtons.antiAfkBtn.Text = "⏰ ANTI-AFK"
     end
     
     task.wait(1)
     updateUI()
 end
 
--- 8. ESP WALLS (See through walls)
-local function espWalls()
-    state.esp = not state.esp
+-- 12. CLICK TELEPORT
+local clickTpActive = false
+
+local function toggleClickTp()
+    clickTpActive = not clickTpActive
     
-    if state.esp then
-        -- Store original properties
-        local originalTransparency = {}
+    if clickTpActive then
+        statusText.Text = "Click TP: ON\nClick anywhere to teleport"
+        flyButtons.clickTpBtn.Text = "👆 CLICK TP ON"
         
-        for _, part in pairs(Workspace:GetDescendants()) do
-            if part:IsA("BasePart") and part.Transparency < 0.5 then
-                originalTransparency[part] = part.Transparency
-                part.Transparency = 0.7
-            end
-        end
+        local mouse = player:GetMouse()
         
-        state.espData = originalTransparency
-        
-        trollButtons.trollBtn8.Text = "👁️ ESP ACTIVE"
-        trollButtons.trollBtn8.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        statusText.Text = "👁️ ESP WALLS ACTIVATED!"
-    else
-        -- Restore original properties
-        if state.espData then
-            for part, transparency in pairs(state.espData) do
-                if part.Parent then
-                    part.Transparency = transparency
+        mouse.Button1Down:Connect(function()
+            if not clickTpActive then return end
+            
+            local target = mouse.Hit.Position
+            local char = player.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = CFrame.new(target + Vector3.new(0, 3, 0))
                 end
             end
-            state.espData = nil
-        end
-        
-        trollButtons.trollBtn8.Text = "8. ESP WALLS"
-        trollButtons.trollBtn8.BackgroundColor3 = Color3.fromRGB(200, 200, 0)
-        statusText.Text = "ESP disabled"
+        end)
+    else
+        statusText.Text = "Click TP: OFF"
+        flyButtons.clickTpBtn.Text = "👆 CLICK TP"
     end
     
     task.wait(1)
     updateUI()
 end
--- 9. AIMBOT (Auto-aim)
-local function aimbot()
-    state.aimbot = not state.aimbot
+-- 13. REACH
+local reachActive = false
+
+local function toggleReach()
+    reachActive = not reachActive
     
-    if state.aimbot then
-        trollButtons.trollBtn9.Text = "🎯 AIMBOT ACTIVE"
-        trollButtons.trollBtn9.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        statusText.Text = "🎯 AIMBOT ACTIVATED!\nLooking for targets..."
+    if reachActive then
+        statusText.Text = "Reach: ON (Click far objects)"
+        flyButtons.reachBtn.Text = "👊 REACH ON"
         
-        -- Aimbot loop
-        local aimbotLoop = RunService.Heartbeat:Connect(function()
-            if not state.aimbot then
-                aimbotLoop:Disconnect()
-                return
-            end
+        -- Simple reach extension
+        local mouse = player:GetMouse()
+        local originalFilter = mouse.TargetFilter
+        
+        mouse.TargetFilter = nil
+        mouse.Origin = Workspace.CurrentCamera.CFrame.Position
+    else
+        statusText.Text = "Reach: OFF"
+        flyButtons.reachBtn.Text = "👊 REACH"
+    end
+    
+    task.wait(1)
+    updateUI()
+end
+
+-- 14. GOD MODE
+local godActive = false
+
+local function toggleGodMode()
+    godActive = not godActive
+    local char = player.Character
+    
+    if char and godActive then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.MaxHealth = math.huge
+            humanoid.Health = math.huge
+            statusText.Text = "God Mode: ON"
+            flyButtons.godBtn.Text = "🛡️ GOD MODE ON"
+        end
+    elseif char then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.MaxHealth = 100
+            humanoid.Health = 100
+            statusText.Text = "God Mode: OFF"
+            flyButtons.godBtn.Text = "🛡️ GOD MODE"
+        end
+    end
+    
+    task.wait(1)
+    updateUI()
+end
+
+-- 15. HIGH JUMP
+local highJumpActive = false
+local originalJump = 50
+
+local function toggleHighJump()
+    highJumpActive = not highJumpActive
+    local char = player.Character
+    
+    if char and highJumpActive then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            originalJump = humanoid.JumpPower
+            humanoid.JumpPower = 150
+            statusText.Text = "High Jump: ON"
+            flyButtons.highJumpBtn.Text = "🦘 HIGH JUMP ON"
+        end
+    elseif char then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.JumpPower = originalJump
+            statusText.Text = "High Jump: OFF"
+            flyButtons.highJumpBtn.Text = "🦘 HIGH JUMP"
+        end
+    end
+    
+    task.wait(1)
+    updateUI()
+end
+
+-- 16. FLY BOOST
+local function activateFlyBoost()
+    if not state.flying then
+        statusText.Text = "Enter Fly Mode first!"
+        task.wait(1)
+        updateUI()
+        return
+    end
+    
+    local originalSpeed = state.speed
+    state.speed = state.speed * 3
+    
+    statusText.Text = "Fly Boost: ACTIVE"
+    flyButtons.flyBoostBtn.Text = "💨 BOOSTING"
+    
+    task.wait(5)
+    
+    state.speed = originalSpeed
+    statusText.Text = "Fly Boost: Ended"
+    flyButtons.flyBoostBtn.Text = "💨 FLY BOOST"
+    
+    task.wait(1)
+    updateUI()
+end
+
+-- 17. AIMBOT
+local aimbotActive = false
+local aimbotConnection
+
+local function toggleAimbot()
+    aimbotActive = not aimbotActive
+    
+    if aimbotActive then
+        statusText.Text = "Aimbot: ON"
+        flyButtons.aimbotBtn.Text = "🎯 AIMBOT ON"
+        
+        aimbotConnection = RunService.Heartbeat:Connect(function()
+            if not aimbotActive then return end
             
-            local character = player.Character
-            if not character then return end
+            local char = player.Character
+            if not char then return end
             
-            local hrp = character:FindFirstChild("HumanoidRootPart")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
             
             -- Find closest player
             local closest = nil
             local closestDist = math.huge
             
-            for _, targetPlayer in pairs(Players:GetPlayers()) do
-                if targetPlayer ~= player and targetPlayer.Character then
-                    local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+            for _, target in pairs(Players:GetPlayers()) do
+                if target ~= player and target.Character then
+                    local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
                     if targetHrp then
                         local dist = (targetHrp.Position - hrp.Position).Magnitude
                         if dist < closestDist and dist < 100 then
@@ -1255,373 +965,936 @@ local function aimbot()
                 end
             end
             
-            -- Aim at closest player
+            -- Aim at closest
             if closest then
                 local camera = Workspace.CurrentCamera
                 camera.CFrame = CFrame.lookAt(camera.CFrame.Position, closest.Position)
             end
         end)
-        
-        state.aimbotConnection = aimbotLoop
     else
-        if state.aimbotConnection then
-            state.aimbotConnection:Disconnect()
-            state.aimbotConnection = nil
+        if aimbotConnection then
+            aimbotConnection:Disconnect()
         end
-        
-        trollButtons.trollBtn9.Text = "9. AIMBOT"
-        trollButtons.trollBtn9.BackgroundColor3 = Color3.fromRGB(255, 0, 200)
-        statusText.Text = "Aimbot disabled"
+        statusText.Text = "Aimbot: OFF"
+        flyButtons.aimbotBtn.Text = "🎯 AIMBOT"
     end
     
     task.wait(1)
     updateUI()
 end
 
--- 10. X-RAY VISION
-local function xrayVision()
-    state.xray = not state.xray
+-- 18. AUTO CLICK
+local autoClickActive = false
+local autoClickConnection
+
+local function toggleAutoClick()
+    autoClickActive = not autoClickActive
     
-    if state.xray then
-        -- Change lighting for X-ray effect
-        original.brightness = Lighting.Brightness
-        original.fogEnd = Lighting.FogEnd
+    if autoClickActive then
+        statusText.Text = "Auto Click: ON"
+        flyButtons.autoClickBtn.Text = "🤖 AUTO CLICK ON"
         
-        Lighting.Brightness = 2
-        Lighting.FogEnd = 10000
-        Lighting.Ambient = Color3.fromRGB(100, 100, 100)
-        
-        -- Make terrain semi-transparent
-        if Workspace.Terrain then
-            Workspace.Terrain.Transparency = 0.7
-        end
-        
-        trollButtons.trollBtn10.Text = "🔍 X-RAY ACTIVE"
-        trollButtons.trollBtn10.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        statusText.Text = "🔍 X-RAY VISION ACTIVATED!"
+        autoClickConnection = RunService.Heartbeat:Connect(function()
+            if not autoClickActive then return end
+            mouse1click()
+        end)
     else
-        -- Restore lighting
-        Lighting.Brightness = original.brightness
-        Lighting.FogEnd = original.fogEnd
-        Lighting.Ambient = Color3.fromRGB(0.5, 0.5, 0.5)
-        
-        -- Restore terrain
-        if Workspace.Terrain then
-            Workspace.Terrain.Transparency = 0
+        if autoClickConnection then
+            autoClickConnection:Disconnect()
         end
-        
-        trollButtons.trollBtn10.Text = "10. X-RAY"
-        trollButtons.trollBtn10.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
-        statusText.Text = "X-Ray disabled"
+        statusText.Text = "Auto Click: OFF"
+        flyButtons.autoClickBtn.Text = "🤖 AUTO CLICK"
     end
     
     task.wait(1)
     updateUI()
 end
 
--- ============ 10 FLY MODE FUNCTIONS ============
+-- 19. PLAYER ESP
+local playerEspActive = false
+local playerEspBillboards = {}
 
--- 1. FLY MODE (already implemented)
--- 2. MARKERS (already implemented)
--- 3. VIEW MODE (already implemented)
--- 4. TELEPORT (already implemented)
--- 5. NO CLIP (already implemented)
--- 6. INFINITE JUMP (already implemented)
-
--- 7. SPEED CONTROL (Enhanced)
-local function adjustFlySpeed(multiplier)
-    state.speed = math.clamp(state.speed * multiplier, config.minSpeed, config.maxSpeed)
-    speedLabel.Text = string.format("SPEED: %d", state.speed)
-    statusText.Text = string.format("Speed set to: %d", state.speed)
-    task.wait(1)
-    updateFlyStatus()
-end
-
--- 8. CAMERA SHAKE (Visual effect)
-local function cameraShake(intensity)
-    local camera = Workspace.CurrentCamera
-    local originalPos = camera.CFrame
+local function togglePlayerESP()
+    playerEspActive = not playerEspActive
     
-    for i = 1, 10 do
-        local offset = Vector3.new(
-            math.random(-intensity, intensity),
-            math.random(-intensity, intensity),
-            math.random(-intensity, intensity)
-        ) / 100
-        camera.CFrame = originalPos + offset
-        task.wait(0.05)
+    if playerEspActive then
+        statusText.Text = "Player ESP: ON"
+        flyButtons.playerEspBtn.Text = "👥 PLAYER ESP ON"
+        
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local char = target.Character
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Size = UDim2.new(0, 100, 0, 40)
+                    billboard.StudsOffset = Vector3.new(0, 3, 0)
+                    billboard.AlwaysOnTop = true
+                    billboard.Parent = hrp
+                    
+                    local label = Instance.new("TextLabel")
+                    label.Size = UDim2.new(1, 0, 1, 0)
+                    label.BackgroundTransparency = 0.7
+                    label.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                    label.Text = target.Name
+                    label.TextColor3 = Color3.new(1, 1, 1)
+                    label.Font = Enum.Font.GothamBold
+                    label.TextSize = 12
+                    label.Parent = billboard
+                    
+                    playerEspBillboards[target] = billboard
+                end
+            end
+        end
+    else
+        for target, billboard in pairs(playerEspBillboards) do
+            if billboard then
+                billboard:Destroy()
+            end
+        end
+        playerEspBillboards = {}
+        statusText.Text = "Player ESP: OFF"
+        flyButtons.playerEspBtn.Text = "👥 PLAYER ESP"
     end
     
-    camera.CFrame = originalPos
-end
-
--- 9. FREEZE TIME (Slow motion)
-local function freezeTime(duration)
-    original.gravity = Workspace.Gravity
-    Workspace.Gravity = 10
-    
-    statusText.Text = "⏰ TIME SLOWED!"
-    
-    task.wait(duration)
-    
-    Workspace.Gravity = original.gravity
-    statusText.Text = "Time恢复正常"
     task.wait(1)
     updateUI()
 end
 
--- 10. FLY BOOST (Temporary speed burst)
-local function flyBoost()
-    if state.flyBoost then return end
-    
-    state.flyBoost = true
-    local originalSpeed = state.speed
-    state.speed = state.speed * 3
-    
-    -- Visual effect
-    local character = player.Character
-    if character then
-        local boostEffect = Instance.new("Part")
-        boostEffect.Size = Vector3.new(5, 5, 5)
-        boostEffect.Position = character:GetPivot().Position
-        boostEffect.Anchored = true
-        boostEffect.CanCollide = false
-        boostEffect.Transparency = 0.5
-        boostEffect.Color = Color3.fromRGB(0, 255, 255)
-        boostEffect.Material = EnumMaterial.Neon
-        boostEffect.Parent = Workspace
-        
-        task.wait(3)
-        boostEffect:Destroy()
-    end
-    
-    task.wait(5)
-    state.speed = originalSpeed
-    state.flyBoost = false
-    
-    statusText.Text = "Fly boost ended"
-    task.wait(1)
-    updateFlyStatus()
-end
-
--- Button event connections
-modeBtn.MouseButton1Click:Connect(switchMode)
-exitBtn.MouseButton1Click:Connect(function()
-    if state.flying then
-        stopFlying()
-    elseif state.viewing then
-        stopViewing()
-    end
-end)
-
--- Fly mode button events
-flyButtons.flyBtn.MouseButton1Click:Connect(startFlying)
-flyButtons.markBtn.MouseButton1Click:Connect(function()
-    placeMarker(Workspace.CurrentCamera.CFrame.Position)
-end)
-flyButtons.viewBtn.MouseButton1Click:Connect(startViewing)
-flyButtons.tpBtn.MouseButton1Click:Connect(teleportToCamera)
-flyButtons.clearBtn.MouseButton1Click:Connect(clearMarkers)
-flyButtons.noclipBtn.MouseButton1Click:Connect(toggleNoClip)
-flyButtons.infJumpBtn.MouseButton1Click:Connect(toggleInfiniteJump)
-
--- Settings button (placeholder)
-flyButtons.settingsBtn.MouseButton1Click:Connect(function()
-    statusText.Text = "⚙️ Settings panel coming soon!"
+-- 20. ITEM ESP
+local function toggleItemESP()
+    statusText.Text = "Item ESP: Requires game items\nCheck game-specific scripts"
     task.wait(2)
     updateUI()
-end)
+end
 
--- Troll button events
-trollButtons.trollBtn1.MouseButton1Click:Connect(teleportToPlayer)
-trollButtons.trollBtn2.MouseButton1Click:Connect(superDash)
-trollButtons.trollBtn3.MouseButton1Click:Connect(speedBoostX5)
-trollButtons.trollBtn4.MouseButton1Click:Connect(becomeInvisible)
-trollButtons.trollBtn5.MouseButton1Click:Connect(highJump)
-trollButtons.trollBtn6.MouseButton1Click:Connect(godMode)
-trollButtons.trollBtn7.MouseButton1Click:Connect(antiAfk)
-trollButtons.trollBtn8.MouseButton1Click:Connect(espWalls)
-trollButtons.trollBtn9.MouseButton1Click:Connect(aimbot)
-trollButtons.trollBtn10.MouseButton1Click:Connect(xrayVision)
+-- Fly Mode Button Connections
+flyButtons.flyBtn.MouseButton1Click:Connect(startFlying)
+flyButtons.markBtn.MouseButton1Click:Connect(placeMarker)
+flyButtons.viewBtn.MouseButton1Click:Connect(viewMarkers)
+flyButtons.tpBtn.MouseButton1Click:Connect(teleportToMarker)
+flyButtons.clearBtn.MouseButton1Click:Connect(clearMarkers)
+flyButtons.noclipBtn.MouseButton1Click:Connect(toggleNoClip)
+flyButtons.infJumpBtn.MouseButton1Click:Connect(toggleInfJump)
+flyButtons.speedBtn.MouseButton1Click:Connect(toggleSpeed)
+flyButtons.espBtn.MouseButton1Click:Connect(toggleESP)
+flyButtons.xrayBtn.MouseButton1Click:Connect(toggleXray)
+flyButtons.antiAfkBtn.MouseButton1Click:Connect(toggleAntiAfk)
+flyButtons.clickTpBtn.MouseButton1Click:Connect(toggleClickTp)
+flyButtons.reachBtn.MouseButton1Click:Connect(toggleReach)
+flyButtons.godBtn.MouseButton1Click:Connect(toggleGodMode)
+flyButtons.highJumpBtn.MouseButton1Click:Connect(toggleHighJump)
+flyButtons.flyBoostBtn.MouseButton1Click:Connect(activateFlyBoost)
+flyButtons.aimbotBtn.MouseButton1Click:Connect(toggleAimbot)
+flyButtons.autoClickBtn.MouseButton1Click:Connect(toggleAutoClick)
+flyButtons.playerEspBtn.MouseButton1Click:Connect(togglePlayerESP)
+flyButtons.itemEspBtn.MouseButton1Click:Connect(toggleItemESP)
 
--- Fly control button events
-teleportBtn.MouseButton1Click:Connect(teleportToCamera)
-flyMarkBtn.MouseButton1Click:Connect(function()
+-- Mode button
+modeBtn.MouseButton1Click:Connect(switchMode)
+
+-- Fly movement loop
+RunService.Heartbeat:Connect(function(delta)
     if state.flying then
-        placeMarker(state.flyPos)
+        local camera = Workspace.CurrentCamera
+        
+        -- Camera rotation
+        if camRot.left then state.flyAng = Vector2.new(state.flyAng.X - 3 * delta, state.flyAng.Y) end
+        if camRot.right then state.flyAng = Vector2.new(state.flyAng.X + 3 * delta, state.flyAng.Y) end
+        state.flyAng = Vector2.new(state.flyAng.X, math.clamp(state.flyAng.Y, -1.4, 1.4))
+        
+        -- Movement
+        local yaw = state.flyAng.X
+        local forward = Vector3.new(math.sin(yaw), 0, math.cos(yaw))
+        local right = Vector3.new(math.cos(yaw), 0, -math.sin(yaw))
+        
+        local move = Vector3.new(0, 0, 0)
+        if flyDir.forward then move = move + forward end
+        if flyDir.back then move = move - forward end
+        if flyDir.right then move = move + right end
+        if flyDir.left then move = move - right end
+        if flyDir.up then move = move + Vector3.new(0, 1, 0) end
+        if flyDir.down then move = move - Vector3.new(0, 1, 0) end
+        
+        if move.Magnitude > 0 then
+            state.flyPos = state.flyPos + move.Unit * state.speed * delta
+        end
+        
+        -- Update camera
+        local look = Vector3.new(
+            math.sin(yaw) * math.cos(state.flyAng.Y),
+            -math.sin(state.flyAng.Y),
+            math.cos(yaw) * math.cos(state.flyAng.Y)
+        )
+        
+        camera.CFrame = CFrame.new(state.flyPos, state.flyPos + look)
+        camera.FieldOfView = config.cameraFOV
     end
 end)
 
-speedDown.MouseButton1Click:Connect(function() changeSpeed(-10) end)
-speedUp.MouseButton1Click:Connect(function() changeSpeed(10) end)
+-- Initialize
+updateUI()
+print("🚀 Ultimate Mobile System v4.0 Loaded")
+print("✨ 20 Simple Fly Functions")
+print("😈 20 Hardcore Troll Functions")
+-- TROLL MODE HARD FUNCTIONS
 
-prevBtn.MouseButton1Click:Connect(function() switchMarker("prev") end)
-nextBtn.MouseButton1Click:Connect(function() switchMarker("next") end)
-
--- Movement control events
-moveForward.MouseButton1Down:Connect(function() flyDir.forward = true end)
-moveForward.MouseButton1Up:Connect(function() flyDir.forward = false end)
-moveBack.MouseButton1Down:Connect(function() flyDir.back = true end)
-moveBack.MouseButton1Up:Connect(function() flyDir.back = false end)
-moveLeft.MouseButton1Down:Connect(function() flyDir.left = true end)
-moveLeft.MouseButton1Up:Connect(function() flyDir.left = false end)
-moveRight.MouseButton1Down:Connect(function() flyDir.right = true end)
-moveRight.MouseButton1Up:Connect(function() flyDir.right = false end)
-moveUp.MouseButton1Down:Connect(function() flyDir.up = true end)
-moveUp.MouseButton1Up:Connect(function() flyDir.up = false end)
-moveDown.MouseButton1Down:Connect(function() flyDir.down = true end)
-moveDown.MouseButton1Up:Connect(function() flyDir.down = false end)
-lookLeft.MouseButton1Down:Connect(function() camRot.left = true end)
-lookLeft.MouseButton1Up:Connect(function() camRot.left = false end)
-lookRight.MouseButton1Down:Connect(function() camRot.right = true end)
-lookRight.MouseButton1Up:Connect(function() camRot.right = false end)
-
--- Main game loop
-RunService.Heartbeat:Connect(function(delta)
-    updateFPS()
+-- 1. TELEPORT GUN 🔫
+local function teleportGun()
+    statusText.Text = "🔫 TELEPORT GUN ACTIVATED\nClick players to teleport them!"
     
-    if state.mode == "fly" then
-        if state.flying then
-            local camera = Workspace.CurrentCamera
-            
-            -- Camera rotation
-            if camRot.left then state.flyAng = Vector2.new(state.flyAng.X - 3 * delta, state.flyAng.Y) end
-            if camRot.right then state.flyAng = Vector2.new(state.flyAng.X + 3 * delta, state.flyAng.Y) end
-            state.flyAng = Vector2.new(state.flyAng.X, math.clamp(state.flyAng.Y, -1.4, 1.4))
-            
-            -- Movement calculation
-            local yaw = state.flyAng.X
-            local forward = Vector3.new(math.sin(yaw), 0, math.cos(yaw))
-            local right = Vector3.new(math.cos(yaw), 0, -math.sin(yaw))
-            
-            local move = Vector3.new(0, 0, 0)
-            if flyDir.forward then move = move + forward end
-            if flyDir.back then move = move - forward end
-            if flyDir.right then move = move + right end
-            if flyDir.left then move = move - right end
-            if flyDir.up then move = move + Vector3.new(0, 1, 0) end
-            if flyDir.down then move = move - Vector3.new(0, 1, 0) end
-            
-            if move.Magnitude > 0 then
-                state.flyPos = state.flyPos + move.Unit * state.speed * delta
-            end
-            
-            -- Apply noclip during flight
-            if state.flyNoClip then
-                local character = player.Character
-                if character then
-                    for _, part in pairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
+    local mouse = player:GetMouse()
+    local connection
+    
+    connection = mouse.Button1Down:Connect(function()
+        local target = mouse.Target
+        if target then
+            local char = target.Parent
+            if char:FindFirstChild("Humanoid") then
+                for _, targetPlayer in pairs(Players:GetPlayers()) do
+                    if targetPlayer.Character == char then
+                        local hrp = char:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            -- Teleport to random sky location
+                            hrp.CFrame = CFrame.new(
+                                math.random(-500, 500),
+                                math.random(100, 500),
+                                math.random(-500, 500)
+                            )
+                            break
                         end
                     end
                 end
             end
-            
-            -- Update camera
-            local look = Vector3.new(
-                math.sin(yaw) * math.cos(state.flyAng.Y),
-                -math.sin(state.flyAng.Y),
-                math.cos(yaw) * math.cos(state.flyAng.Y)
-            )
-            
-            camera.CFrame = CFrame.new(state.flyPos, state.flyPos + look)
-            camera.FieldOfView = config.cameraFOV
-            
-        elseif state.viewing and #state.markers > 0 then
-            local camera = Workspace.CurrentCamera
-            local marker = state.markers[state.markerIndex]
-            
-            if marker then
-                local distance = 10 * state.zoom
-                local angle = state.viewAng
-                
-                local offset = Vector3.new(
-                    math.sin(angle.X) * math.cos(angle.Y) * distance,
-                    math.sin(angle.Y) * distance,
-                    math.cos(angle.X) * math.cos(angle.Y) * distance
-                )
-                
-                camera.CFrame = CFrame.new(marker.position + offset, marker.position)
-                camera.FieldOfView = 70 / state.zoom
+        end
+    end)
+    
+    task.wait(10)
+    if connection then connection:Disconnect() end
+    statusText.Text = "Teleport Gun: Deactivated"
+    task.wait(1)
+    updateUI()
+end
+
+-- 2. PLAYER EXPLODE 💣
+local function playerExplode()
+    statusText.Text = "💣 PLAYER EXPLOSION ACTIVATED!"
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local explosion = Instance.new("Explosion")
+                explosion.Position = hrp.Position
+                explosion.BlastPressure = 100000
+                explosion.BlastRadius = 20
+                explosion.DestroyJointRadiusPercent = 1
+                explosion.Parent = Workspace
             end
         end
     end
     
-    -- Update FPS counter every second
-    if tick() % 1 < delta then
-        updateUI()
+    task.wait(1)
+    statusText.Text = "All players exploded!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 3. MASS TELEPORT 🌪️
+local function massTeleport()
+    statusText.Text = "🌪️ MASS TELEPORT ACTIVATED!"
+    
+    local teleportPos = Vector3.new(
+        math.random(-1000, 1000),
+        100,
+        math.random(-1000, 1000)
+    )
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = CFrame.new(teleportPos)
+            end
+        end
     end
+    
+    task.wait(1)
+    statusText.Text = "All players teleported!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 4. SERVER CRASH ☢️
+local function serverCrash()
+    statusText.Text = "☢️ SERVER CRASH INITIATED!\nExpect lag..."
+    
+    -- Create massive lag
+    for i = 1, 1000 do
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(10, 10, 10)
+        part.Position = Vector3.new(
+            math.random(-100, 100),
+            math.random(10, 100),
+            math.random(-100, 100)
+        )
+        part.Anchored = true
+        part.Parent = Workspace
+        
+        task.wait(0.01)
+    end
+    
+    statusText.Text = "Server crash complete!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 5. FLING PLAYERS 🌀
+local function flingPlayers()
+    statusText.Text = "🌀 FLING PLAYERS ACTIVATED!"
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.Velocity = Vector3.new(
+                    math.random(-500, 500),
+                    math.random(100, 500),
+                    math.random(-500, 500)
+                )
+                bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+                bodyVelocity.Parent = hrp
+                
+                game:GetService("Debris"):AddItem(bodyVelocity, 1)
+            end
+        end
+    end
+    
+    task.wait(1)
+    statusText.Text = "Players flung!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 6. ANTI-GRAVITY 🌌
+local function antiGravity()
+    statusText.Text = "🌌 ANTI-GRAVITY ACTIVATED!"
+    
+    local originalGravity = Workspace.Gravity
+    Workspace.Gravity = -196.2  -- Reverse gravity
+    
+    task.wait(5)
+    
+    Workspace.Gravity = originalGravity
+    statusText.Text = "Gravity restored!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 7. BLACK HOLE ⚫
+local function blackHole()
+    statusText.Text = "⚫ BLACK HOLE CREATED!"
+    
+    local blackHole = Instance.new("Part")
+    blackHole.Size = Vector3.new(20, 20, 20)
+    blackHole.Position = player.Character.HumanoidRootPart.Position
+    blackHole.Anchored = true
+    blackHole.CanCollide = false
+    blackHole.Transparency = 0.3
+    blackHole.Color = Color3.new(0, 0, 0)
+    blackHole.Shape = Enum.PartType.Ball
+    blackHole.Parent = Workspace
+    
+    -- Suck in players
+    for i = 1, 50 do
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local direction = (blackHole.Position - hrp.Position).Unit
+                    hrp.CFrame = hrp.CFrame + direction * 5
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+    
+    blackHole:Destroy()
+    statusText.Text = "Black hole collapsed!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 8. LAG MACHINE 🐌
+local function lagMachine()
+    statusText.Text = "🐌 LAG MACHINE ACTIVATED!"
+    
+    local parts = {}
+    for i = 1, 500 do
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(1, 1, 1)
+        part.Position = Vector3.new(
+            math.random(-100, 100),
+            math.random(10, 100),
+            math.random(-100, 100)
+        )
+        part.Anchored = true
+        part.Parent = Workspace
+        table.insert(parts, part)
+        task.wait(0.01)
+    end
+    
+    task.wait(3)
+    
+    for _, part in pairs(parts) do
+        part:Destroy()
+    end
+    
+    statusText.Text = "Lag machine stopped!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 9. INVISIBLE KILLER 👻
+local function invisibleKiller()
+    statusText.Text = "👻 INVISIBLE KILLER ACTIVATED!"
+    
+    local char = player.Character
+    if char then
+        -- Make player invisible
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0.9
+            end
+        end
+        
+        -- Kill nearby players
+        for i = 1, 30 do
+            for _, target in pairs(Players:GetPlayers()) do
+                if target ~= player and target.Character then
+                    local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = target.Character:FindFirstChild("Humanoid")
+                    
+                    if hrp and humanoid then
+                        local dist = (hrp.Position - char.HumanoidRootPart.Position).Magnitude
+                        if dist < 30 then
+                            humanoid:TakeDamage(50)
+                        end
+                    end
+                end
+            end
+            task.wait(0.5)
+        end
+        
+        -- Restore visibility
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+            end
+        end
+    end
+    
+    statusText.Text = "Invisible killer deactivated!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 10. GOD MODE ☠️
+local function trollGodMode()
+    statusText.Text = "☠️ GOD MODE ACTIVATED!"
+    
+    local char = player.Character
+    if char then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.MaxHealth = math.huge
+            humanoid.Health = math.huge
+            
+            -- Make player huge
+            char:ScaleTo(3)
+            
+            -- Add fire
+            local fire = Instance.new("Fire")
+            fire.Size = 10
+            fire.Heat = 10
+            fire.Color = Color3.new(1, 0, 0)
+            fire.SecondaryColor = Color3.new(1, 1, 0)
+            fire.Parent = char.HumanoidRootPart
+        end
+    end
+    
+    task.wait(10)
+    
+    if char then
+        char:ScaleTo(1)
+        local fire = char.HumanoidRootPart:FindFirstChild("Fire")
+        if fire then fire:Destroy() end
+    end
+    
+    statusText.Text = "God mode ended!"
+    task.wait(2)
+    updateUI()
+end
+-- 11. FORCEFIELD 🛡️
+local function forcefield()
+    statusText.Text = "🛡️ FORCEFIELD ACTIVATED!"
+    
+    local char = player.Character
+    if char then
+        local forcefield = Instance.new("ForceField")
+        forcefield.Parent = char
+        
+        -- Push players away
+        for i = 1, 30 do
+            for _, target in pairs(Players:GetPlayers()) do
+                if target ~= player and target.Character then
+                    local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local direction = (hrp.Position - char.HumanoidRootPart.Position).Unit
+                        hrp.CFrame = hrp.CFrame - direction * 5
+                    end
+                end
+            end
+            task.wait(0.1)
+        end
+        
+        forcefield:Destroy()
+    end
+    
+    statusText.Text = "Forcefield deactivated!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 12. FREEZE PLAYERS ❄️
+local function freezePlayers()
+    statusText.Text = "❄️ FREEZING ALL PLAYERS!"
+    
+    local frozenParts = {}
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            local char = target.Character
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Anchored = true
+                    table.insert(frozenParts, part)
+                end
+            end
+        end
+    end
+    
+    task.wait(5)
+    
+    for _, part in pairs(frozenParts) do
+        part.Anchored = false
+    end
+    
+    statusText.Text = "Players unfrozen!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 13. SUPER PUNCH 👊
+local function superPunch()
+    statusText.Text = "👊 SUPER PUNCH ACTIVATED!\nWalk near players to punch!"
+    
+    local char = player.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    for i = 1, 30 do
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                local humanoid = target.Character:FindFirstChild("Humanoid")
+                
+                if targetHrp and humanoid then
+                    local dist = (targetHrp.Position - hrp.Position).Magnitude
+                    if dist < 20 then
+                        -- Launch player
+                        local bodyVelocity = Instance.new("BodyVelocity")
+                        bodyVelocity.Velocity = (targetHrp.Position - hrp.Position).Unit * 200
+                        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+                        bodyVelocity.Parent = targetHrp
+                        
+                        game:GetService("Debris"):AddItem(bodyVelocity, 0.5)
+                        humanoid:TakeDamage(25)
+                    end
+                end
+            end
+        end
+        task.wait(0.5)
+    end
+    
+    statusText.Text = "Super punch ended!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 14. CHAOS MODE 🤪
+local function chaosMode()
+    statusText.Text = "🤪 CHAOS MODE ACTIVATED!"
+    
+    local effects = {}
+    
+    -- Multiple effects at once
+    for i = 1, 20 do
+        -- Create random explosions
+        local explosion = Instance.new("Explosion")
+        explosion.Position = Vector3.new(
+            math.random(-100, 100),
+            math.random(10, 50),
+            math.random(-100, 100)
+        )
+        explosion.BlastRadius = 15
+        explosion.Parent = Workspace
+        table.insert(effects, explosion)
+        
+        -- Random teleport players
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and math.random(1, 3) == 1 then
+                    hrp.CFrame = CFrame.new(
+                        math.random(-200, 200),
+                        math.random(10, 100),
+                        math.random(-200, 200)
+                    )
+                end
+            end
+        end
+        
+        task.wait(0.3)
+    end
+    
+    -- Cleanup
+    for _, effect in pairs(effects) do
+        effect:Destroy()
+    end
+    
+    statusText.Text = "Chaos mode ended!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 15. PLAYER CONTROL 🎮
+local function playerControl()
+    statusText.Text = "🎮 PLAYER CONTROL ACTIVATED\nSelect player in chat"
+    
+    player.Chatted:Connect(function(msg)
+        for _, target in pairs(Players:GetPlayers()) do
+            if string.lower(target.Name):find(string.lower(msg)) and target ~= player then
+                statusText.Text = "Controlling: " .. target.Name
+                
+                -- Teleport to controlled player
+                local char = player.Character
+                if char and target.Character then
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                    
+                    if hrp and targetHrp then
+                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 3, 0)
+                    end
+                end
+                break
+            end
+        end
+    end)
+    
+    task.wait(10)
+    statusText.Text = "Player control ended!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 16. OBJECT RAIN ☔
+local function objectRain()
+    statusText.Text = "☔ OBJECT RAIN ACTIVATED!"
+    
+    local objects = {}
+    
+    for i = 1, 100 do
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(
+            math.random(2, 10),
+            math.random(2, 10),
+            math.random(2, 10)
+        )
+        part.Position = Vector3.new(
+            math.random(-50, 50),
+            math.random(100, 200),
+            math.random(-50, 50)
+        )
+        part.BrickColor = BrickColor.Random()
+        part.Material = Enum.Material.Plastic
+        part.Parent = Workspace
+        table.insert(objects, part)
+        task.wait(0.05)
+    end
+    
+    task.wait(5)
+    
+    for _, part in pairs(objects) do
+        part:Destroy()
+    end
+    
+    statusText.Text = "Object rain stopped!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 17. TIME STOP ⏱️
+local function timeStop()
+    statusText.Text = "⏱️ TIME STOP ACTIVATED!"
+    
+    local originalGravity = Workspace.Gravity
+    Workspace.Gravity = 0
+    
+    -- Freeze all players
+    local frozenParts = {}
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            local char = target.Character
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    local velocity = part.Velocity
+                    part.Anchored = true
+                    table.insert(frozenParts, {part = part, velocity = velocity})
+                end
+            end
+        end
+    end
+    
+    task.wait(5)
+    
+    -- Restore
+    Workspace.Gravity = originalGravity
+    
+    for _, data in pairs(frozenParts) do
+        if data.part.Parent then
+            data.part.Anchored = false
+            data.part.Velocity = data.velocity
+        end
+    end
+    
+    statusText.Text = "Time resumed!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 18. DIMENSION JUMP 🌌
+local function dimensionJump()
+    statusText.Text = "🌌 DIMENSION JUMP ACTIVATED!"
+    
+    -- Change lighting
+    local originalAmbient = Lighting.Ambient
+    local originalBrightness = Lighting.Brightness
+    
+    Lighting.Ambient = Color3.fromRGB(100, 0, 100)
+    Lighting.Brightness = 0.5
+    
+    -- Teleport to strange location
+    local char = player.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = CFrame.new(0, 10000, 0)
+        end
+    end
+    
+    task.wait(3)
+    
+    -- Return
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = CFrame.new(0, 5, 0)
+        end
+    end
+    
+    Lighting.Ambient = originalAmbient
+    Lighting.Brightness = originalBrightness
+    
+    statusText.Text = "Returned to normal dimension!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 19. MIND CONTROL 🧠
+local function mindControl()
+    statusText.Text = "🧠 MIND CONTROL ACTIVATED\nPlayers will follow you!"
+    
+    local char = player.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    for i = 1, 30 do
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if targetHrp then
+                    -- Move towards player
+                    local direction = (hrp.Position - targetHrp.Position).Unit
+                    targetHrp.CFrame = targetHrp.CFrame + direction * 2
+                end
+            end
+        end
+        task.wait(0.2)
+    end
+    
+    statusText.Text = "Mind control ended!"
+    task.wait(2)
+    updateUI()
+end
+-- 20. APOCALYPSE 🌋
+local function apocalypse()
+    statusText.Text = "🌋 APOCALYPSE ACTIVATED!"
+    
+    -- Multiple catastrophic effects
+    for i = 1, 10 do
+        -- Earthquakes (shake camera)
+        local camera = Workspace.CurrentCamera
+        camera.CFrame = camera.CFrame * CFrame.new(
+            math.random(-5, 5),
+            math.random(-2, 2),
+            math.random(-5, 5)
+        )
+        
+        -- Explosions everywhere
+        for j = 1, 5 do
+            local explosion = Instance.new("Explosion")
+            explosion.Position = Vector3.new(
+                math.random(-100, 100),
+                math.random(5, 20),
+                math.random(-100, 100)
+            )
+            explosion.BlastRadius = 25
+            explosion.Parent = Workspace
+        end
+        
+        -- Random teleport players
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = CFrame.new(
+                        math.random(-300, 300),
+                        math.random(10, 100),
+                        math.random(-300, 300)
+                    )
+                end
+            end
+        end
+        
+        task.wait(0.5)
+    end
+    
+    statusText.Text = "Apocalypse complete!"
+    task.wait(2)
+    updateUI()
+end
+
+-- Troll Button Connections
+trollButtons[1].MouseButton1Click:Connect(teleportGun)
+trollButtons[2].MouseButton1Click:Connect(playerExplode)
+trollButtons[3].MouseButton1Click:Connect(massTeleport)
+trollButtons[4].MouseButton1Click:Connect(serverCrash)
+trollButtons[5].MouseButton1Click:Connect(flingPlayers)
+trollButtons[6].MouseButton1Click:Connect(antiGravity)
+trollButtons[7].MouseButton1Click:Connect(blackHole)
+trollButtons[8].MouseButton1Click:Connect(lagMachine)
+trollButtons[9].MouseButton1Click:Connect(invisibleKiller)
+trollButtons[10].MouseButton1Click:Connect(trollGodMode)
+trollButtons[11].MouseButton1Click:Connect(forcefield)
+trollButtons[12].MouseButton1Click:Connect(freezePlayers)
+trollButtons[13].MouseButton1Click:Connect(superPunch)
+trollButtons[14].MouseButton1Click:Connect(chaosMode)
+trollButtons[15].MouseButton1Click:Connect(playerControl)
+trollButtons[16].MouseButton1Click:Connect(objectRain)
+trollButtons[17].MouseButton1Click:Connect(timeStop)
+trollButtons[18].MouseButton1Click:Connect(dimensionJump)
+trollButtons[19].MouseButton1Click:Connect(mindControl)
+trollButtons[20].MouseButton1Click:Connect(apocalypse)
+
+-- Utility functions
+function mouse1click()
+    local mouse = player:GetMouse()
+    mouse1press()
+    task.wait()
+    mouse1release()
+end
+
+function mouse1press()
+    local mouse = player:GetMouse()
+    mouse.Button1Down:Fire()
+end
+
+function mouse1release()
+    local mouse = player:GetMouse()
+    mouse.Button1Up:Fire()
+end
+
+-- Cleanup
+gui.Destroying:Connect(function()
+    -- Clear markers
+    markerFolder:ClearAllChildren()
+    
+    -- Disconnect all connections
+    if noclipConnection then noclipConnection:Disconnect() end
+    if aimbotConnection then aimbotConnection:Disconnect() end
+    if autoClickConnection then autoClickConnection:Disconnect() end
+    if antiAfkConnection then antiAfkConnection:Disconnect() end
+    
+    -- Restore lighting
+    Lighting.Brightness = 1
+    Lighting.FogEnd = 100000
+    Workspace.Gravity = 196.2
+    
+    print("Ultimate Mobile System unloaded")
 end)
 
--- Keyboard shortcuts
+-- Hotkeys
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F then
         if state.mode == "fly" then
             startFlying()
         end
     elseif input.KeyCode == Enum.KeyCode.M then
-        if state.mode == "fly" and not state.flying then
-            placeMarker(Workspace.CurrentCamera.CFrame.Position)
+        if state.mode == "fly" then
+            placeMarker()
         end
     elseif input.KeyCode == Enum.KeyCode.V then
         if state.mode == "fly" then
-            if state.viewing then
-                stopViewing()
-            else
-                startViewing()
-            end
+            viewMarkers()
         end
     elseif input.KeyCode == Enum.KeyCode.T then
         if state.mode == "troll" then
-            teleportToPlayer()
+            teleportGun()
         end
     elseif input.KeyCode == Enum.KeyCode.Escape then
         if state.flying then
-            stopFlying()
+            state.flying = false
+            Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
         elseif state.viewing then
-            stopViewing()
+            state.viewing = false
+            Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
         end
     end
 end)
 
--- Initialize
-updateUI()
-print("==================================")
-print("🚀 ULTIMATE SYSTEM PRO v2.0 LOADED")
-print("✨ Fly Mode: 10 Advanced Features")
-print("😈 Troll Mode: 10 Demonic Powers")
-print("==================================")
-print("Shortcuts: F=Fly, M=Mark, V=View")
-print("T=Teleport, Esc=Exit modes")
-
--- Cleanup on destroy
-gui.Destroying:Connect(function()
-    -- Clean up markers
-    clearMarkers()
-    markerFolder:Destroy()
-    
-    -- Restore original values
-    if state.noclipConnection then
-        state.noclipConnection:Disconnect()
-    end
-    
-    if state.aimbotConnection then
-        state.aimbotConnection:Disconnect()
-    end
-    
-    if state.afkConnection then
-        state.afkConnection:Disconnect()
-    end
-    
-    -- Restore lighting
-    Lighting.Brightness = original.brightness
-    Lighting.FogEnd = original.fogEnd
-    Workspace.Gravity = original.gravity
-    
-    print("Ultimate System Pro unloaded")
-end)
-
--- Anti-detection
-gui.Name = HttpService:GenerateGUID(false)
-corner.Name = HttpService:GenerateGUID(false)
+-- Final print
+print("========================================")
+print("🚀 ULTIMATE MOBILE SYSTEM v4.0")
+print("✨ Fly Mode: 20 Simple Functions")
+print("😈 Troll Mode: 20 HARDCORE Functions")
+print("========================================")
+print("Hotkeys: F=Fly, M=Marker, V=View")
+print("T=Teleport Gun, Esc=Exit modes")
+print("========================================")
