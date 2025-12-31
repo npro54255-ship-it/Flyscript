@@ -1,4 +1,4 @@
--- Ultimate Mobile System v4.0
+-- Ultimate Mobile System v5.0 - REAL IMPACT
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
@@ -11,7 +11,7 @@ local CoreGui = game:GetService("CoreGui")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Simple Config
+-- Config
 local config = {
     maxMarkers = 10,
     flySpeed = 50,
@@ -51,7 +51,7 @@ local state = {
 
 -- Create GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "UltimateMobileSystem"
+gui.Name = "UltimateMobileSystemREAL"
 gui.ResetOnSpawn = false
 gui.Parent = CoreGui
 
@@ -196,7 +196,7 @@ flyButtons.playerEspBtn = createBtn("PlayerEspBtn", "👥 PLAYER ESP",
 flyButtons.itemEspBtn = createBtn("ItemEspBtn", "📦 ITEM ESP", 
     UDim2.new(0.52, 0, 0, 465), UDim2.new(0.48, 0, 0, 30), Color3.fromRGB(255, 150, 100))
 
--- Scroll Frame for buttons
+-- Scroll Frame
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(1, -20, 0, 200)
 scrollFrame.Position = UDim2.new(0, 10, 0, 150)
@@ -205,12 +205,11 @@ scrollFrame.ScrollBarThickness = 5
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 340)
 scrollFrame.Parent = main
 
--- Reparent buttons to scroll frame
 for _, btn in pairs(flyButtons) do
     btn.Parent = scrollFrame
 end
 
--- Create Troll Mode Buttons (20 Hard Functions)
+-- Create Troll Mode Buttons (20 REAL Hard Functions)
 local trollButtons = {}
 local trollBtnColors = {
     Color3.fromRGB(255, 0, 50),    -- 1. RED
@@ -234,28 +233,28 @@ local trollBtnColors = {
     Color3.fromRGB(150, 0, 0),     -- 19. DARK MAROON
     Color3.fromRGB(255, 0, 255)    -- 20. PURE MAGENTA
 }
--- Create Troll Mode buttons
+
 local trollFunctions = {
-    "1. TELEPORT GUN 🔫",      -- 1. Телепорт пушка
-    "2. PLAYER EXPLODE 💣",    -- 2. Взрыв игроков
-    "3. MASS TELEPORT 🌪️",    -- 3. Массовый телепорт
-    "4. SERVER CRASH ☢️",      -- 4. Крах сервера
-    "5. FLING PLAYERS 🌀",     -- 5. Выброс игроков
-    "6. ANTI-GRAVITY 🌌",      -- 6. Анти-гравитация
-    "7. BLACK HOLE ⚫",        -- 7. Черная дыра
-    "8. LAG MACHINE 🐌",       -- 8. Лаг машина
-    "9. INVISIBLE KILLER 👻",  -- 9. Невидимый убийца
-    "10. GOD MODE ☠️",         -- 10. Режим бога
-    "11. FORCEFIELD 🛡️",      -- 11. Силовое поле
-    "12. FREEZE PLAYERS ❄️",   -- 12. Заморозка игроков
-    "13. SUPER PUNCH 👊",      -- 13. Супер удар
-    "14. CHAOS MODE 🤪",       -- 14. Режим хаоса
-    "15. PLAYER CONTROL 🎮",   -- 15. Контроль игроков
-    "16. OBJECT RAIN ☔",       -- 16. Дождь объектов
-    "17. TIME STOP ⏱️",        -- 17. Остановка времени
-    "18. DIMENSION JUMP 🌌",   -- 18. Прыжок в измерение
-    "19. MIND CONTROL 🧠",     -- 19. Контроль разума
-    "20. APOCALYPSE 🌋"        -- 20. Апокалипсис
+    "1. MAGNET PULL 🧲",      -- 1. Магнитное притяжение
+    "2. PLAYER CRUSHER 🗜️",   -- 2. Дробилка игроков
+    "3. GRAVITY WELL ⬇️",     -- 3. Гравитационная яма
+    "4. EXPLOSIVE PUNCH 💥",  -- 4. Взрывной удар
+    "5. TELEPORT CHAOS 🔀",   -- 5. Хаос телепорта
+    "6. OBJECT MAGNET 🧲",    -- 6. Магнит объектов
+    "7. PLAYER LAUNCHER 🚀",  -- 7. Запуск игроков
+    "8. SLOW MOTION ⏱️",      -- 8. Замедление
+    "9. INVISIBLE MODE 👻",   -- 9. Невидимость
+    "10. SUPER STRENGTH 💪",  -- 10. Супер сила
+    "11. SPEED STEAL 🏃‍♂️",    -- 11. Кража скорости
+    "12. PLAYER FREEZE ❄️",   -- 12. Заморозка игроков
+    "13. MASS TELEPORT 🌪️",   -- 13. Массовый телепорт
+    "14. FORCE PUSH 👊",      -- 14. Силовой толчок
+    "15. PLAYER ATTRACT 🧲",  -- 15. Притяжение игроков
+    "16. OBJECT RAIN ☔",      -- 16. Дождь объектов
+    "17. ANTI-GRAVITY 🌌",    -- 17. Анти-гравитация
+    "18. PLAYER SPIN 🌀",     -- 18. Вращение игроков
+    "19. SUPER JUMP 🦘",      -- 19. Супер прыжок
+    "20. EARTHQUAKE 🌋"       -- 20. Землетрясение
 }
 
 for i = 1, 20 do
@@ -272,7 +271,7 @@ end
 
 -- Marker System
 local markerFolder = Instance.new("Folder")
-markerFolder.Name = "UltimateMarkers"
+markerFolder.Name = "UltimateMarkersREAL"
 markerFolder.Parent = Workspace
 
 -- Create marker function
@@ -306,7 +305,6 @@ local function createMarker(pos, index)
         end
     end)
     
-    -- Light
     local light = Instance.new("PointLight")
     light.Color = flyColors.secondary
     light.Brightness = 5
@@ -315,7 +313,6 @@ local function createMarker(pos, index)
     
     return marker
 end
-
 -- Update UI
 local function updateUI()
     local isTroll = state.mode == "troll"
@@ -328,7 +325,6 @@ local function updateUI()
     modeBtn.BackgroundColor3 = colors.secondary
     modeBtn.Text = isTroll and "✨" or "👿"
     
-    -- Show/hide buttons
     for _, btn in pairs(flyButtons) do
         btn.Visible = not isTroll
     end
@@ -337,10 +333,9 @@ local function updateUI()
         trollButtons[i].Visible = isTroll
     end
     
-    -- Update status
     local count = #state.markers
     if isTroll then
-        statusText.Text = "😈 TROLL MODE ACTIVATED\n20 HARDCORE FUNCTIONS"
+        statusText.Text = "😈 TROLL MODE ACTIVE\n20 REAL IMPACT FUNCTIONS"
     else
         statusText.Text = string.format("Markers: %d/10\nStatus: Ready", count)
         if state.flying then
@@ -353,7 +348,6 @@ end
 local function switchMode()
     if state.mode == "fly" then
         state.mode = "troll"
-        -- Red screen effect
         local redScreen = Instance.new("Frame")
         redScreen.Size = UDim2.new(1, 0, 1, 0)
         redScreen.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
@@ -370,7 +364,7 @@ local function switchMode()
     updateUI()
 end
 
--- Fly Mode Simple Functions
+-- ============ FLY MODE SIMPLE FUNCTIONS ============
 
 -- 1. FLY MODE
 local flyDir = {forward=false, back=false, left=false, right=false, up=false, down=false}
@@ -387,7 +381,7 @@ local function startFlying()
     
     camera.CameraType = Enum.CameraType.Scriptable
     
-    -- Create flight controls
+    -- Flight controls
     local flyPanel = Instance.new("Frame")
     flyPanel.Size = UDim2.new(1, 0, 0, 250)
     flyPanel.Position = UDim2.new(0, 0, 1, -250)
@@ -395,7 +389,6 @@ local function startFlying()
     flyPanel.BackgroundTransparency = 0.6
     flyPanel.Parent = gui
     
-    -- Controls
     local function addControl(text, pos)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(0, 60, 0, 60)
@@ -477,6 +470,7 @@ local function placeMarker()
     task.wait(1)
     updateUI()
 end
+
 -- 3. VIEW MARKERS
 local function viewMarkers()
     if #state.markers == 0 then
@@ -492,7 +486,6 @@ local function viewMarkers()
     local camera = Workspace.CurrentCamera
     camera.CameraType = Enum.CameraType.Scriptable
     
-    -- View panel
     local viewPanel = Instance.new("Frame")
     viewPanel.Size = UDim2.new(1, 0, 0, 100)
     viewPanel.Position = UDim2.new(0, 0, 1, -100)
@@ -560,14 +553,12 @@ local function teleportToMarker()
         return
     end
     
-    -- Show marker list
     local char = player.Character
     if not char then return end
     
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
-    -- Teleport to first marker
     local marker = state.markers[1]
     if marker then
         hrp.CFrame = CFrame.new(marker.position + Vector3.new(0, 3, 0))
@@ -621,7 +612,6 @@ local function toggleNoClip()
     task.wait(1)
     updateUI()
 end
-
 -- 7. INFINITE JUMP
 local infJumpActive = false
 
@@ -820,6 +810,7 @@ local function toggleClickTp()
     task.wait(1)
     updateUI()
 end
+
 -- 13. REACH
 local reachActive = false
 
@@ -830,7 +821,6 @@ local function toggleReach()
         statusText.Text = "Reach: ON (Click far objects)"
         flyButtons.reachBtn.Text = "👊 REACH ON"
         
-        -- Simple reach extension
         local mouse = player:GetMouse()
         local originalFilter = mouse.TargetFilter
         
@@ -948,7 +938,6 @@ local function toggleAimbot()
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
             
-            -- Find closest player
             local closest = nil
             local closestDist = math.huge
             
@@ -965,7 +954,6 @@ local function toggleAimbot()
                 end
             end
             
-            -- Aim at closest
             if closest then
                 local camera = Workspace.CurrentCamera
                 camera.CFrame = CFrame.lookAt(camera.CFrame.Position, closest.Position)
@@ -1009,7 +997,6 @@ local function toggleAutoClick()
     task.wait(1)
     updateUI()
 end
-
 -- 19. PLAYER ESP
 local playerEspActive = false
 local playerEspBillboards = {}
@@ -1063,7 +1050,17 @@ end
 
 -- 20. ITEM ESP
 local function toggleItemESP()
-    statusText.Text = "Item ESP: Requires game items\nCheck game-specific scripts"
+    statusText.Text = "Item ESP: Working on game items..."
+    
+    -- Simple item finder
+    local foundItems = 0
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:match("Item") or obj.Name:match("Coin") or obj.Name:match("Money") then
+            foundItems = foundItems + 1
+        end
+    end
+    
+    statusText.Text = string.format("Found %d possible items", foundItems)
     task.wait(2)
     updateUI()
 end
@@ -1132,37 +1129,41 @@ RunService.Heartbeat:Connect(function(delta)
     end
 end)
 
--- Initialize
-updateUI()
-print("🚀 Ultimate Mobile System v4.0 Loaded")
-print("✨ 20 Simple Fly Functions")
-print("😈 20 Hardcore Troll Functions")
--- TROLL MODE HARD FUNCTIONS
+-- ============ TROLL MODE REAL FUNCTIONS ============
 
--- 1. TELEPORT GUN 🔫
-local function teleportGun()
-    statusText.Text = "🔫 TELEPORT GUN ACTIVATED\nClick players to teleport them!"
+-- 1. MAGNET PULL 🧲 - REAL PLAYER ATTRACTION
+local function magnetPull()
+    statusText.Text = "🧲 MAGNET PULL ACTIVATED!\nPlayers being pulled to you!"
     
-    local mouse = player:GetMouse()
-    local connection
+    local char = player.Character
+    if not char then return end
     
-    connection = mouse.Button1Down:Connect(function()
-        local target = mouse.Target
-        if target then
-            local char = target.Parent
-            if char:FindFirstChild("Humanoid") then
-                for _, targetPlayer in pairs(Players:GetPlayers()) do
-                    if targetPlayer.Character == char then
-                        local hrp = char:FindFirstChild("HumanoidRootPart")
-                        if hrp then
-                            -- Teleport to random sky location
-                            hrp.CFrame = CFrame.new(
-                                math.random(-500, 500),
-                                math.random(100, 500),
-                                math.random(-500, 500)
-                            )
-                            break
-                        end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local magnetActive = true
+    
+    -- Create magnetic force
+    local connection = RunService.Heartbeat:Connect(function()
+        if not magnetActive then return end
+        
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if targetHrp then
+                    local distance = (targetHrp.Position - hrp.Position).Magnitude
+                    if distance < 100 then
+                        -- Calculate pull force
+                        local direction = (hrp.Position - targetHrp.Position).Unit
+                        local force = 100 / math.max(distance, 1)
+                        
+                        -- Apply velocity directly
+                        local bodyVelocity = Instance.new("BodyVelocity")
+                        bodyVelocity.Velocity = direction * force
+                        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+                        bodyVelocity.Parent = targetHrp
+                        
+                        game:GetService("Debris"):AddItem(bodyVelocity, 0.1)
                     end
                 end
             end
@@ -1170,45 +1171,537 @@ local function teleportGun()
     end)
     
     task.wait(10)
-    if connection then connection:Disconnect() end
-    statusText.Text = "Teleport Gun: Deactivated"
-    task.wait(1)
+    magnetActive = false
+    connection:Disconnect()
+    statusText.Text = "Magnet Pull: Ended"
+    task.wait(2)
     updateUI()
 end
 
--- 2. PLAYER EXPLODE 💣
-local function playerExplode()
-    statusText.Text = "💣 PLAYER EXPLOSION ACTIVATED!"
+-- 2. PLAYER CRUSHER 🗜️ - CRUSH PLAYERS TOGETHER
+local function playerCrusher()
+    statusText.Text = "🗜️ PLAYER CRUSHER ACTIVATED!\nCrushing players together!"
+    
+    local playersToCrush = {}
+    
+    -- Gather all players
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                table.insert(playersToCrush, hrp)
+            end
+        end
+    end
+    
+    if #playersToCrush < 2 then
+        statusText.Text = "Need at least 2 players!"
+        task.wait(2)
+        updateUI()
+        return
+    end
+    
+    -- Calculate center point
+    local center = Vector3.new(0, 0, 0)
+    for _, hrp in pairs(playersToCrush) do
+        center = center + hrp.Position
+    end
+    center = center / #playersToCrush
+    
+    -- Crush players to center
+    for _, hrp in pairs(playersToCrush) do
+        local direction = (center - hrp.Position).Unit
+        
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = direction * 50
+        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+        bodyVelocity.Parent = hrp
+        
+        game:GetService("Debris"):AddItem(bodyVelocity, 2)
+        
+        -- Damage on collision
+        local humanoid = hrp.Parent:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid:TakeDamage(30)
+        end
+    end
+    
+    task.wait(2)
+    statusText.Text = "Players crushed!"
+    task.wait(2)
+    updateUI()
+end
+
+-- 3. GRAVITY WELL ⬇️ - HEAVY GRAVITY ON PLAYERS
+local function gravityWell()
+    statusText.Text = "⬇️ GRAVITY WELL ACTIVATED!\nPlayers being pulled down!"
+    
+    local gravityMultiplier = 5
+    local originalGravity = Workspace.Gravity
+    
+    -- Store original gravity for each player
+    local playerGravities = {}
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            for _, part in pairs(target.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    -- Store original properties
+                    playerGravities[part] = {
+                        mass = part.Mass,
+                        customPhysicalProperties = part.CustomPhysicalProperties
+                    }
+                    
+                    -- Increase mass dramatically
+                    local newProps = PhysicalProperties.new(
+                        part.Material,
+                        part.Material == Enum.Material.Wood and 0.7 or 0.3,
+                        part.Material == Enum.Material.Wood and 0.3 or 0.5,
+                        0.5,
+                        part.Material == Enum.Material.Wood and 0.8 or 0.2,
+                        1
+                    )
+                    part.CustomPhysicalProperties = newProps
+                end
+            end
+        end
+    end
+    
+    task.wait(5)
+    
+    -- Restore original properties
+    for part, props in pairs(playerGravities) do
+        if part.Parent then
+            part.CustomPhysicalProperties = props.customPhysicalProperties
+        end
+    end
+    
+    statusText.Text = "Gravity Well: Ended"
+    task.wait(2)
+    updateUI()
+end
+
+-- 4. EXPLOSIVE PUNCH 💥 - REAL EXPLOSIONS ON PUNCH
+local function explosivePunch()
+    statusText.Text = "💥 EXPLOSIVE PUNCH ACTIVATED!\nHit players to explode!"
+    
+    local char = player.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local punchActive = true
+    local lastPunch = 0
+    
+    local connection = RunService.Heartbeat:Connect(function()
+        if not punchActive then return end
+        
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if targetHrp then
+                    local distance = (targetHrp.Position - hrp.Position).Magnitude
+                    if distance < 10 and tick() - lastPunch > 1 then
+                        lastPunch = tick()
+                        
+                        -- Create real explosion
+                        local explosion = Instance.new("Explosion")
+                        explosion.Position = targetHrp.Position
+                        explosion.BlastPressure = 500000
+                        explosion.BlastRadius = 15
+                        explosion.DestroyJointRadiusPercent = 0.5
+                        explosion.ExplosionType = Enum.ExplosionType.CratersAndDebris
+                        explosion.Parent = Workspace
+                        
+                        -- Launch player
+                        local bodyVelocity = Instance.new("BodyVelocity")
+                        bodyVelocity.Velocity = Vector3.new(
+                            math.random(-100, 100),
+                            math.random(50, 150),
+                            math.random(-100, 100)
+                        )
+                        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+                        bodyVelocity.Parent = targetHrp
+                        
+                        game:GetService("Debris"):AddItem(bodyVelocity, 1)
+                        
+                        -- Damage
+                        local humanoid = target.Character:FindFirstChild("Humanoid")
+                        if humanoid then
+                            humanoid:TakeDamage(50)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    
+    task.wait(15)
+    punchActive = false
+    connection:Disconnect()
+    statusText.Text = "Explosive Punch: Ended"
+    task.wait(2)
+    updateUI()
+end
+-- 5. TELEPORT CHAOS 🔀 - RANDOM TELEPORT PLAYERS
+local function teleportChaos()
+    statusText.Text = "🔀 TELEPORT CHAOS ACTIVATED!\nPlayers teleporting randomly!"
+    
+    local chaosActive = true
+    
+    local connection = RunService.Heartbeat:Connect(function()
+        if not chaosActive then return end
+        
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character and math.random(1, 10) == 1 then
+                local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = CFrame.new(
+                        math.random(-500, 500),
+                        math.random(10, 100),
+                        math.random(-500, 500)
+                    )
+                end
+            end
+        end
+    end)
+    
+    task.wait(10)
+    chaosActive = false
+    connection:Disconnect()
+    statusText.Text = "Teleport Chaos: Ended"
+    task.wait(2)
+    updateUI()
+end
+
+-- 6. OBJECT MAGNET 🧲 - PULL ALL OBJECTS TO YOU
+local function objectMagnet()
+    statusText.Text = "🧲 OBJECT MAGNET ACTIVATED!\nPulling all objects to you!"
+    
+    local char = player.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local magnetActive = true
+    local pulledObjects = {}
+    
+    local connection = RunService.Heartbeat:Connect(function()
+        if not magnetActive then return end
+        
+        -- Pull all unanchored parts
+        for _, part in pairs(Workspace:GetDescendants()) do
+            if part:IsA("BasePart") and not part.Anchored and part.CanCollide then
+                local distance = (part.Position - hrp.Position).Magnitude
+                if distance < 200 then
+                    local direction = (hrp.Position - part.Position).Unit
+                    local force = 50 / math.max(distance, 1)
+                    
+                    if not pulledObjects[part] then
+                        pulledObjects[part] = true
+                        
+                        local bodyVelocity = Instance.new("BodyVelocity")
+                        bodyVelocity.Velocity = direction * force
+                        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+                        bodyVelocity.Parent = part
+                        
+                        game:GetService("Debris"):AddItem(bodyVelocity, 0.5)
+                    end
+                end
+            end
+        end
+    end)
+    
+    task.wait(15)
+    magnetActive = false
+    connection:Disconnect()
+    statusText.Text = "Object Magnet: Ended"
+    task.wait(2)
+    updateUI()
+end
+
+-- 7. PLAYER LAUNCHER 🚀 - LAUNCH PLAYERS TO SKY
+local function playerLauncher()
+    statusText.Text = "🚀 PLAYER LAUNCHER ACTIVATED!\nLaunching players to sky!"
     
     for _, target in pairs(Players:GetPlayers()) do
         if target ~= player and target.Character then
             local hrp = target.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                local explosion = Instance.new("Explosion")
-                explosion.Position = hrp.Position
-                explosion.BlastPressure = 100000
-                explosion.BlastRadius = 20
-                explosion.DestroyJointRadiusPercent = 1
-                explosion.Parent = Workspace
+                local bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.Velocity = Vector3.new(
+                    math.random(-50, 50),
+                    math.random(200, 500),
+                    math.random(-50, 50)
+                )
+                bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+                bodyVelocity.Parent = hrp
+                
+                game:GetService("Debris"):AddItem(bodyVelocity, 3)
             end
         end
     end
     
-    task.wait(1)
-    statusText.Text = "All players exploded!"
+    task.wait(3)
+    statusText.Text = "Players launched!"
     task.wait(2)
     updateUI()
 end
 
--- 3. MASS TELEPORT 🌪️
-local function massTeleport()
-    statusText.Text = "🌪️ MASS TELEPORT ACTIVATED!"
+-- 8. SLOW MOTION ⏱️ - SLOW DOWN EVERYTHING
+local function slowMotion()
+    statusText.Text = "⏱️ SLOW MOTION ACTIVATED!"
     
-    local teleportPos = Vector3.new(
-        math.random(-1000, 1000),
-        100,
-        math.random(-1000, 1000)
-    )
+    local originalGravity = Workspace.Gravity
+    Workspace.Gravity = originalGravity * 0.3
+    
+    -- Slow down all players
+    local playerSpeeds = {}
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target.Character then
+            local humanoid = target.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                playerSpeeds[target] = humanoid.WalkSpeed
+                humanoid.WalkSpeed = humanoid.WalkSpeed * 0.3
+            end
+        end
+    end
+    
+    task.wait(10)
+    
+    -- Restore
+    Workspace.Gravity = originalGravity
+    
+    for target, speed in pairs(playerSpeeds) do
+        if target.Character then
+            local humanoid = target.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = speed
+            end
+        end
+    end
+    
+    statusText.Text = "Slow Motion: Ended"
+    task.wait(2)
+    updateUI()
+end
+
+-- 9. INVISIBLE MODE 👻 - REAL INVISIBILITY
+local function invisibleMode()
+    statusText.Text = "👻 INVISIBLE MODE ACTIVATED!"
+    
+    local char = player.Character
+    if not char then return end
+    
+    -- Make truly invisible
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 1
+            part.CastShadow = false
+        end
+    end
+    
+    -- Remove humanoid display
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+    end
+    
+    -- Remove nametag
+    for _, child in pairs(char:GetChildren()) do
+        if child:IsA("BillboardGui") then
+            child.Enabled = false
+        end
+    end
+    
+    task.wait(15)
+    
+    -- Restore
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 0
+            part.CastShadow = true
+        end
+    end
+    
+    if humanoid then
+        humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+    end
+    
+    for _, child in pairs(char:GetChildren()) do
+        if child:IsA("BillboardGui") then
+            child.Enabled = true
+        end
+    end
+    
+    statusText.Text = "Invisible Mode: Ended"
+    task.wait(2)
+    updateUI()
+end
+
+-- 10. SUPER STRENGTH 💪 - MOVE HEAVY OBJECTS
+local function superStrength()
+    statusText.Text = "💪 SUPER STRENGTH ACTIVATED!\nCan move any object!"
+    
+    local char = player.Character
+    if not char then return end
+    
+    -- Make player stronger
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.JumpPower = 200
+        humanoid.WalkSpeed = 100
+    end
+    
+    -- Can move anchored objects
+    local mouse = player:GetMouse()
+    
+    mouse.Button1Down:Connect(function()
+        local target = mouse.Target
+        if target and target:IsA("BasePart") then
+            if target.Anchored then
+                target.Anchored = false
+                
+                -- Apply force
+                local bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.Velocity = mouse.Hit.LookVector * 100
+                bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+                bodyVelocity.Parent = target
+                
+                game:GetService("Debris"):AddItem(bodyVelocity, 0.5)
+            end
+        end
+    end)
+    
+    task.wait(20)
+    
+    if humanoid then
+        humanoid.JumpPower = 50
+        humanoid.WalkSpeed = 16
+    end
+    
+    statusText.Text = "Super Strength: Ended"
+    task.wait(2)
+    updateUI()
+end
+
+-- 11. SPEED STEAL 🏃‍♂️ - STEAL SPEED FROM PLAYERS
+local function speedSteal()
+    statusText.Text = "🏃‍♂️ SPEED STEAL ACTIVATED!\nStealing speed from players!"
+    
+    local char = player.Character
+    if not char then return end
+    
+    local humanoid = char:FindFirstChild("Humanoid")
+    if not humanoid then return end
+    
+    local originalSpeed = humanoid.WalkSpeed
+    local stealActive = true
+    local stolenSpeeds = {}
+    
+    local connection = RunService.Heartbeat:Connect(function()
+        if not stealActive then return end
+        
+        local totalStolenSpeed = 0
+        
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local targetHumanoid = target.Character:FindFirstChild("Humanoid")
+                if targetHumanoid then
+                    -- Store original if not already
+                    if not stolenSpeeds[target] then
+                        stolenSpeeds[target] = targetHumanoid.WalkSpeed
+                    end
+                    
+                    -- Reduce their speed
+                    targetHumanoid.WalkSpeed = math.max(5, targetHumanoid.WalkSpeed - 2)
+                    
+                    -- Add to your speed
+                    totalStolenSpeed = totalStolenSpeed + 2
+                end
+            end
+        end
+        
+        -- Increase your speed
+        humanoid.WalkSpeed = originalSpeed + totalStolenSpeed
+    end)
+    
+    task.wait(10)
+    stealActive = false
+    connection:Disconnect()
+    
+    -- Restore stolen speeds
+    for target, speed in pairs(stolenSpeeds) do
+        if target.Character then
+            local targetHumanoid = target.Character:FindFirstChild("Humanoid")
+            if targetHumanoid then
+                targetHumanoid.WalkSpeed = speed
+            end
+        end
+    end
+    
+    humanoid.WalkSpeed = originalSpeed
+    statusText.Text = "Speed Steal: Ended"
+    task.wait(2)
+    updateUI()
+end
+
+-- 12. PLAYER FREEZE ❄️ - FREEZE PLAYERS IN PLACE
+local function playerFreeze()
+    statusText.Text = "❄️ PLAYER FREEZE ACTIVATED!\nFreezing all players!"
+    
+    local frozenPlayers = {}
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            local char = target.Character
+            
+            -- Store original properties
+            frozenPlayers[target] = {}
+            
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    table.insert(frozenPlayers[target], {
+                        part = part,
+                        anchored = part.Anchored,
+                        velocity = part.Velocity
+                    })
+                    
+                    -- Freeze in place
+                    part.Anchored = true
+                    part.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+        end
+    end
+    
+    task.wait(10)
+    
+    -- Restore
+    for target, partsData in pairs(frozenPlayers) do
+        if target.Character then
+            for _, data in pairs(partsData) do
+                if data.part.Parent then
+                    data.part.Anchored = data.anchored
+                    data.part.Velocity = data.velocity
+                end
+            end
+        end
+    end
+    
+    statusText.Text = "Player Freeze: Ended"
+    task.wait(2)
+    updateUI()
+end
+
+-- 13. MASS TELEPORT 🌪️ - TELEPORT ALL PLAYERS TO ONE SPOT
+local function massTeleportReal()
+    statusText.Text = "🌪️ MASS TELEPORT ACTIVATED!\nTeleporting all players!"
+    
+    local teleportPos = player.Character.HumanoidRootPart.Position + Vector3.new(0, 10, 0)
     
     for _, target in pairs(Players:GetPlayers()) do
         if target ~= player and target.Character then
@@ -1219,286 +1712,15 @@ local function massTeleport()
         end
     end
     
-    task.wait(1)
+    task.wait(2)
     statusText.Text = "All players teleported!"
     task.wait(2)
     updateUI()
 end
 
--- 4. SERVER CRASH ☢️
-local function serverCrash()
-    statusText.Text = "☢️ SERVER CRASH INITIATED!\nExpect lag..."
-    
-    -- Create massive lag
-    for i = 1, 1000 do
-        local part = Instance.new("Part")
-        part.Size = Vector3.new(10, 10, 10)
-        part.Position = Vector3.new(
-            math.random(-100, 100),
-            math.random(10, 100),
-            math.random(-100, 100)
-        )
-        part.Anchored = true
-        part.Parent = Workspace
-        
-        task.wait(0.01)
-    end
-    
-    statusText.Text = "Server crash complete!"
-    task.wait(2)
-    updateUI()
-end
-
--- 5. FLING PLAYERS 🌀
-local function flingPlayers()
-    statusText.Text = "🌀 FLING PLAYERS ACTIVATED!"
-    
-    for _, target in pairs(Players:GetPlayers()) do
-        if target ~= player and target.Character then
-            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local bodyVelocity = Instance.new("BodyVelocity")
-                bodyVelocity.Velocity = Vector3.new(
-                    math.random(-500, 500),
-                    math.random(100, 500),
-                    math.random(-500, 500)
-                )
-                bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
-                bodyVelocity.Parent = hrp
-                
-                game:GetService("Debris"):AddItem(bodyVelocity, 1)
-            end
-        end
-    end
-    
-    task.wait(1)
-    statusText.Text = "Players flung!"
-    task.wait(2)
-    updateUI()
-end
-
--- 6. ANTI-GRAVITY 🌌
-local function antiGravity()
-    statusText.Text = "🌌 ANTI-GRAVITY ACTIVATED!"
-    
-    local originalGravity = Workspace.Gravity
-    Workspace.Gravity = -196.2  -- Reverse gravity
-    
-    task.wait(5)
-    
-    Workspace.Gravity = originalGravity
-    statusText.Text = "Gravity restored!"
-    task.wait(2)
-    updateUI()
-end
-
--- 7. BLACK HOLE ⚫
-local function blackHole()
-    statusText.Text = "⚫ BLACK HOLE CREATED!"
-    
-    local blackHole = Instance.new("Part")
-    blackHole.Size = Vector3.new(20, 20, 20)
-    blackHole.Position = player.Character.HumanoidRootPart.Position
-    blackHole.Anchored = true
-    blackHole.CanCollide = false
-    blackHole.Transparency = 0.3
-    blackHole.Color = Color3.new(0, 0, 0)
-    blackHole.Shape = Enum.PartType.Ball
-    blackHole.Parent = Workspace
-    
-    -- Suck in players
-    for i = 1, 50 do
-        for _, target in pairs(Players:GetPlayers()) do
-            if target ~= player and target.Character then
-                local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local direction = (blackHole.Position - hrp.Position).Unit
-                    hrp.CFrame = hrp.CFrame + direction * 5
-                end
-            end
-        end
-        task.wait(0.1)
-    end
-    
-    blackHole:Destroy()
-    statusText.Text = "Black hole collapsed!"
-    task.wait(2)
-    updateUI()
-end
-
--- 8. LAG MACHINE 🐌
-local function lagMachine()
-    statusText.Text = "🐌 LAG MACHINE ACTIVATED!"
-    
-    local parts = {}
-    for i = 1, 500 do
-        local part = Instance.new("Part")
-        part.Size = Vector3.new(1, 1, 1)
-        part.Position = Vector3.new(
-            math.random(-100, 100),
-            math.random(10, 100),
-            math.random(-100, 100)
-        )
-        part.Anchored = true
-        part.Parent = Workspace
-        table.insert(parts, part)
-        task.wait(0.01)
-    end
-    
-    task.wait(3)
-    
-    for _, part in pairs(parts) do
-        part:Destroy()
-    end
-    
-    statusText.Text = "Lag machine stopped!"
-    task.wait(2)
-    updateUI()
-end
-
--- 9. INVISIBLE KILLER 👻
-local function invisibleKiller()
-    statusText.Text = "👻 INVISIBLE KILLER ACTIVATED!"
-    
-    local char = player.Character
-    if char then
-        -- Make player invisible
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0.9
-            end
-        end
-        
-        -- Kill nearby players
-        for i = 1, 30 do
-            for _, target in pairs(Players:GetPlayers()) do
-                if target ~= player and target.Character then
-                    local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-                    local humanoid = target.Character:FindFirstChild("Humanoid")
-                    
-                    if hrp and humanoid then
-                        local dist = (hrp.Position - char.HumanoidRootPart.Position).Magnitude
-                        if dist < 30 then
-                            humanoid:TakeDamage(50)
-                        end
-                    end
-                end
-            end
-            task.wait(0.5)
-        end
-        
-        -- Restore visibility
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0
-            end
-        end
-    end
-    
-    statusText.Text = "Invisible killer deactivated!"
-    task.wait(2)
-    updateUI()
-end
-
--- 10. GOD MODE ☠️
-local function trollGodMode()
-    statusText.Text = "☠️ GOD MODE ACTIVATED!"
-    
-    local char = player.Character
-    if char then
-        local humanoid = char:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.MaxHealth = math.huge
-            humanoid.Health = math.huge
-            
-            -- Make player huge
-            char:ScaleTo(3)
-            
-            -- Add fire
-            local fire = Instance.new("Fire")
-            fire.Size = 10
-            fire.Heat = 10
-            fire.Color = Color3.new(1, 0, 0)
-            fire.SecondaryColor = Color3.new(1, 1, 0)
-            fire.Parent = char.HumanoidRootPart
-        end
-    end
-    
-    task.wait(10)
-    
-    if char then
-        char:ScaleTo(1)
-        local fire = char.HumanoidRootPart:FindFirstChild("Fire")
-        if fire then fire:Destroy() end
-    end
-    
-    statusText.Text = "God mode ended!"
-    task.wait(2)
-    updateUI()
-end
--- 11. FORCEFIELD 🛡️
-local function forcefield()
-    statusText.Text = "🛡️ FORCEFIELD ACTIVATED!"
-    
-    local char = player.Character
-    if char then
-        local forcefield = Instance.new("ForceField")
-        forcefield.Parent = char
-        
-        -- Push players away
-        for i = 1, 30 do
-            for _, target in pairs(Players:GetPlayers()) do
-                if target ~= player and target.Character then
-                    local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        local direction = (hrp.Position - char.HumanoidRootPart.Position).Unit
-                        hrp.CFrame = hrp.CFrame - direction * 5
-                    end
-                end
-            end
-            task.wait(0.1)
-        end
-        
-        forcefield:Destroy()
-    end
-    
-    statusText.Text = "Forcefield deactivated!"
-    task.wait(2)
-    updateUI()
-end
-
--- 12. FREEZE PLAYERS ❄️
-local function freezePlayers()
-    statusText.Text = "❄️ FREEZING ALL PLAYERS!"
-    
-    local frozenParts = {}
-    
-    for _, target in pairs(Players:GetPlayers()) do
-        if target ~= player and target.Character then
-            local char = target.Character
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Anchored = true
-                    table.insert(frozenParts, part)
-                end
-            end
-        end
-    end
-    
-    task.wait(5)
-    
-    for _, part in pairs(frozenParts) do
-        part.Anchored = false
-    end
-    
-    statusText.Text = "Players unfrozen!"
-    task.wait(2)
-    updateUI()
-end
-
--- 13. SUPER PUNCH 👊
-local function superPunch()
-    statusText.Text = "👊 SUPER PUNCH ACTIVATED!\nWalk near players to punch!"
+-- 14. FORCE PUSH 👊 - PUSH PLAYERS AWAY
+local function forcePush()
+    statusText.Text = "👊 FORCE PUSH ACTIVATED!\nPushing players away!"
     
     local char = player.Character
     if not char then return end
@@ -1506,118 +1728,83 @@ local function superPunch()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
-    for i = 1, 30 do
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+            if targetHrp then
+                local distance = (targetHrp.Position - hrp.Position).Magnitude
+                if distance < 50 then
+                    local direction = (targetHrp.Position - hrp.Position).Unit
+                    local force = 200 * (1 - distance/50)
+                    
+                    local bodyVelocity = Instance.new("BodyVelocity")
+                    bodyVelocity.Velocity = direction * force
+                    bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+                    bodyVelocity.Parent = targetHrp
+                    
+                    game:GetService("Debris"):AddItem(bodyVelocity, 1)
+                end
+            end
+        end
+    end
+    
+    task.wait(2)
+    statusText.Text = "Force Push: Complete"
+    task.wait(2)
+    updateUI()
+end
+-- 15. PLAYER ATTRACT 🧲 - ATTRACT PLAYERS TO YOU
+local function playerAttract()
+    statusText.Text = "🧲 PLAYER ATTRACT ACTIVATED!\nPlayers attracted to you!"
+    
+    local char = player.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local attractActive = true
+    
+    local connection = RunService.Heartbeat:Connect(function()
+        if not attractActive then return end
+        
         for _, target in pairs(Players:GetPlayers()) do
             if target ~= player and target.Character then
                 local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                local humanoid = target.Character:FindFirstChild("Humanoid")
-                
-                if targetHrp and humanoid then
-                    local dist = (targetHrp.Position - hrp.Position).Magnitude
-                    if dist < 20 then
-                        -- Launch player
+                if targetHrp then
+                    local direction = (hrp.Position - targetHrp.Position).Unit
+                    local distance = (targetHrp.Position - hrp.Position).Magnitude
+                    
+                    if distance < 100 then
+                        local force = 30 * (1 - distance/100)
+                        
                         local bodyVelocity = Instance.new("BodyVelocity")
-                        bodyVelocity.Velocity = (targetHrp.Position - hrp.Position).Unit * 200
+                        bodyVelocity.Velocity = direction * force
                         bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
                         bodyVelocity.Parent = targetHrp
                         
-                        game:GetService("Debris"):AddItem(bodyVelocity, 0.5)
-                        humanoid:TakeDamage(25)
+                        game:GetService("Debris"):AddItem(bodyVelocity, 0.1)
                     end
                 end
-            end
-        end
-        task.wait(0.5)
-    end
-    
-    statusText.Text = "Super punch ended!"
-    task.wait(2)
-    updateUI()
-end
-
--- 14. CHAOS MODE 🤪
-local function chaosMode()
-    statusText.Text = "🤪 CHAOS MODE ACTIVATED!"
-    
-    local effects = {}
-    
-    -- Multiple effects at once
-    for i = 1, 20 do
-        -- Create random explosions
-        local explosion = Instance.new("Explosion")
-        explosion.Position = Vector3.new(
-            math.random(-100, 100),
-            math.random(10, 50),
-            math.random(-100, 100)
-        )
-        explosion.BlastRadius = 15
-        explosion.Parent = Workspace
-        table.insert(effects, explosion)
-        
-        -- Random teleport players
-        for _, target in pairs(Players:GetPlayers()) do
-            if target ~= player and target.Character then
-                local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-                if hrp and math.random(1, 3) == 1 then
-                    hrp.CFrame = CFrame.new(
-                        math.random(-200, 200),
-                        math.random(10, 100),
-                        math.random(-200, 200)
-                    )
-                end
-            end
-        end
-        
-        task.wait(0.3)
-    end
-    
-    -- Cleanup
-    for _, effect in pairs(effects) do
-        effect:Destroy()
-    end
-    
-    statusText.Text = "Chaos mode ended!"
-    task.wait(2)
-    updateUI()
-end
-
--- 15. PLAYER CONTROL 🎮
-local function playerControl()
-    statusText.Text = "🎮 PLAYER CONTROL ACTIVATED\nSelect player in chat"
-    
-    player.Chatted:Connect(function(msg)
-        for _, target in pairs(Players:GetPlayers()) do
-            if string.lower(target.Name):find(string.lower(msg)) and target ~= player then
-                statusText.Text = "Controlling: " .. target.Name
-                
-                -- Teleport to controlled player
-                local char = player.Character
-                if char and target.Character then
-                    local hrp = char:FindFirstChild("HumanoidRootPart")
-                    local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                    
-                    if hrp and targetHrp then
-                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 3, 0)
-                    end
-                end
-                break
             end
         end
     end)
     
-    task.wait(10)
-    statusText.Text = "Player control ended!"
+    task.wait(15)
+    attractActive = false
+    connection:Disconnect()
+    statusText.Text = "Player Attract: Ended"
     task.wait(2)
     updateUI()
 end
 
--- 16. OBJECT RAIN ☔
-local function objectRain()
-    statusText.Text = "☔ OBJECT RAIN ACTIVATED!"
+-- 16. OBJECT RAIN ☔ - MAKE OBJECTS FALL FROM SKY
+local function objectRainReal()
+    statusText.Text = "☔ OBJECT RAIN ACTIVATED!\nObjects falling from sky!"
     
     local objects = {}
     
-    for i = 1, 100 do
+    for i = 1, 50 do
         local part = Instance.new("Part")
         part.Size = Vector3.new(
             math.random(2, 10),
@@ -1632,102 +1819,63 @@ local function objectRain()
         part.BrickColor = BrickColor.Random()
         part.Material = Enum.Material.Plastic
         part.Parent = Workspace
-        table.insert(objects, part)
-        task.wait(0.05)
+        
+        -- Make it fall fast
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, -100, 0)
+        bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+        bodyVelocity.Parent = part
+        
+        table.insert(objects, {part = part, velocity = bodyVelocity})
+        task.wait(0.1)
     end
     
     task.wait(5)
     
-    for _, part in pairs(objects) do
-        part:Destroy()
+    for _, data in pairs(objects) do
+        data.part:Destroy()
     end
     
-    statusText.Text = "Object rain stopped!"
+    statusText.Text = "Object Rain: Ended"
     task.wait(2)
     updateUI()
 end
 
--- 17. TIME STOP ⏱️
-local function timeStop()
-    statusText.Text = "⏱️ TIME STOP ACTIVATED!"
+-- 17. ANTI-GRAVITY 🌌 - REVERSE GRAVITY FOR PLAYERS
+local function antiGravityReal()
+    statusText.Text = "🌌 ANTI-GRAVITY ACTIVATED!\nPlayers floating up!"
     
-    local originalGravity = Workspace.Gravity
-    Workspace.Gravity = 0
-    
-    -- Freeze all players
-    local frozenParts = {}
+    local playerBodyForces = {}
     
     for _, target in pairs(Players:GetPlayers()) do
         if target ~= player and target.Character then
-            local char = target.Character
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    local velocity = part.Velocity
-                    part.Anchored = true
-                    table.insert(frozenParts, {part = part, velocity = velocity})
-                end
+            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local bodyForce = Instance.new("BodyForce")
+                bodyForce.Force = Vector3.new(0, 196.2 * hrp:GetMass(), 0)
+                bodyForce.Parent = hrp
+                
+                playerBodyForces[target] = bodyForce
             end
         end
     end
     
-    task.wait(5)
+    task.wait(10)
     
-    -- Restore
-    Workspace.Gravity = originalGravity
-    
-    for _, data in pairs(frozenParts) do
-        if data.part.Parent then
-            data.part.Anchored = false
-            data.part.Velocity = data.velocity
+    for target, bodyForce in pairs(playerBodyForces) do
+        if bodyForce then
+            bodyForce:Destroy()
         end
     end
     
-    statusText.Text = "Time resumed!"
+    statusText.Text = "Anti-Gravity: Ended"
     task.wait(2)
     updateUI()
 end
 
--- 18. DIMENSION JUMP 🌌
-local function dimensionJump()
-    statusText.Text = "🌌 DIMENSION JUMP ACTIVATED!"
-    
-    -- Change lighting
-    local originalAmbient = Lighting.Ambient
-    local originalBrightness = Lighting.Brightness
-    
-    Lighting.Ambient = Color3.fromRGB(100, 0, 100)
-    Lighting.Brightness = 0.5
-    
-    -- Teleport to strange location
-    local char = player.Character
-    if char then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.CFrame = CFrame.new(0, 10000, 0)
-        end
-    end
-    
-    task.wait(3)
-    
-    -- Return
-    if char then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.CFrame = CFrame.new(0, 5, 0)
-        end
-    end
-    
-    Lighting.Ambient = originalAmbient
-    Lighting.Brightness = originalBrightness
-    
-    statusText.Text = "Returned to normal dimension!"
-    task.wait(2)
-    updateUI()
-end
-
--- 19. MIND CONTROL 🧠
-local function mindControl()
-    statusText.Text = "🧠 MIND CONTROL ACTIVATED\nPlayers will follow you!"
+-- 18. PLAYER SPIN 🌀 - SPIN PLAYERS IN CIRCLES
+local function playerSpin()
+    statusText.Text = "🌀 PLAYER SPIN ACTIVATED!\nSpinning players!"
     
     local char = player.Character
     if not char then return end
@@ -1735,93 +1883,148 @@ local function mindControl()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
-    for i = 1, 30 do
+    local spinActive = true
+    local spinTime = 0
+    
+    local connection = RunService.Heartbeat:Connect(function(delta)
+        if not spinActive then return end
+        
+        spinTime = spinTime + delta
+        
         for _, target in pairs(Players:GetPlayers()) do
             if target ~= player and target.Character then
                 local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
                 if targetHrp then
-                    -- Move towards player
-                    local direction = (hrp.Position - targetHrp.Position).Unit
-                    targetHrp.CFrame = targetHrp.CFrame + direction * 2
+                    local distance = (targetHrp.Position - hrp.Position).Magnitude
+                    if distance < 30 then
+                        -- Calculate spin position
+                        local angle = spinTime * 5
+                        local radius = 10
+                        local offset = Vector3.new(
+                            math.cos(angle) * radius,
+                            0,
+                            math.sin(angle) * radius
+                        )
+                        
+                        targetHrp.CFrame = CFrame.new(hrp.Position + offset)
+                    end
                 end
             end
         end
-        task.wait(0.2)
-    end
+    end)
     
-    statusText.Text = "Mind control ended!"
-    task.wait(2)
-    updateUI()
-end
--- 20. APOCALYPSE 🌋
-local function apocalypse()
-    statusText.Text = "🌋 APOCALYPSE ACTIVATED!"
-    
-    -- Multiple catastrophic effects
-    for i = 1, 10 do
-        -- Earthquakes (shake camera)
-        local camera = Workspace.CurrentCamera
-        camera.CFrame = camera.CFrame * CFrame.new(
-            math.random(-5, 5),
-            math.random(-2, 2),
-            math.random(-5, 5)
-        )
-        
-        -- Explosions everywhere
-        for j = 1, 5 do
-            local explosion = Instance.new("Explosion")
-            explosion.Position = Vector3.new(
-                math.random(-100, 100),
-                math.random(5, 20),
-                math.random(-100, 100)
-            )
-            explosion.BlastRadius = 25
-            explosion.Parent = Workspace
-        end
-        
-        -- Random teleport players
-        for _, target in pairs(Players:GetPlayers()) do
-            if target ~= player and target.Character then
-                local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    hrp.CFrame = CFrame.new(
-                        math.random(-300, 300),
-                        math.random(10, 100),
-                        math.random(-300, 300)
-                    )
-                end
-            end
-        end
-        
-        task.wait(0.5)
-    end
-    
-    statusText.Text = "Apocalypse complete!"
+    task.wait(10)
+    spinActive = false
+    connection:Disconnect()
+    statusText.Text = "Player Spin: Ended"
     task.wait(2)
     updateUI()
 end
 
+-- 19. SUPER JUMP 🦘 - EXTREME JUMP FOR EVERYONE
+local function superJumpReal()
+    statusText.Text = "🦘 SUPER JUMP ACTIVATED!\nEveryone jumping high!"
+    
+    local playerJumps = {}
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target.Character then
+            local humanoid = target.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                playerJumps[target] = humanoid.JumpPower
+                humanoid.JumpPower = 500
+                
+                -- Make them jump
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+    
+    task.wait(5)
+    
+    -- Restore jump power
+    for target, jumpPower in pairs(playerJumps) do
+        if target.Character then
+            local humanoid = target.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.JumpPower = jumpPower
+            end
+        end
+    end
+    
+    statusText.Text = "Super Jump: Ended"
+    task.wait(2)
+    updateUI()
+end
+
+-- 20. EARTHQUAKE 🌋 - SHAKE EVERYTHING
+local function earthquake()
+    statusText.Text = "🌋 EARTHQUAKE ACTIVATED!\nShaking everything!"
+    
+    local shakeActive = true
+    local shakeTime = 0
+    
+    local connection = RunService.Heartbeat:Connect(function(delta)
+        if not shakeActive then return end
+        
+        shakeTime = shakeTime + delta
+        
+        -- Shake all unanchored parts
+        for _, part in pairs(Workspace:GetDescendants()) do
+            if part:IsA("BasePart") and not part.Anchored then
+                local shakeAmount = math.sin(shakeTime * 10) * 10
+                part.CFrame = part.CFrame * CFrame.new(
+                    math.random(-shakeAmount, shakeAmount) * 0.1,
+                    math.random(-shakeAmount, shakeAmount) * 0.1,
+                    math.random(-shakeAmount, shakeAmount) * 0.1
+                )
+            end
+        end
+        
+        -- Shake players
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character then
+                local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local shakeAmount = math.sin(shakeTime * 15) * 5
+                    hrp.CFrame = hrp.CFrame * CFrame.new(
+                        math.random(-shakeAmount, shakeAmount) * 0.2,
+                        0,
+                        math.random(-shakeAmount, shakeAmount) * 0.2
+                    )
+                end
+            end
+        end
+    end)
+    
+    task.wait(10)
+    shakeActive = false
+    connection:Disconnect()
+    statusText.Text = "Earthquake: Ended"
+    task.wait(2)
+    updateUI()
+end
 -- Troll Button Connections
-trollButtons[1].MouseButton1Click:Connect(teleportGun)
-trollButtons[2].MouseButton1Click:Connect(playerExplode)
-trollButtons[3].MouseButton1Click:Connect(massTeleport)
-trollButtons[4].MouseButton1Click:Connect(serverCrash)
-trollButtons[5].MouseButton1Click:Connect(flingPlayers)
-trollButtons[6].MouseButton1Click:Connect(antiGravity)
-trollButtons[7].MouseButton1Click:Connect(blackHole)
-trollButtons[8].MouseButton1Click:Connect(lagMachine)
-trollButtons[9].MouseButton1Click:Connect(invisibleKiller)
-trollButtons[10].MouseButton1Click:Connect(trollGodMode)
-trollButtons[11].MouseButton1Click:Connect(forcefield)
-trollButtons[12].MouseButton1Click:Connect(freezePlayers)
-trollButtons[13].MouseButton1Click:Connect(superPunch)
-trollButtons[14].MouseButton1Click:Connect(chaosMode)
-trollButtons[15].MouseButton1Click:Connect(playerControl)
-trollButtons[16].MouseButton1Click:Connect(objectRain)
-trollButtons[17].MouseButton1Click:Connect(timeStop)
-trollButtons[18].MouseButton1Click:Connect(dimensionJump)
-trollButtons[19].MouseButton1Click:Connect(mindControl)
-trollButtons[20].MouseButton1Click:Connect(apocalypse)
+trollButtons[1].MouseButton1Click:Connect(magnetPull)
+trollButtons[2].MouseButton1Click:Connect(playerCrusher)
+trollButtons[3].MouseButton1Click:Connect(gravityWell)
+trollButtons[4].MouseButton1Click:Connect(explosivePunch)
+trollButtons[5].MouseButton1Click:Connect(teleportChaos)
+trollButtons[6].MouseButton1Click:Connect(objectMagnet)
+trollButtons[7].MouseButton1Click:Connect(playerLauncher)
+trollButtons[8].MouseButton1Click:Connect(slowMotion)
+trollButtons[9].MouseButton1Click:Connect(invisibleMode)
+trollButtons[10].MouseButton1Click:Connect(superStrength)
+trollButtons[11].MouseButton1Click:Connect(speedSteal)
+trollButtons[12].MouseButton1Click:Connect(playerFreeze)
+trollButtons[13].MouseButton1Click:Connect(massTeleportReal)
+trollButtons[14].MouseButton1Click:Connect(forcePush)
+trollButtons[15].MouseButton1Click:Connect(playerAttract)
+trollButtons[16].MouseButton1Click:Connect(objectRainReal)
+trollButtons[17].MouseButton1Click:Connect(antiGravityReal)
+trollButtons[18].MouseButton1Click:Connect(playerSpin)
+trollButtons[19].MouseButton1Click:Connect(superJumpReal)
+trollButtons[20].MouseButton1Click:Connect(earthquake)
 
 -- Utility functions
 function mouse1click()
@@ -1857,7 +2060,7 @@ gui.Destroying:Connect(function()
     Lighting.FogEnd = 100000
     Workspace.Gravity = 196.2
     
-    print("Ultimate Mobile System unloaded")
+    print("Ultimate Mobile System v5.0 unloaded")
 end)
 
 -- Hotkeys
@@ -1876,7 +2079,7 @@ UserInputService.InputBegan:Connect(function(input)
         end
     elseif input.KeyCode == Enum.KeyCode.T then
         if state.mode == "troll" then
-            teleportGun()
+            magnetPull()
         end
     elseif input.KeyCode == Enum.KeyCode.Escape then
         if state.flying then
@@ -1889,12 +2092,35 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
--- Final print
+-- Initialize
+updateUI()
 print("========================================")
-print("🚀 ULTIMATE MOBILE SYSTEM v4.0")
+print("🚀 ULTIMATE MOBILE SYSTEM v5.0")
 print("✨ Fly Mode: 20 Simple Functions")
-print("😈 Troll Mode: 20 HARDCORE Functions")
+print("😈 Troll Mode: 20 REAL IMPACT Functions")
+print("========================================")
+print("REAL PHYSICS EFFECTS ON PLAYERS:")
+print("1. Magnet Pull - Players pulled to you")
+print("2. Player Crusher - Crush players together")
+print("3. Gravity Well - Heavy gravity on players")
+print("4. Explosive Punch - Real explosions")
+print("5. Teleport Chaos - Random teleports")
+print("6. Object Magnet - Pull objects to you")
+print("7. Player Launcher - Launch to sky")
+print("8. Slow Motion - Slow everything down")
+print("9. Invisible Mode - True invisibility")
+print("10. Super Strength - Move heavy objects")
+print("11. Speed Steal - Steal speed from players")
+print("12. Player Freeze - Freeze players")
+print("13. Mass Teleport - All to one spot")
+print("14. Force Push - Push players away")
+print("15. Player Attract - Attract to you")
+print("16. Object Rain - Objects fall from sky")
+print("17. Anti-Gravity - Reverse gravity")
+print("18. Player Spin - Spin players")
+print("19. Super Jump - Extreme jump")
+print("20. Earthquake - Shake everything")
 print("========================================")
 print("Hotkeys: F=Fly, M=Marker, V=View")
-print("T=Teleport Gun, Esc=Exit modes")
+print("T=Magnet Pull, Esc=Exit modes")
 print("========================================")
