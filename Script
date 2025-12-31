@@ -73,7 +73,8 @@ status.Parent = mainFrame
 Instance.new("UICorner", status).CornerRadius = UDim.new(0, 10)
 
 -- Create simple button
-local function createButton(name, text, pos, size, color)
+local function createButton(name, text, pos, size, color, parent)
+    parent = parent or mainFrame
     local btn = Instance.new("TextButton")
     btn.Name = name
     btn.Size = size
@@ -83,7 +84,7 @@ local function createButton(name, text, pos, size, color)
     btn.TextColor3 = colors.light
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 14
-    btn.Parent = mainFrame
+    btn.Parent = parent
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
     return btn
 end
@@ -95,8 +96,7 @@ local viewBtn = createButton("ViewBtn", "👁️ VIEW MARKS", UDim2.new(0, 10, 0
 local clearBtn = createButton("ClearBtn", "🗑️ CLEAR ALL", UDim2.new(0.55, 0, 0, 155), UDim2.new(0.45, 0, 0, 40), Color3.fromRGB(219, 112, 147))
 
 -- Exit button
-local exitBtn = createButton("ExitBtn", "← EXIT", UDim2.new(0, 10, 0, 10), UDim2.new(0, 100, 0, 40), colors.dark)
-exitBtn.Parent = gui
+local exitBtn = createButton("ExitBtn", "← EXIT", UDim2.new(0, 10, 0, 10), UDim2.new(0, 100, 0, 40), colors.dark, gui)
 exitBtn.Visible = false
 
 -- Fly Controls
@@ -136,12 +136,10 @@ local lookLeft = createFlyBtn("◀", UDim2.new(0.2, -30, 0.8, -30))
 local lookRight = createFlyBtn("▶", UDim2.new(0.8, -30, 0.8, -30))
 
 -- Fly mode action buttons
-local teleportBtn = createButton("TeleportBtn", "⚡ TELEPORT", UDim2.new(0.5, -105, 0.5, -20), UDim2.new(0, 100, 0, 40), colors.secondary)
-teleportBtn.Parent = gui
+local teleportBtn = createButton("TeleportBtn", "⚡ TELEPORT", UDim2.new(0.5, -105, 0.5, -20), UDim2.new(0, 100, 0, 40), colors.secondary, gui)
 teleportBtn.Visible = false
 
-local flyMarkBtn = createButton("FlyMarkBtn", "📍 MARK", UDim2.new(0.5, 5, 0.5, -20), UDim2.new(0, 100, 0, 40), colors.primary)
-flyMarkBtn.Parent = gui
+local flyMarkBtn = createButton("FlyMarkBtn", "📍 MARK", UDim2.new(0.5, 5, 0.5, -20), UDim2.new(0, 100, 0, 40), colors.primary, gui)
 flyMarkBtn.Visible = false
 
 -- View Controls
@@ -153,13 +151,10 @@ viewControls.BackgroundTransparency = 0.5
 viewControls.Visible = false
 viewControls.Parent = gui
 
-local prevBtn = createButton("PrevBtn", "◀ PREV", UDim2.new(0.1, 0, 0.2, 0), UDim2.new(0.35, 0, 0.6, 0), colors.primary)
-prevBtn.Parent = viewControls
+local prevBtn = createButton("PrevBtn", "◀ PREV", UDim2.new(0.1, 0, 0.2, 0), UDim2.new(0.35, 0, 0.6, 0), colors.primary, viewControls)
+local nextBtn = createButton("NextBtn", "NEXT ▶", UDim2.new(0.55, 0, 0.2, 0), UDim2.new(0.35, 0, 0.6, 0), colors.primary, viewControls)
 
-local nextBtn = createButton("NextBtn", "NEXT ▶", UDim2.new(0.55, 0, 0.2, 0), UDim2.new(0.35, 0, 0.6, 0), colors.primary)
-nextBtn.Parent = viewControls
-
--- Marker functions
+-- MARKER FUNCTIONS (ИСПРАВЛЕНЫ)
 local function createMarker(position, index)
     local marker = Instance.new("Part")
     marker.Name = "Mark_" .. index
@@ -178,45 +173,76 @@ local function createMarker(position, index)
     light.Range = 10
     light.Parent = marker
     
+    -- Добавляем индикатор номера
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 50, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = marker
+    
+    local numberLabel = Instance.new("TextLabel")
+    numberLabel.Size = UDim2.new(1, 0, 1, 0)
+    numberLabel.BackgroundTransparency = 1
+    numberLabel.Text = tostring(index)
+    numberLabel.TextColor3 = colors.light
+    numberLabel.Font = Enum.Font.GothamBold
+    numberLabel.TextSize = 24
+    numberLabel.Parent = billboard
+    
     return marker
 end
 
 local function updateStatus()
     local count = #state.markers
     if state.isFlying then
-        status.Text = string.format("🚀 Flying\n📍 Markers: %d/5", count)
+        status.Text = string.format("🚀 Flying Mode\n📍 Markers: %d/5", count)
     elseif state.isViewing then
-        status.Text = string.format("👁️ Viewing %d/%d\nZoom: %.1fx", 
-            state.currentMarkerIndex, count, state.zoomLevel)
+        if count > 0 then
+            status.Text = string.format("👁️ Viewing Marker %d/%d\nZoom: %.1fx", 
+                state.currentMarkerIndex, count, state.zoomLevel)
+        else
+            status.Text = "👁️ No markers to view"
+        end
     else
-        status.Text = string.format("📍 Markers: %d/5\nReady!", count)
+        status.Text = string.format("📍 Markers: %d/5\nReady to explore!", count)
     end
 end
 
 local function placeMarker(pos)
     if #state.markers >= config.maxMarkers then
-        status.Text = "❌ Max 5 markers"
+        status.Text = "❌ Max 5 markers reached!"
         task.wait(1)
         updateStatus()
-        return
+        return false
     end
     
     local index = #state.markers + 1
     createMarker(pos, index)
-    table.insert(state.markers, {position = pos, index = index})
+    table.insert(state.markers, {
+        position = pos,
+        index = index
+    })
     
-    status.Text = "✅ Marker placed!"
+    status.Text = "✅ Marker #" .. index .. " placed!"
     task.wait(1)
     updateStatus()
+    return true
 end
 
 local function clearMarkers()
-    for _, part in pairs(Workspace:GetChildren()) do
-        if part.Name:find("Mark_") then
-            part:Destroy()
+    -- Удаляем все маркеры из Workspace
+    for _, obj in pairs(Workspace:GetChildren()) do
+        if obj.Name:match("Mark_%d+") then
+            obj:Destroy()
         end
     end
+    
+    -- Очищаем таблицу маркеров
     state.markers = {}
+    state.currentMarkerIndex = 0
+    
+    status.Text = "🗑️ All markers cleared!"
+    task.wait(1)
     updateStatus()
 end
 
@@ -270,8 +296,9 @@ local function teleportToCamera()
         
         if hrp and humanoid then
             stopFlying()
+            humanoid:ChangeState(Enum.HumanoidStateType.Falling)
             hrp.CFrame = CFrame.new(state.flyPosition)
-            status.Text = "⚡ Teleported!"
+            status.Text = "⚡ Teleported to camera!"
             task.wait(1)
             updateStatus()
         end
@@ -281,12 +308,15 @@ end
 -- Viewing system
 local function startViewing()
     if #state.markers == 0 then
-        status.Text = "❌ No markers"
+        status.Text = "❌ No markers placed yet!"
+        task.wait(1.5)
+        updateStatus()
         return
     end
     
     state.isViewing = true
     state.currentMarkerIndex = 1
+    state.viewAngle = Vector2.new(0, 0)
     state.zoomLevel = 1
     
     Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
@@ -305,6 +335,24 @@ local function stopViewing()
     viewControls.Visible = false
     exitBtn.Visible = false
     mainFrame.Visible = true
+    
+    updateStatus()
+end
+
+local function switchMarker(direction)
+    if #state.markers == 0 then return end
+    
+    if direction == "next" then
+        state.currentMarkerIndex = state.currentMarkerIndex + 1
+        if state.currentMarkerIndex > #state.markers then
+            state.currentMarkerIndex = 1
+        end
+    elseif direction == "prev" then
+        state.currentMarkerIndex = state.currentMarkerIndex - 1
+        if state.currentMarkerIndex < 1 then
+            state.currentMarkerIndex = #state.markers
+        end
+    end
     
     updateStatus()
 end
@@ -345,29 +393,48 @@ lookRight.MouseButton1Up:Connect(function() cameraRotations.right = false end)
 
 -- Main button events
 flyBtn.MouseButton1Click:Connect(startFlying)
-markBtn.MouseButton1Click:Connect(function() placeMarker(Workspace.CurrentCamera.CFrame.Position) end)
+
+markBtn.MouseButton1Click:Connect(function()
+    local camera = Workspace.CurrentCamera
+    placeMarker(camera.CFrame.Position)
+end)
+
 viewBtn.MouseButton1Click:Connect(startViewing)
 clearBtn.MouseButton1Click:Connect(clearMarkers)
+
 exitBtn.MouseButton1Click:Connect(function()
-    if state.isFlying then stopFlying()
-    elseif state.isViewing then stopViewing() end
+    if state.isFlying then 
+        stopFlying()
+    elseif state.isViewing then 
+        stopViewing() 
+    end
 end)
 
 teleportBtn.MouseButton1Click:Connect(teleportToCamera)
-flyMarkBtn.MouseButton1Click:Connect(function() placeMarker(state.flyPosition) end)
+
+flyMarkBtn.MouseButton1Click:Connect(function()
+    if state.isFlying then
+        placeMarker(state.flyPosition)
+    end
+end)
 
 prevBtn.MouseButton1Click:Connect(function()
-    if #state.markers == 0 then return end
-    state.currentMarkerIndex = state.currentMarkerIndex - 1
-    if state.currentMarkerIndex < 1 then state.currentMarkerIndex = #state.markers end
-    updateStatus()
+    switchMarker("prev")
 end)
 
 nextBtn.MouseButton1Click:Connect(function()
-    if #state.markers == 0 then return end
-    state.currentMarkerIndex = state.currentMarkerIndex + 1
-    if state.currentMarkerIndex > #state.markers then state.currentMarkerIndex = 1 end
-    updateStatus()
+    switchMarker("next")
+end)
+
+-- Zoom controls
+UserInputService.InputChanged:Connect(function(input)
+    if state.isViewing and input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Delta.Y
+        if delta ~= 0 then
+            state.zoomLevel = math.clamp(state.zoomLevel - delta * 0.01, 0.5, 3)
+            updateStatus()
+        end
+    end
 end)
 
 -- Main loop
@@ -376,15 +443,25 @@ RunService.Heartbeat:Connect(function(delta)
         local camera = Workspace.CurrentCamera
         
         -- Camera rotation
-        if cameraRotations.left then state.flyAngle = Vector2.new(state.flyAngle.X - 2 * delta, state.flyAngle.Y) end
-        if cameraRotations.right then state.flyAngle = Vector2.new(state.flyAngle.X + 2 * delta, state.flyAngle.Y) end
-        state.flyAngle = Vector2.new(state.flyAngle.X, math.clamp(state.flyAngle.Y, -1.4, 1.4))
+        if cameraRotations.left then 
+            state.flyAngle = Vector2.new(state.flyAngle.X - 2 * delta * config.sensitivity, state.flyAngle.Y) 
+        end
+        if cameraRotations.right then 
+            state.flyAngle = Vector2.new(state.flyAngle.X + 2 * delta * config.sensitivity, state.flyAngle.Y) 
+        end
         
-        -- Movement
+        -- Limit vertical rotation
+        state.flyAngle = Vector2.new(
+            state.flyAngle.X,
+            math.clamp(state.flyAngle.Y, -math.pi/2 + 0.1, math.pi/2 - 0.1)
+        )
+        
+        -- Movement vectors
         local yaw = state.flyAngle.X
         local forward = Vector3.new(math.sin(yaw), 0, math.cos(yaw))
         local right = Vector3.new(math.cos(yaw), 0, -math.sin(yaw))
         
+        -- Apply movement
         local move = Vector3.new(0, 0, 0)
         if flyDirections.forward then move = move + forward end
         if flyDirections.back then move = move - forward end
@@ -409,19 +486,25 @@ RunService.Heartbeat:Connect(function(delta)
         
     elseif state.isViewing and #state.markers > 0 then
         local camera = Workspace.CurrentCamera
-        local mark = state.markers[state.currentMarkerIndex]
-        if mark then
-            camera.CFrame = CFrame.new(mark.position + Vector3.new(0, 5, 10 * state.zoomLevel), mark.position)
+        local markData = state.markers[state.currentMarkerIndex]
+        
+        if markData then
+            -- Calculate camera position with orbit
+            local basePos = markData.position
+            local yaw = state.viewAngle.X
+            local pitch = state.viewAngle.Y
+            local distance = 10 * state.zoomLevel
+            
+            local offset = Vector3.new(
+                math.sin(yaw) * math.cos(pitch) * distance,
+                math.sin(pitch) * distance,
+                math.cos(yaw) * math.cos(pitch) * distance
+            )
+            
+            local cameraPos = basePos + offset
+            camera.CFrame = CFrame.new(cameraPos, basePos)
             camera.FieldOfView = config.cameraFOV / state.zoomLevel
         end
-    end
-end)
-
--- Zoom with touch
-UserInputService.InputChanged:Connect(function(input)
-    if state.isViewing and input.UserInputType == Enum.UserInputType.Touch then
-        state.zoomLevel = math.clamp(state.zoomLevel + input.Delta.Y * 0.01, 0.5, 3)
-        updateStatus()
     end
 end)
 
@@ -429,4 +512,7 @@ end)
 gui.Destroying:Connect(clearMarkers)
 
 updateStatus()
-print("✅ Fly & Mark System loaded")
+print("✅ Fly & Mark System loaded successfully!")
+print("🚀 Free Camera with 360° rotation")
+print("📍 Place markers anywhere")
+print("👁️ View all placed markers")
