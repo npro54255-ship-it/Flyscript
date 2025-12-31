@@ -123,6 +123,11 @@ local teleportBtn = createSimpleButton("TeleportBtn", "TELEPORT", UDim2.new(0, 2
 teleportBtn.Visible = false
 teleportBtn.Parent = gui
 
+-- Place Mark button in fly mode
+local flyPlaceMarkBtn = createSimpleButton("FlyPlaceMark", "PLACE MARK", UDim2.new(0, 270, 0, 160), Color3.fromRGB(255, 180, 0))
+flyPlaceMarkBtn.Visible = false
+flyPlaceMarkBtn.Parent = gui
+
 -- View controls (shown when viewing marks)
 local viewControls = Instance.new("Frame")
 viewControls.Size = UDim2.new(1, 0, 0, 150)
@@ -174,7 +179,7 @@ end
 local function updateStatus()
     local count = #state.markers
     if state.isFlying then
-        status.Text = string.format("FLYING MODE\nMarkers: %d/5\nRotate camera with ◀ ▶ ▲ ▼", count)
+        status.Text = string.format("FLYING MODE\nMarkers: %d/5\nPlace marks with PLACE MARK button", count)
     elseif state.isViewing then
         status.Text = string.format("VIEWING MODE\nMarker: %d/%d\nMove camera with buttons", 
             state.currentMarkerIndex, count)
@@ -183,16 +188,13 @@ local function updateStatus()
     end
 end
 
-local function placeMarker()
+local function placeMarkerFromPosition(position)
     if #state.markers >= config.maxMarkers then
         status.Text = "MAX 5 MARKERS REACHED"
-        return
+        return false
     end
     
-    local camera = Workspace.CurrentCamera
-    local position = camera.CFrame.Position
     local index = #state.markers + 1
-    
     createMarker(position, index)
     
     table.insert(state.markers, {
@@ -201,6 +203,31 @@ local function placeMarker()
     })
     
     updateStatus()
+    return true
+end
+
+local function placeMarker()
+    local camera = Workspace.CurrentCamera
+    local position = camera.CFrame.Position
+    
+    if placeMarkerFromPosition(position) then
+        -- Show visual feedback
+        status.Text = "MARKER PLACED!"
+        task.wait(1)
+        updateStatus()
+    end
+end
+
+local function placeMarkerInFlyMode()
+    if not state.isFlying then return end
+    
+    if placeMarkerFromPosition(state.flyPosition) then
+        -- Show visual feedback
+        local originalText = status.Text
+        status.Text = "MARKER PLACED AT CAMERA POSITION!"
+        task.wait(1)
+        status.Text = originalText
+    end
 end
 
 local function clearAllMarkers()
@@ -236,6 +263,7 @@ local function startFlying()
     flyControls.Visible = true
     exitBtn.Visible = true
     teleportBtn.Visible = true
+    flyPlaceMarkBtn.Visible = true
     flyBtn.Visible = false
     markBtn.Visible = false
     viewBtn.Visible = false
@@ -256,6 +284,7 @@ local function stopFlying()
     flyControls.Visible = false
     exitBtn.Visible = false
     teleportBtn.Visible = false
+    flyPlaceMarkBtn.Visible = false
     flyBtn.Visible = true
     markBtn.Visible = true
     viewBtn.Visible = true
@@ -283,12 +312,12 @@ local function teleportToCamera()
         
         -- Teleport player
         humanoid:ChangeState(Enum.HumanoidStateType.Swimming) -- Prevent fall damage
-        wait(0.1)
+        task.wait(0.1)
         hrp.CFrame = CFrame.new(targetPosition)
         humanoid:ChangeState(Enum.HumanoidStateType.Running)
         
         status.Text = "TELEPORTED TO CAMERA POSITION"
-        wait(2)
+        task.wait(2)
         updateStatus()
     end
 end
@@ -457,8 +486,9 @@ exitBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Teleport button event
+-- Special buttons in fly mode
 teleportBtn.MouseButton1Click:Connect(teleportToCamera)
+flyPlaceMarkBtn.MouseButton1Click:Connect(placeMarkerInFlyMode)
 
 -- Viewing controls
 viewPrev.MouseButton1Click:Connect(function()
@@ -620,6 +650,6 @@ updateStatus()
 
 print("Mobile Fly & Mark System loaded")
 print("FREE CAMERA - Fly with camera (360° rotation)")
-print("PLACE MARK - Save position as marker")
+print("PLACE MARK - Save position as marker (works in Free Camera)")
 print("VIEW MARKS - View saved markers with camera control")
 print("TELEPORT - Teleport to camera position")
