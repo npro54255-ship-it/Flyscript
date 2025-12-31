@@ -1,4 +1,4 @@
--- Reverse Mode System by sherikyt
+-- Ultimate Mobile System by sherikyt
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
@@ -8,137 +8,227 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Colors
-local colors = {
-    normal = {
-        bg = Color3.fromRGB(30, 30, 40),
-        primary = Color3.fromRGB(138, 43, 226),
-        secondary = Color3.fromRGB(186, 85, 211),
-        light = Color3.fromRGB(230, 230, 250)
-    },
-    reverse = {
-        bg = Color3.fromRGB(40, 0, 0),
-        primary = Color3.fromRGB(255, 50, 50),
-        secondary = Color3.fromRGB(255, 0, 0),
-        light = Color3.fromRGB(255, 200, 200),
-        dark = Color3.fromRGB(20, 0, 0)
-    }
+-- Config
+local config = {
+    maxMarkers = 5,
+    flySpeed = 25,
+    cameraFOV = 70,
+    minSpeed = 5,
+    maxSpeed = 100
 }
 
+-- State
 local state = {
-    isReverseMode = false,
-    currentMode = "normal"
+    mode = "fly", -- fly or troll
+    markers = {},
+    flying = false,
+    viewing = false,
+    flyPos = Vector3.new(0, 0, 0),
+    flyAng = Vector2.new(0, 0),
+    viewAng = Vector2.new(0, 0),
+    zoom = 1,
+    speed = 25,
+    markerIndex = 0
 }
 
--- Create main GUI
+-- Colors
+local flyColors = {
+    bg = Color3.fromRGB(75, 0, 130),
+    primary = Color3.fromRGB(138, 43, 226),
+    secondary = Color3.fromRGB(186, 85, 211),
+    light = Color3.fromRGB(230, 230, 250),
+    blue = Color3.fromRGB(0, 150, 255),
+    green = Color3.fromRGB(0, 200, 100)
+}
+
+local trollColors = {
+    bg = Color3.fromRGB(40, 0, 0),
+    primary = Color3.fromRGB(255, 50, 50),
+    secondary = Color3.fromRGB(255, 0, 0),
+    light = Color3.fromRGB(255, 200, 200)
+}
+
+-- Create UI
 local gui = Instance.new("ScreenGui")
-gui.Name = "ReverseModeSystem"
+gui.Name = "UltimateSystem"
 gui.Parent = playerGui
 
--- Main container
-local mainContainer = Instance.new("Frame")
-mainContainer.Size = UDim2.new(0, 300, 0, 220)
-mainContainer.Position = UDim2.new(0, 10, 0, 10)
-mainContainer.BackgroundColor3 = colors.normal.bg
-mainContainer.BackgroundTransparency = 0.2
-mainContainer.Parent = gui
+-- Main Container
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 250, 0, 180)
+main.Position = UDim2.new(0, 10, 0, 10)
+main.BackgroundColor3 = flyColors.bg
+main.BackgroundTransparency = 0.3
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
 
-local corner = Instance.new("UICorner", mainContainer)
-corner.CornerRadius = UDim.new(0, 15)
-
--- Title with reverse button
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 40)
-titleBar.BackgroundTransparency = 1
-titleBar.Parent = mainContainer
-
+-- Title
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0.7, 0, 1, 0)
+title.Size = UDim2.new(0.7, 0, 0, 30)
 title.BackgroundTransparency = 1
-title.Text = "🔀 Reverse Mode System"
-title.TextColor3 = colors.normal.light
+title.Text = "✨ Fly & Marks"
+title.TextColor3 = flyColors.light
 title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+title.TextSize = 16
 title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = titleBar
+title.Parent = main
 
-local reverseBtn = Instance.new("TextButton")
-reverseBtn.Size = UDim2.new(0, 40, 0, 40)
-reverseBtn.Position = UDim2.new(1, -40, 0, 0)
-reverseBtn.BackgroundColor3 = colors.normal.secondary
-reverseBtn.Text = "👿"
-reverseBtn.TextColor3 = colors.normal.light
-reverseBtn.Font = Enum.Font.GothamBold
-reverseBtn.TextSize = 24
-reverseBtn.Parent = titleBar
-Instance.new("UICorner", reverseBtn).CornerRadius = UDim.new(0, 8)
+local modeBtn = Instance.new("TextButton")
+modeBtn.Size = UDim2.new(0, 40, 0, 30)
+modeBtn.Position = UDim2.new(1, -40, 0, 0)
+modeBtn.BackgroundColor3 = flyColors.secondary
+modeBtn.Text = "👿"
+modeBtn.TextColor3 = flyColors.light
+modeBtn.Font = Enum.Font.GothamBold
+modeBtn.TextSize = 20
+modeBtn.Parent = main
+Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0, 8)
 
--- Status display
+-- Status
 local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -20, 0, 60)
-status.Position = UDim2.new(0, 10, 0, 45)
-status.BackgroundColor3 = colors.normal.primary
-status.BackgroundTransparency = 0.3
-status.Text = "Normal Mode\nReady for trolling!"
-status.TextColor3 = colors.normal.light
+status.Size = UDim2.new(1, -10, 0, 40)
+status.Position = UDim2.new(0, 5, 0, 35)
+status.BackgroundColor3 = flyColors.primary
+status.BackgroundTransparency = 0.4
+status.Text = "Markers: 0/5\nReady!"
+status.TextColor3 = flyColors.light
 status.Font = Enum.Font.Gotham
 status.TextSize = 14
 status.TextWrapped = true
-status.Parent = mainContainer
-Instance.new("UICorner", status).CornerRadius = UDim.new(0, 10)
+status.Parent = main
+Instance.new("UICorner", status).CornerRadius = UDim.new(0, 8)
 
--- Create button function
-local function createButton(name, text, pos, size, color, isReverse)
-    local currentColors = isReverse and colors.reverse or colors.normal
+-- Button creator
+local function createBtn(name, text, pos, size, color, isTroll)
+    local colors = isTroll and trollColors or flyColors
     local btn = Instance.new("TextButton")
     btn.Name = name
     btn.Size = size
     btn.Position = pos
-    btn.BackgroundColor3 = color or currentColors.primary
+    btn.BackgroundColor3 = color or colors.primary
     btn.Text = text
-    btn.TextColor3 = currentColors.light
+    btn.TextColor3 = colors.light
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.Parent = mainContainer
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    btn.TextSize = 12
+    btn.Parent = main
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
     return btn
 end
 
--- Normal mode buttons
-local trollBtn = createButton("TrollBtn", "👺 TROLL MODE", UDim2.new(0, 10, 0, 115), UDim2.new(1, -20, 0, 45), colors.normal.secondary)
-local infoBtn = createButton("InfoBtn", "ℹ️ INFO", UDim2.new(0, 10, 0, 170), UDim2.new(1, -20, 0, 35), colors.normal.primary)
+-- Fly buttons
+local flyBtn = createBtn("FlyBtn", "🚀 Fly", UDim2.new(0, 5, 0, 85), UDim2.new(0.45, 0, 0, 35), flyColors.primary)
+local markBtn = createBtn("MarkBtn", "📍 Mark", UDim2.new(0.55, 0, 0, 85), UDim2.new(0.45, 0, 0, 35), flyColors.secondary)
+local viewBtn = createBtn("ViewBtn", "👁️ View", UDim2.new(0, 5, 0, 130), UDim2.new(0.45, 0, 0, 35), flyColors.primary)
+local clearBtn = createBtn("ClearBtn", "🗑️ Clear", UDim2.new(0.55, 0, 0, 130), UDim2.new(0.45, 0, 0, 35), Color3.fromRGB(219, 112, 147))
 
--- Reverse mode will only show troll button
-local reverseTrollBtn = createButton("ReverseTrollBtn", "👹 REVERSE TROLL", UDim2.new(0, 10, 0, 115), UDim2.new(1, -20, 0, 45), colors.reverse.primary, true)
-reverseTrollBtn.Visible = false
+-- Troll button
+local trollBtn = createBtn("TrollBtn", "👺 TROLL", UDim2.new(0, 5, 0, 85), UDim2.new(1, -10, 0, 35), trollColors.primary, true)
+trollBtn.Visible = false
 
--- Full screen red overlay for transition
-local redOverlay = Instance.new("Frame")
-redOverlay.Size = UDim2.new(1, 0, 1, 0)
-redOverlay.Position = UDim2.new(0, 0, 0, 0)
-redOverlay.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-redOverlay.BackgroundTransparency = 1
-redOverlay.ZIndex = 100
-redOverlay.Parent = gui
+-- Exit
+local exitBtn = createBtn("ExitBtn", "← Exit", UDim2.new(0, 5, 0, 5), UDim2.new(0, 80, 0, 25), Color3.fromRGB(75, 0, 130))
+exitBtn.Parent = gui
+exitBtn.Visible = false
 
--- Demon emoji
-local demonEmoji = Instance.new("TextLabel")
-demonEmoji.Size = UDim2.new(0, 150, 0, 150)
-demonEmoji.Position = UDim2.new(0.5, -75, 0.5, -75)
-demonEmoji.BackgroundTransparency = 1
-demonEmoji.Text = "👿"
-demonEmoji.TextColor3 = Color3.fromRGB(255, 255, 255)
-demonEmoji.Font = Enum.Font.GothamBold
-demonEmoji.TextSize = 120
-demonEmoji.Visible = false
-demonEmoji.ZIndex = 101
-demonEmoji.Parent = gui
+-- Fly Controls
+local flyPanel = Instance.new("Frame")
+flyPanel.Size = UDim2.new(1, 0, 0, 220)
+flyPanel.Position = UDim2.new(0, 0, 1, -220)
+flyPanel.BackgroundColor3 = Color3.new(0, 0, 0)
+flyPanel.BackgroundTransparency = 0.5
+flyPanel.Visible = false
+flyPanel.Parent = gui
 
--- Troll mode GUI (hidden initially)
+local function createFlyBtn(text, pos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 60, 0, 60)
+    btn.Position = pos
+    btn.BackgroundColor3 = flyColors.primary
+    btn.BackgroundTransparency = 0.4
+    btn.Text = text
+    btn.TextColor3 = flyColors.light
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 20
+    btn.Parent = flyPanel
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0.5, 0)
+    return btn
+end
+
+local moveForward = createFlyBtn("⬆", UDim2.new(0.5, -30, 0.15, -30))
+local moveBack = createFlyBtn("⬇", UDim2.new(0.5, -30, 0.85, -30))
+local moveLeft = createFlyBtn("⬅", UDim2.new(0.2, -30, 0.5, -30))
+local moveRight = createFlyBtn("➡", UDim2.new(0.8, -30, 0.5, -30))
+local moveUp = createFlyBtn("↑", UDim2.new(0.2, -30, 0.15, -30))
+local moveDown = createFlyBtn("↓", UDim2.new(0.8, -30, 0.15, -30))
+local lookLeft = createFlyBtn("◀", UDim2.new(0.2, -30, 0.85, -30))
+local lookRight = createFlyBtn("▶", UDim2.new(0.8, -30, 0.85, -30))
+
+-- Speed
+local speedPanel = Instance.new("Frame")
+speedPanel.Size = UDim2.new(0.8, 0, 0, 40)
+speedPanel.Position = UDim2.new(0.1, 0, 0, 5)
+speedPanel.BackgroundTransparency = 1
+speedPanel.Visible = false
+speedPanel.Parent = gui
+
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(0.3, 0, 1, 0)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Speed: 25"
+speedLabel.TextColor3 = flyColors.light
+speedLabel.Font = Enum.Font.GothamBold
+speedLabel.TextSize = 14
+speedLabel.Parent = speedPanel
+
+local speedDown = createBtn("SpeedDown", "➖", UDim2.new(0.3, 0, 0, 0), UDim2.new(0.15, 0, 1, 0), flyColors.blue)
+speedDown.Parent = speedPanel
+local speedUp = createBtn("SpeedUp", "➕", UDim2.new(0.85, 0, 0, 0), UDim2.new(0.15, 0, 1, 0), flyColors.blue)
+speedUp.Parent = speedPanel
+
+-- Fly actions
+local flyActions = Instance.new("Frame")
+flyActions.Size = UDim2.new(0, 220, 0, 40)
+flyActions.Position = UDim2.new(0.5, -110, 0.5, -20)
+flyActions.BackgroundTransparency = 1
+flyActions.Visible = false
+flyActions.Parent = gui
+
+local teleportBtn = createBtn("TeleportBtn", "⚡ Teleport", UDim2.new(0, 0, 0, 0), UDim2.new(0.45, 0, 1, 0), flyColors.green)
+teleportBtn.Parent = flyActions
+local flyMarkBtn = createBtn("FlyMarkBtn", "📍 Mark", UDim2.new(0.55, 0, 0, 0), UDim2.new(0.45, 0, 1, 0), flyColors.primary)
+flyMarkBtn.Parent = flyActions
+
+-- View panel
+local viewPanel = Instance.new("Frame")
+viewPanel.Size = UDim2.new(1, 0, 0, 120)
+viewPanel.Position = UDim2.new(0, 0, 1, -120)
+viewPanel.BackgroundColor3 = Color3.new(0, 0, 0)
+viewPanel.BackgroundTransparency = 0.5
+viewPanel.Visible = false
+viewPanel.Parent = gui
+
+local prevBtn = createBtn("PrevBtn", "◀ Prev", UDim2.new(0.1, 0, 0.2, 0), UDim2.new(0.2, 0, 0.6, 0), flyColors.primary)
+prevBtn.Parent = viewPanel
+local nextBtn = createBtn("NextBtn", "Next ▶", UDim2.new(0.7, 0, 0.2, 0), UDim2.new(0.2, 0, 0.6, 0), flyColors.primary)
+nextBtn.Parent = viewPanel
+local viewUp = createBtn("ViewUp", "⬆", UDim2.new(0.4, 0, 0.1, 0), UDim2.new(0.2, 0, 0.3, 0), flyColors.blue)
+viewUp.Parent = viewPanel
+local viewDown = createBtn("ViewDown", "⬇", UDim2.new(0.4, 0, 0.7, 0), UDim2.new(0.2, 0, 0.3, 0), flyColors.blue)
+viewDown.Parent = viewPanel
+local viewLeft = createBtn("ViewLeft", "⬅", UDim2.new(0.2, 0, 0.4, 0), UDim2.new(0.2, 0, 0.3, 0), flyColors.blue)
+viewLeft.Parent = viewPanel
+local viewRight = createBtn("ViewRight", "➡", UDim2.new(0.6, 0, 0.4, 0), UDim2.new(0.2, 0, 0.3, 0), flyColors.blue)
+viewRight.Parent = viewPanel
+local zoomIn = createBtn("ZoomIn", "➕", UDim2.new(0.85, 0, 0.1, 0), UDim2.new(0.1, 0, 0.3, 0), flyColors.green)
+zoomIn.Parent = viewPanel
+local zoomOut = createBtn("ZoomOut", "➖", UDim2.new(0.85, 0, 0.7, 0), UDim2.new(0.1, 0, 0.3, 0), flyColors.green)
+zoomOut.Parent = viewPanel
+
+-- Troll GUI
 local trollGui = Instance.new("Frame")
 trollGui.Size = UDim2.new(0, 280, 0, 200)
 trollGui.Position = UDim2.new(0.5, -140, 0.5, -100)
-trollGui.BackgroundColor3 = colors.normal.bg
+trollGui.BackgroundColor3 = trollColors.bg
 trollGui.BackgroundTransparency = 0.3
 trollGui.Visible = false
 trollGui.ZIndex = 50
@@ -148,8 +238,8 @@ Instance.new("UICorner", trollGui).CornerRadius = UDim.new(0, 15)
 local trollTitle = Instance.new("TextLabel")
 trollTitle.Size = UDim2.new(1, 0, 0, 40)
 trollTitle.BackgroundTransparency = 1
-trollTitle.Text = "👺 TROLL TELEPORT"
-trollTitle.TextColor3 = colors.normal.light
+trollTitle.Text = "👹 TROLL TELEPORT"
+trollTitle.TextColor3 = trollColors.light
 trollTitle.Font = Enum.Font.GothamBold
 trollTitle.TextSize = 20
 trollTitle.Parent = trollGui
@@ -157,7 +247,7 @@ trollTitle.Parent = trollGui
 local inputFrame = Instance.new("Frame")
 inputFrame.Size = UDim2.new(1, -20, 0, 50)
 inputFrame.Position = UDim2.new(0, 10, 0, 50)
-inputFrame.BackgroundColor3 = colors.normal.primary
+inputFrame.BackgroundColor3 = trollColors.primary
 inputFrame.BackgroundTransparency = 0.2
 inputFrame.Parent = trollGui
 Instance.new("UICorner", inputFrame).CornerRadius = UDim.new(0, 10)
@@ -167,285 +257,487 @@ usernameInput.Size = UDim2.new(1, -20, 1, -10)
 usernameInput.Position = UDim2.new(0, 10, 0, 5)
 usernameInput.BackgroundTransparency = 1
 usernameInput.Text = ""
-usernameInput.PlaceholderText = "Enter player username..."
-usernameInput.TextColor3 = colors.normal.light
+usernameInput.PlaceholderText = "Enter username..."
+usernameInput.TextColor3 = trollColors.light
 usernameInput.Font = Enum.Font.Gotham
 usernameInput.TextSize = 16
 usernameInput.Parent = inputFrame
 
-local teleportBtn = Instance.new("TextButton")
-teleportBtn.Size = UDim2.new(1, -20, 0, 45)
-teleportBtn.Position = UDim2.new(0, 10, 0, 115)
-teleportBtn.BackgroundColor3 = colors.normal.secondary
-teleportBtn.Text = "⚡ TELEPORT"
-teleportBtn.TextColor3 = colors.normal.light
-teleportBtn.Font = Enum.Font.GothamBold
-teleportBtn.TextSize = 18
-teleportBtn.Parent = trollGui
-Instance.new("UICorner", teleportBtn).CornerRadius = UDim.new(0, 10)
+local trollTeleportBtn = Instance.new("TextButton")
+trollTeleportBtn.Size = UDim2.new(1, -20, 0, 45)
+trollTeleportBtn.Position = UDim2.new(0, 10, 0, 115)
+trollTeleportBtn.BackgroundColor3 = trollColors.secondary
+trollTeleportBtn.Text = "⚡ TELEPORT"
+trollTeleportBtn.TextColor3 = trollColors.light
+trollTeleportBtn.Font = Enum.Font.GothamBold
+trollTeleportBtn.TextSize = 18
+trollTeleportBtn.Parent = trollGui
+Instance.new("UICorner", trollTeleportBtn).CornerRadius = UDim.new(0, 10)
 
 local closeTrollBtn = Instance.new("TextButton")
 closeTrollBtn.Size = UDim2.new(0, 30, 0, 30)
 closeTrollBtn.Position = UDim2.new(1, -35, 0, 5)
 closeTrollBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 closeTrollBtn.Text = "✕"
-closeTrollBtn.TextColor3 = colors.normal.light
+closeTrollBtn.TextColor3 = trollColors.light
 closeTrollBtn.Font = Enum.Font.GothamBold
 closeTrollBtn.TextSize = 20
 closeTrollBtn.Parent = trollGui
 Instance.new("UICorner", closeTrollBtn).CornerRadius = UDim.new(0, 15)
 
--- Function to update UI colors
-local function updateUIColors(isReverse)
-    state.isReverseMode = isReverse
-    state.currentMode = isReverse and "reverse" or "normal"
+-- Transition effects
+local redOverlay = Instance.new("Frame")
+redOverlay.Size = UDim2.new(1, 0, 1, 0)
+redOverlay.Position = UDim2.new(0, 0, 0, 0)
+redOverlay.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+redOverlay.BackgroundTransparency = 1
+redOverlay.ZIndex = 100
+redOverlay.Parent = gui
+
+local demonEmoji = Instance.new("TextLabel")
+demonEmoji.Size = UDim2.new(0, 150, 0, 150)
+demonEmoji.Position = UDim2.new(0.5, -75, 0.5, -75)
+demonEmoji.BackgroundTransparency = 1
+demonEmoji.Text = "😈"
+demonEmoji.TextColor3 = Color3.fromRGB(255, 255, 255)
+demonEmoji.Font = Enum.Font.GothamBold
+demonEmoji.TextSize = 120
+demonEmoji.Visible = false
+demonEmoji.ZIndex = 101
+demonEmoji.Parent = gui
+
+-- Marker system
+local markerFolder = Instance.new("Folder")
+markerFolder.Name = "Markers"
+markerFolder.Parent = Workspace
+
+local function createMarker(pos, index)
+    local marker = Instance.new("Part")
+    marker.Name = "Mark_" .. index
+    marker.Size = Vector3.new(2, 2, 2)
+    marker.Position = pos
+    marker.Anchored = true
+    marker.CanCollide = false
+    marker.Transparency = 0.3
+    marker.Color = flyColors.primary
+    marker.Parent = markerFolder
     
-    local currentColors = isReverse and colors.reverse or colors.normal
+    local light = Instance.new("PointLight")
+    light.Color = flyColors.secondary
+    light.Brightness = 3
+    light.Range = 10
+    light.Parent = marker
     
-    -- Update main container
-    mainContainer.BackgroundColor3 = currentColors.bg
+    return marker
+end
+
+-- Mode management
+local function updateUI()
+    local isTroll = state.mode == "troll"
+    local colors = isTroll and trollColors or flyColors
     
-    -- Update status
-    status.BackgroundColor3 = currentColors.primary
-    status.TextColor3 = currentColors.light
+    main.BackgroundColor3 = colors.bg
+    status.BackgroundColor3 = colors.primary
+    status.TextColor3 = colors.light
+    title.Text = isTroll and "😈 TROLL MODE" or "✨ Fly & Marks"
+    title.TextColor3 = colors.light
+    modeBtn.BackgroundColor3 = colors.secondary
+    modeBtn.Text = isTroll and "✨" or "👿"
     
-    -- Update title
-    title.TextColor3 = currentColors.light
+    flyBtn.Visible = not isTroll
+    markBtn.Visible = not isTroll
+    viewBtn.Visible = not isTroll
+    clearBtn.Visible = not isTroll
+    trollBtn.Visible = isTroll
     
-    -- Update reverse button
-    reverseBtn.BackgroundColor3 = currentColors.secondary
-    reverseBtn.TextColor3 = currentColors.light
-    
-    -- Show/hide buttons
-    trollBtn.Visible = not isReverse
-    infoBtn.Visible = not isReverse
-    reverseTrollBtn.Visible = isReverse
-    
-    -- Update status text
-    if isReverse then
-        status.Text = "REVERSE MODE ACTIVATED!\nDemonic powers unlocked... 👿"
-        reverseBtn.Text = "😇"  -- Angel emoji when in reverse mode
+    if isTroll then
+        status.Text = "TROLL MODE!\nReady for mischief... 😈"
     else
-        status.Text = "Normal Mode\nReady for trolling!"
-        reverseBtn.Text = "👿"  -- Demon emoji when in normal mode
+        local count = #state.markers
+        status.Text = string.format("Markers: %d/5", count)
+        if state.flying then
+            status.Text = string.format("Flying\nMarkers: %d/5\nSpeed: %d", count, state.speed)
+        elseif state.viewing and count > 0 then
+            status.Text = string.format("Viewing %d/%d\nZoom: %.1f", state.markerIndex or 1, count, state.zoom)
+        end
     end
 end
 
--- Function for reverse mode transition
-local function activateReverseMode()
-    -- Red overlay animation
-    local fadeIn = TweenService:Create(
-        redOverlay,
-        TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {BackgroundTransparency = 0.2}
-    )
+local function playTrollTransition()
+    local fadeIn = TweenService:Create(redOverlay, TweenInfo.new(0.8), {BackgroundTransparency = 0.2})
+    local fadeOut = TweenService:Create(redOverlay, TweenInfo.new(1.2), {BackgroundTransparency = 1})
     
-    local fadeOut = TweenService:Create(
-        redOverlay,
-        TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-        {BackgroundTransparency = 1}
-    )
-    
-    -- Demon emoji animation
     demonEmoji.Visible = true
     demonEmoji.TextTransparency = 1
     
-    local demonFadeIn = TweenService:Create(
-        demonEmoji,
-        TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {TextTransparency = 0}
-    )
+    local demonIn = TweenService:Create(demonEmoji, TweenInfo.new(0.5), {TextTransparency = 0})
+    local demonOut = TweenService:Create(demonEmoji, TweenInfo.new(0.8), {TextTransparency = 1})
     
-    local demonFadeOut = TweenService:Create(
-        demonEmoji,
-        TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-        {TextTransparency = 1}
-    )
-    
-    -- Play animations
     fadeIn:Play()
     wait(0.3)
-    
-    demonFadeIn:Play()
+    demonIn:Play()
     wait(0.8)
-    
-    demonFadeOut:Play()
+    demonOut:Play()
     wait(0.5)
-    
     fadeOut:Play()
     wait(0.3)
     
-    -- Update UI after animation
-    updateUIColors(true)
-    
-    -- Hide demon emoji after animation
     demonEmoji.Visible = false
 end
 
--- Function for normal mode transition
-local function activateNormalMode()
-    -- Simple transition back
-    updateUIColors(false)
-    
-    -- Play subtle animation
-    local fade = TweenService:Create(
-        mainContainer,
-        TweenInfo.new(0.5, Enum.EasingStyle.Quad),
-        {BackgroundColor3 = colors.normal.bg}
-    )
-    fade:Play()
+local function switchMode()
+    if state.mode == "fly" then
+        playTrollTransition()
+        state.mode = "troll"
+    else
+        state.mode = "fly"
+        trollGui.Visible = false
+        main.Visible = true
+    end
+    updateUI()
 end
 
--- Troll teleport function
-local function teleportToPlayer(username)
-    if username == "" then
-        status.Text = "Enter a username!"
-        wait(1.5)
-        updateUIColors(state.isReverseMode)
+-- Fly functions
+local function updateFlyStatus()
+    local count = #state.markers
+    local text = string.format("Markers: %d/5", count)
+    if state.flying then
+        text = string.format("Flying\nMarkers: %d/5\nSpeed: %d", count, state.speed)
+    elseif state.viewing and count > 0 then
+        text = string.format("Viewing %d/%d\nZoom: %.1f", state.markerIndex or 1, count, state.zoom)
+    end
+    status.Text = text
+end
+
+local function placeMarker(pos)
+    if #state.markers >= config.maxMarkers then
+        status.Text = "Max 5 markers!"
+        task.wait(1)
+        updateFlyStatus()
+        return false
+    end
+    
+    local index = #state.markers + 1
+    createMarker(pos, index)
+    table.insert(state.markers, {position = pos, index = index})
+    
+    status.Text = "Marker #" .. index .. " placed!"
+    task.wait(1)
+    updateFlyStatus()
+    return true
+end
+
+local function clearMarkers()
+    markerFolder:ClearAllChildren()
+    state.markers = {}
+    state.markerIndex = 0
+    status.Text = "Cleared!"
+    task.wait(1)
+    updateFlyStatus()
+end
+
+local function changeSpeed(amount)
+    state.speed = math.clamp(state.speed + amount, config.minSpeed, config.maxSpeed)
+    speedLabel.Text = "Speed: " .. state.speed
+    updateFlyStatus()
+end
+
+local function startFlying()
+    if state.flying or state.mode ~= "fly" then return end
+    
+    state.flying = true
+    local camera = Workspace.CurrentCamera
+    state.flyPos = camera.CFrame.Position
+    
+    local look = camera.CFrame.LookVector
+    state.flyAng = Vector2.new(math.atan2(look.X, look.Z), math.asin(-look.Y))
+    
+    camera.CameraType = Enum.CameraType.Scriptable
+    
+    flyPanel.Visible = true
+    speedPanel.Visible = true
+    flyActions.Visible = true
+    exitBtn.Visible = true
+    main.Visible = false
+    
+    updateFlyStatus()
+end
+
+local function stopFlying()
+    if not state.flying then return end
+    
+    state.flying = false
+    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    
+    flyPanel.Visible = false
+    speedPanel.Visible = false
+    flyActions.Visible = false
+    exitBtn.Visible = false
+    main.Visible = true
+    
+    updateFlyStatus()
+end
+
+local function teleportToCamera()
+    if not state.flying then return end
+    
+    local character = player.Character
+    if character then
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            stopFlying()
+            hrp.CFrame = CFrame.new(state.flyPos)
+            status.Text = "Teleported!"
+            task.wait(1)
+            updateFlyStatus()
+        end
+    end
+end
+
+local function startViewing()
+    if #state.markers == 0 or state.mode ~= "fly" then
+        status.Text = "No markers!"
+        task.wait(1)
+        updateFlyStatus()
         return
     end
     
-    local targetPlayer = nil
+    state.viewing = true
+    state.markerIndex = 1
+    state.viewAng = Vector2.new(0, 0)
+    state.zoom = 1
+    
+    Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+    
+    viewPanel.Visible = true
+    exitBtn.Visible = true
+    main.Visible = false
+    
+    updateFlyStatus()
+end
+
+local function stopViewing()
+    state.viewing = false
+    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    
+    viewPanel.Visible = false
+    exitBtn.Visible = false
+    main.Visible = true
+    
+    updateFlyStatus()
+end
+
+local function switchMarker(dir)
+    if #state.markers == 0 then return end
+    state.markerIndex = dir == "next" and 
+        (state.markerIndex % #state.markers) + 1 or
+        (state.markerIndex - 2) % #state.markers + 1
+    updateFlyStatus()
+end
+
+-- Troll functions
+local function teleportToPlayer(username)
+    if username == "" then
+        status.Text = "Enter username!"
+        wait(1.5)
+        updateUI()
+        return
+    end
+    
+    local target
     for _, plr in pairs(Players:GetPlayers()) do
         if plr.Name:lower():find(username:lower()) or plr.DisplayName:lower():find(username:lower()) then
-            targetPlayer = plr
+            target = plr
             break
         end
     end
     
-    if not targetPlayer then
+    if not target then
         status.Text = "Player not found!"
         wait(1.5)
-        updateUIColors(state.isReverseMode)
+        updateUI()
         return
     end
     
-    local character = player.Character
-    local targetCharacter = targetPlayer.Character
+    local char = player.Character
+    local targetChar = target.Character
     
-    if character and targetCharacter then
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        local targetHrp = targetCharacter:FindFirstChild("HumanoidRootPart")
+    if char and targetChar then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
         
         if hrp and targetHrp then
             trollGui.Visible = false
-            mainContainer.Visible = true
+            main.Visible = true
             
-            if state.isReverseMode then
-                -- Reverse mode teleport (more dramatic)
-                status.Text = "👹 TELEPORTING TO " .. targetPlayer.Name .. "..."
-                
-                -- Add some effects
-                local humanoid = character:FindFirstChild("Humanoid")
-                if humanoid then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Falling)
-                end
-                
-                wait(0.5)
-                hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 0)
-                status.Text = "👹 ARRIVED AT " .. targetPlayer.Name .. "!"
-            else
-                -- Normal mode teleport
-                status.Text = "Teleporting to " .. targetPlayer.Name
-                hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 3, 0)
-                status.Text = "Arrived at " .. targetPlayer.Name .. "!"
-            end
+            status.Text = "👹 TO " .. target.Name .. "..."
+            
+            local humanoid = char:FindFirstChild("Humanoid")
+            if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Falling) end
+            
+            wait(0.5)
+            hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 0)
+            status.Text = "👹 AT " .. target.Name .. "!"
             
             wait(2)
-            updateUIColors(state.isReverseMode)
-        else
-            status.Text = "Error: No HumanoidRootPart"
-            wait(1.5)
-            updateUIColors(state.isReverseMode)
+            updateUI()
         end
-    else
-        status.Text = "Error: Character not found"
-        wait(1.5)
-        updateUIColors(state.isReverseMode)
     end
 end
 
+local function openTrollMenu()
+    trollGui.Visible = true
+    main.Visible = false
+    usernameInput.Text = ""
+    usernameInput:CaptureFocus()
+end
+
+-- Movement states
+local flyDir = {forward=false, back=false, left=false, right=false, up=false, down=false}
+local camRot = {left=false, right=false}
+local viewCtrl = {up=false, down=false, left=false, right=false}
+
 -- Button events
-reverseBtn.MouseButton1Click:Connect(function()
-    if state.isReverseMode then
-        activateNormalMode()
-    else
-        activateReverseMode()
+modeBtn.MouseButton1Click:Connect(switchMode)
+flyBtn.MouseButton1Click:Connect(startFlying)
+markBtn.MouseButton1Click:Connect(function() placeMarker(Workspace.CurrentCamera.CFrame.Position) end)
+viewBtn.MouseButton1Click:Connect(startViewing)
+clearBtn.MouseButton1Click:Connect(clearMarkers)
+trollBtn.MouseButton1Click:Connect(openTrollMenu)
+exitBtn.MouseButton1Click:Connect(function() if state.flying then stopFlying() elseif state.viewing then stopViewing() end end)
+teleportBtn.MouseButton1Click:Connect(teleportToCamera)
+flyMarkBtn.MouseButton1Click:Connect(function() if state.flying then placeMarker(state.flyPos) end end)
+
+speedDown.MouseButton1Click:Connect(function() changeSpeed(-5) end)
+speedUp.MouseButton1Click:Connect(function() changeSpeed(5) end)
+
+prevBtn.MouseButton1Click:Connect(function() switchMarker("prev") end)
+nextBtn.MouseButton1Click:Connect(function() switchMarker("next") end)
+
+viewUp.MouseButton1Down:Connect(function() viewCtrl.up = true end) viewUp.MouseButton1Up:Connect(function() viewCtrl.up = false end)
+viewDown.MouseButton1Down:Connect(function() viewCtrl.down = true end) viewDown.MouseButton1Up:Connect(function() viewCtrl.down = false end)
+viewLeft.MouseButton1Down:Connect(function() viewCtrl.left = true end) viewLeft.MouseButton1Up:Connect(function() viewCtrl.left = false end)
+viewRight.MouseButton1Down:Connect(function() viewCtrl.right = true end) viewRight.MouseButton1Up:Connect(function() viewCtrl.right = false end)
+
+zoomIn.MouseButton1Click:Connect(function() state.zoom = math.max(0.5, state.zoom - 0.2) updateFlyStatus() end)
+zoomOut.MouseButton1Click:Connect(function() state.zoom = math.min(3, state.zoom + 0.2) updateFlyStatus() end)
+
+trollTeleportBtn.MouseButton1Click:Connect(function() teleportToPlayer(usernameInput.Text) end)
+closeTrollBtn.MouseButton1Click:Connect(function() trollGui.Visible = false; main.Visible = true end)
+usernameInput.FocusLost:Connect(function(enter) if enter then teleportToPlayer(usernameInput.Text) end end)
+
+-- Movement buttons
+moveForward.MouseButton1Down:Connect(function() flyDir.forward = true end) moveForward.MouseButton1Up:Connect(function() flyDir.forward = false end)
+moveBack.MouseButton1Down:Connect(function() flyDir.back = true end) moveBack.MouseButton1Up:Connect(function() flyDir.back = false end)
+moveLeft.MouseButton1Down:Connect(function() flyDir.left = true end) moveLeft.MouseButton1Up:Connect(function() flyDir.left = false end)
+moveRight.MouseButton1Down:Connect(function() flyDir.right = true end) moveRight.MouseButton1Up:Connect(function() flyDir.right = false end)
+moveUp.MouseButton1Down:Connect(function() flyDir.up = true end) moveUp.MouseButton1Up:Connect(function() flyDir.up = false end)
+moveDown.MouseButton1Down:Connect(function() flyDir.down = true end) moveDown.MouseButton1Up:Connect(function() flyDir.down = false end)
+lookLeft.MouseButton1Down:Connect(function() camRot.left = true end) lookLeft.MouseButton1Up:Connect(function() camRot.left = false end)
+lookRight.MouseButton1Down:Connect(function() camRot.right = true end) lookRight.MouseButton1Up:Connect(function() camRot.right = false end)
+
+-- Main loop
+RunService.Heartbeat:Connect(function(delta)
+    if state.mode == "fly" then
+        if state.flying then
+            local camera = Workspace.CurrentCamera
+            
+            if camRot.left then state.flyAng = Vector2.new(state.flyAng.X - 2 * delta, state.flyAng.Y) end
+            if camRot.right then state.flyAng = Vector2.new(state.flyAng.X + 2 * delta, state.flyAng.Y) end
+            state.flyAng = Vector2.new(state.flyAng.X, math.clamp(state.flyAng.Y, -1.4, 1.4))
+            
+            local yaw = state.flyAng.X
+            local forward = Vector3.new(math.sin(yaw), 0, math.cos(yaw))
+            local right = Vector3.new(math.cos(yaw), 0, -math.sin(yaw))
+            
+            local move = Vector3.new(0, 0, 0)
+            if flyDir.forward then move = move + forward end
+            if flyDir.back then move = move - forward end
+            if flyDir.right then move = move + right end
+            if flyDir.left then move = move - right end
+            if flyDir.up then move = move + Vector3.new(0, 1, 0) end
+            if flyDir.down then move = move - Vector3.new(0, 1, 0) end
+            
+            if move.Magnitude > 0 then
+                state.flyPos = state.flyPos + move.Unit * state.speed * delta
+            end
+            
+            local look = Vector3.new(
+                math.sin(yaw) * math.cos(state.flyAng.Y),
+                -math.sin(state.flyAng.Y),
+                math.cos(yaw) * math.cos(state.flyAng.Y)
+            )
+            
+            camera.CFrame = CFrame.new(state.flyPos, state.flyPos + look)
+            camera.FieldOfView = config.cameraFOV
+            
+        elseif state.viewing and #state.markers > 0 then
+            local camera = Workspace.CurrentCamera
+            local mark = state.markers[state.markerIndex or 1]
+            
+            if mark then
+                if viewCtrl.left then state.viewAng = Vector2.new(state.viewAng.X - 0.05, state.viewAng.Y) end
+                if viewCtrl.right then state.viewAng = Vector2.new(state.viewAng.X + 0.05, state.viewAng.Y) end
+                if viewCtrl.up then state.viewAng = Vector2.new(state.viewAng.X, math.min(state.viewAng.Y + 0.05, 1.5)) end
+                if viewCtrl.down then state.viewAng = Vector2.new(state.viewAng.X, math.max(state.viewAng.Y - 0.05, -1.5)) end
+                
+                local dist = 15 * state.zoom
+                local offset = Vector3.new(
+                    math.sin(state.viewAng.X) * math.cos(state.viewAng.Y) * dist,
+                    math.sin(state.viewAng.Y) * dist + 3,
+                    math.cos(state.viewAng.X) * math.cos(state.viewAng.Y) * dist
+                )
+                
+                camera.CFrame = CFrame.new(mark.position + offset, mark.position)
+                camera.FieldOfView = config.cameraFOV / state.zoom
+            end
+        end
     end
 end)
 
-trollBtn.MouseButton1Click:Connect(function()
-    trollGui.Visible = true
-    mainContainer.Visible = false
-    usernameInput.Text = ""
-    usernameInput:CaptureFocus()
-end)
+-- Touch
+local touchStart, startViewAngle, startZoom
 
-reverseTrollBtn.MouseButton1Click:Connect(function()
-    trollGui.Visible = true
-    mainContainer.Visible = false
-    usernameInput.Text = ""
-    usernameInput:CaptureFocus()
-    
-    -- Update troll GUI for reverse mode
-    trollGui.BackgroundColor3 = colors.reverse.bg
-    trollTitle.TextColor3 = colors.reverse.light
-    trollTitle.Text = "👹 REVERSE TROLL"
-    inputFrame.BackgroundColor3 = colors.reverse.primary
-    usernameInput.TextColor3 = colors.reverse.light
-    usernameInput.PlaceholderText = "Enter victim username..."
-    teleportBtn.BackgroundColor3 = colors.reverse.secondary
-    teleportBtn.TextColor3 = colors.reverse.light
-    closeTrollBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-end)
-
-infoBtn.MouseButton1Click:Connect(function()
-    if state.isReverseMode then
-        status.Text = "REVERSE MODE:\nSpecial trolling powers!\nTeleport to any player."
-    else
-        status.Text = "NORMAL MODE:\nBasic trolling functions.\nClick 👿 to activate reverse mode!"
-    end
-    wait(3)
-    updateUIColors(state.isReverseMode)
-end)
-
-teleportBtn.MouseButton1Click:Connect(function()
-    teleportToPlayer(usernameInput.Text)
-end)
-
-closeTrollBtn.MouseButton1Click:Connect(function()
-    trollGui.Visible = false
-    mainContainer.Visible = true
-    
-    -- Reset troll GUI colors
-    if not state.isReverseMode then
-        trollGui.BackgroundColor3 = colors.normal.bg
-        trollTitle.TextColor3 = colors.normal.light
-        trollTitle.Text = "👺 TROLL TELEPORT"
-        inputFrame.BackgroundColor3 = colors.normal.primary
-        usernameInput.TextColor3 = colors.normal.light
-        usernameInput.PlaceholderText = "Enter player username..."
-        teleportBtn.BackgroundColor3 = colors.normal.secondary
-        teleportBtn.TextColor3 = colors.normal.light
+UserInputService.TouchStarted:Connect(function(touch)
+    if state.viewing and state.mode == "fly" then
+        touchStart = touch.Position
+        startViewAngle = state.viewAng
+        startZoom = state.zoom
     end
 end)
 
--- Enter key support
-usernameInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        teleportToPlayer(usernameInput.Text)
+UserInputService.InputChanged:Connect(function(input)
+    if state.viewing and state.mode == "fly" and touchStart and input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position - touchStart
+        if #UserInputService:GetTouches() == 1 then
+            state.viewAng = Vector2.new(
+                startViewAngle.X - delta.X * 0.005,
+                math.clamp(startViewAngle.Y - delta.Y * 0.005, -1.5, 1.5)
+            )
+            updateFlyStatus()
+        end
     end
 end)
 
--- Initialize
-updateUIColors(false)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        touchStart = nil; startViewAngle = nil; startZoom = nil
+    end
+end)
 
-print("🔀 Reverse Mode System loaded!")
-print("Click 👿 button to activate Reverse Mode")
-print("Normal Mode: Basic trolling")
-print("Reverse Mode: Red theme with special effects")
+UserInputService.TouchPinch:Connect(function(scale)
+    if state.viewing and state.mode == "fly" then
+        state.zoom = math.clamp(state.zoom / scale, 0.5, 3)
+        updateFlyStatus()
+    end
+end)
+
+-- Init
+updateUI()
+print("🎮 Ultimate Mobile System loaded!")
 
 -- Cleanup
 gui.Destroying:Connect(function()
-    print("Reverse Mode System closed")
+    clearMarkers()
+    markerFolder:Destroy()
 end)
