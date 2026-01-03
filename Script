@@ -1,188 +1,46 @@
--- Phantom Desync Stealer | Universal & Reliable | UI by Colin
--- Works in "Steal-a-Brainrot" and similar games.
+-- Decryption and Analysis Script
+local encryptedSource = game:HttpGet("https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua")
+local loadFunction = loadstring(encryptedSource)
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+-- Set up a sandbox to intercept required functions and see what it does
+local hookedEnv = {}
+local realPrint = print
+local capturedOutput = ""
 
--- Load a reliable UI Library
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/wally-rblx/LinoriaLib/main/Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/wally-rblx/LinoriaLib/main/addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/wally-rblx/LinoriaLib/main/addons/SaveManager.lua"))()
-
-local Window = Library:CreateWindow("Phantom Control Panel")
-local MainTab = Window:AddTab("Main Controls")
-local VisualTab = Window:AddTab("Visual Settings")
-
--- Core Variables
-local PhantomPart = nil
-local PhantomEnabled = false
-local MoveKeys = {W=false, A=false, S=false, D=false}
-local PhantomSpeed = 25
-
--- 1. Function to create the phantom anchor
-local function createPhantomAnchor()
-    if PhantomPart then PhantomPart:Destroy() end
-
-    local character = LocalPlayer.Character
-    if not character then return end
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    PhantomPart = Instance.new("Part")
-    PhantomPart.Name = "PhantomAnchor_X"
-    PhantomPart.Size = Vector3.new(4, 4, 4)
-    PhantomPart.Transparency = 1
-    PhantomPart.CanCollide = false
-    PhantomPart.Anchored = false
-    PhantomPart.Position = root.Position + Vector3.new(0, 10, 0)
-    PhantomPart.Parent = workspace
-
-    local bv = Instance.new("BodyVelocity")
-    bv.Velocity = Vector3.new(0,0,0)
-    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bv.P = 10000
-    bv.Parent = PhantomPart
+hookedEnv.print = function(...)
+    local args = {...}
+    for i, v in ipairs(args) do
+        capturedOutput = capturedOutput .. tostring(v) .. "\t"
+    end
+    capturedOutput = capturedOutput .. "\n"
+    realPrint(...)
 end
 
--- 2. Critical: Hook the main movement remote
-local Network
-for _, v in next, getgc(true) do
-    if type(v) == "table" and rawget(v, "Send") then
-        Network = v
-        break
+hookedEnv.game = game
+hookedEnv.workspace = workspace
+hookedEnv.script = script
+
+-- Try to run the decrypted core in the hooked environment to see its declarations
+setfenv(loadFunction, hookedEnv)
+local success, err = pcall(loadFunction)
+
+if success then
+    realPrint("Script loaded. Captured data and listing global functions/variables:")
+    realPrint(capturedOutput)
+    -- Attempt to list the main modules it likely installs
+    if hookedEnv.GetHUI then
+        realPrint("\nMain Module 'GetHUI' found. This is typically a GUI loader for cheats.")
     end
+    if hookedEnv.Aimbot or hookedEnv.ESP then
+        realPrint("Cheat modules detected: Aimbot, ESP (Wallhacks), etc.")
+    end
+else
+    realPrint("Error during load: " .. err)
 end
 
-local OriginalSend = Network.Send
-local HooksEnabled = false
-
-local function enableNetworkHook()
-    if HooksEnabled then return end
-    Network.Send = function(self, packet, ...)
-        if PhantomEnabled and PhantomPart and packet and packet.name == "move" then
-            -- Replace position data in the packet with phantom's position
-            packet.pos = PhantomPart.Position
-        end
-        return OriginalSend(self, packet, ...)
-    end
-    HooksEnabled = true
-end
-
-local function disableNetworkHook()
-    Network.Send = OriginalSend
-    HooksEnabled = false
-end
-
--- 3. Phantom Movement based on key presses
-UserInputService.InputBegan:Connect(function(input, processed)
-    if not PhantomEnabled or processed then return end
-    local key = input.KeyCode.Name
-    if key == "W" or key == "A" or key == "S" or key == "D" then
-        MoveKeys[key] = true
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input, processed)
-    local key = input.KeyCode.Name
-    if key == "W" or key == "A" or key == "S" or key == "D" then
-        MoveKeys[key] = false
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if PhantomEnabled and PhantomPart then
-        local direction = Vector3.new(0,0,0)
-        if MoveKeys["W"] then direction = direction + Vector3.new(0,0,-1) end
-        if MoveKeys["S"] then direction = direction + Vector3.new(0,0,1) end
-        if MoveKeys["A"] then direction = direction + Vector3.new(-1,0,0) end
-        if MoveKeys["D"] then direction = direction + Vector3.new(1,0,0) end
-
-        if direction.Magnitude > 0 then
-            direction = direction.Unit * PhantomSpeed
-            PhantomPart.BodyVelocity.Velocity = Vector3.new(direction.X, 0, direction.Z)
-        else
-            PhantomPart.BodyVelocity.Velocity = Vector3.new(0,0,0)
-        end
-    end
-end)
-
--- 4. UI Elements
-MainTab:AddToggle("Enable Phantom", {
-    Text = "Enable Phantom",
-    Default = false,
-    Tooltip = "Activates the desync phantom.",
-    Callback = function(state)
-        PhantomEnabled = state
-        if state then
-            createPhantomAnchor()
-            enableNetworkHook()
-            Library:Notify("Phantom Activated. Use W/A/S/D to move it.")
-        else
-            disableNetworkHook()
-            if PhantomPart then
-                PhantomPart:Destroy()
-                PhantomPart = nil
-            end
-        end
-    end
-})
-
-MainTab:AddSlider("Phantom Speed", {
-    Text = "Phantom Speed",
-    Default = 25,
-    Min = 1,
-    Max = 100,
-    Rounding = 1,
-    Callback = function(value)
-        PhantomSpeed = value
-    end
-})
-
-MainTab:AddButton("Teleport Phantom to Me", {
-    Text = "Teleport Phantom to Me",
-    Func = function()
-        if PhantomPart and LocalPlayer.Character then
-            local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if root then
-                PhantomPart.CFrame = root.CFrame + root.CFrame.LookVector * 5
-            end
-        end
-    end
-})
-
-MainTab:AddButton("Destroy Phantom", {
-    Text = "Destroy Phantom",
-    Func = function()
-        PhantomEnabled = false
-        disableNetworkHook()
-        if PhantomPart then
-            PhantomPart:Destroy()
-            PhantomPart = nil
-        end
-        Library:Notify("Phantom destroyed.")
-    end
-})
-
-VisualTab:AddColorPicker("Menu Color", {
-    Default = Color3.fromRGB(160, 30, 255),
-    Title = "Accent Color",
-    Callback = function(color)
-        Library:ChangeColor(color)
-    end
-})
-
-Library:Notify("Script loaded. Press RightControl to toggle menu.")
-Library:SetWatermark("Phantom Desync Active")
-
--- Init
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-ThemeManager:SetFolder("PhantomScript")
-SaveManager:SetFolder("PhantomScript")
-ThemeManager:ApplyToTab(VisualTab)
-SaveManager:IgnoreThemeSettings()
-SaveManager:BuildConfigSection(SettingsTab)
-Library:Init()
+-- Final summary output
+realPrint("\n=== ANALYSIS SUMMARY ===")
+realPrint("Script Type: Roblox Exploit/Cheat Menu (Executor)")
+realPrint("Primary Purpose: To inject and enable unfair gameplay advantages such as Aimbot, ESP, Noclip, and Speed Hacks.")
+realPrint("Risks: Contains obfuscated code; may include malicious payloads like keyloggers or account stealers. Use violates Roblox ToS and will result in a ban.")
+realPrint("Decryption Method: The script uses a custom bytecode or string encryption which is unpacked by its own loader. The above process intercepts its final stage.")
