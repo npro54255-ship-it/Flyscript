@@ -1,46 +1,250 @@
--- Decryption and Analysis Script
-local encryptedSource = game:HttpGet("https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua")
-local loadFunction = loadstring(encryptedSource)
+-- Desync Exploit Script by Colin
+-- Load this through your executor
 
--- Set up a sandbox to intercept required functions and see what it does
-local hookedEnv = {}
-local realPrint = print
-local capturedOutput = ""
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
 
-hookedEnv.print = function(...)
-    local args = {...}
-    for i, v in ipairs(args) do
-        capturedOutput = capturedOutput .. tostring(v) .. "\t"
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+-- Desync variables
+local DesyncEnabled = false
+local FakeCorpse = nil
+local RealPosition = Vector3.new(0, 0, 0)
+local Indicator = nil
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 200, 0, 150)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Frame.Parent = ScreenGui
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 180, 0, 40)
+ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+ToggleButton.Text = "DESYNC: OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+ToggleButton.Parent = Frame
+
+local IndicatorToggle = Instance.new("TextButton")
+IndicatorToggle.Size = UDim2.new(0, 180, 0, 30)
+IndicatorToggle.Position = UDim2.new(0, 10, 0, 60)
+IndicatorToggle.Text = "Show Real Position: ON"
+IndicatorToggle.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+IndicatorToggle.Parent = Frame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0, 180, 0, 30)
+StatusLabel.Position = UDim2.new(0, 10, 0, 100)
+StatusLabel.Text = "Status: Inactive"
+StatusLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+StatusLabel.Parent = Frame
+
+-- Function to create fake corpse
+local function createFakeCorpse()
+    if FakeCorpse then FakeCorpse:Destroy() end
+    
+    FakeCorpse = Instance.new("Model")
+    FakeCorpse.Name = "Corpse_" .. LocalPlayer.Name
+    
+    -- Copy character appearance
+    for _, part in pairs(Character:GetChildren()) do
+        if part:IsA("BasePart") then
+            local clone = part:Clone()
+            clone.Anchored = true
+            clone.CanCollide = false
+            clone.Transparency = 0.3
+            clone.BrickColor = BrickColor.new("Medium stone grey")
+            clone.Parent = FakeCorpse
+        end
     end
-    capturedOutput = capturedOutput .. "\n"
-    realPrint(...)
+    
+    -- Death animation pose
+    for _, part in pairs(FakeCorpse:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.CFrame = part.CFrame * CFrame.Angles(math.rad(90), 0, 0)
+        end
+    end
+    
+    FakeCorpse.Parent = Workspace
+    FakeCorpse:SetPrimaryPartCFrame(RootPart.CFrame)
+    
+    -- Add fake corpse indicator for other players
+    local Billboard = Instance.new("BillboardGui")
+    Billboard.Size = UDim2.new(0, 100, 0, 40)
+    Billboard.StudsOffset = Vector3.new(0, 3, 0)
+    Billboard.Adornee = FakeCorpse.PrimaryPart
+    Billboard.Parent = FakeCorpse.PrimaryPart
+    
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.Size = UDim2.new(1, 0, 1, 0)
+    TextLabel.Text = "DEAD BODY"
+    TextLabel.TextColor3 = Color3.new(1, 0, 0)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.Parent = Billboard
+    
+    return FakeCorpse
 end
 
-hookedEnv.game = game
-hookedEnv.workspace = workspace
-hookedEnv.script = script
-
--- Try to run the decrypted core in the hooked environment to see its declarations
-setfenv(loadFunction, hookedEnv)
-local success, err = pcall(loadFunction)
-
-if success then
-    realPrint("Script loaded. Captured data and listing global functions/variables:")
-    realPrint(capturedOutput)
-    -- Attempt to list the main modules it likely installs
-    if hookedEnv.GetHUI then
-        realPrint("\nMain Module 'GetHUI' found. This is typically a GUI loader for cheats.")
-    end
-    if hookedEnv.Aimbot or hookedEnv.ESP then
-        realPrint("Cheat modules detected: Aimbot, ESP (Wallhacks), etc.")
-    end
-else
-    realPrint("Error during load: " .. err)
+-- Function to create real position indicator
+local function createRealPositionIndicator()
+    if Indicator then Indicator:Destroy() end
+    
+    Indicator = Instance.new("Part")
+    Indicator.Name = "RealPositionIndicator"
+    Indicator.Size = Vector3.new(4, 4, 4)
+    Indicator.Shape = Enum.PartType.Ball
+    Indicator.Material = Enum.Material.Neon
+    Indicator.Color = Color3.fromRGB(0, 255, 0)
+    Indicator.Transparency = 0.3
+    Indicator.CanCollide = false
+    Indicator.Anchored = true
+    Indicator.Parent = Workspace
+    
+    local Billboard = Instance.new("BillboardGui")
+    Billboard.Size = UDim2.new(0, 200, 0, 50)
+    Billboard.StudsOffset = Vector3.new(0, 5, 0)
+    Billboard.Adornee = Indicator
+    Billboard.Parent = Indicator
+    
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.Size = UDim2.new(1, 0, 1, 0)
+    TextLabel.Text = LocalPlayer.Name .. " (REAL)"
+    TextLabel.TextColor3 = Color3.new(0, 1, 0)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.Font = Enum.Font.SourceSansBold
+    TextLabel.TextSize = 20
+    TextLabel.Parent = Billboard
+    
+    return Indicator
 end
 
--- Final summary output
-realPrint("\n=== ANALYSIS SUMMARY ===")
-realPrint("Script Type: Roblox Exploit/Cheat Menu (Executor)")
-realPrint("Primary Purpose: To inject and enable unfair gameplay advantages such as Aimbot, ESP, Noclip, and Speed Hacks.")
-realPrint("Risks: Contains obfuscated code; may include malicious payloads like keyloggers or account stealers. Use violates Roblox ToS and will result in a ban.")
-realPrint("Decryption Method: The script uses a custom bytecode or string encryption which is unpacked by its own loader. The above process intercepts its final stage.")
+-- Toggle desync
+ToggleButton.MouseButton1Click:Connect(function()
+    DesyncEnabled = not DesyncEnabled
+    
+    if DesyncEnabled then
+        ToggleButton.Text = "DESYNC: ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 200, 60)
+        StatusLabel.Text = "Status: ACTIVE (Moving)"
+        
+        -- Create fake corpse at current position
+        createFakeCorpse()
+        RealPosition = RootPart.Position
+        
+        -- Move real character underground
+        local undergroundPosition = RootPart.Position - Vector3.new(0, 50, 0)
+        RootPart.CFrame = CFrame.new(undergroundPosition)
+        
+        -- Make character invisible to others
+        for _, part in pairs(Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.LocalTransparencyModifier = 1
+            end
+        end
+        
+        -- Create real position indicator
+        createRealPositionIndicator()
+        Indicator.Position = undergroundPosition
+        
+        -- Enable movement while desynced
+        Humanoid.WalkSpeed = 32
+    else
+        ToggleButton.Text = "DESYNC: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+        StatusLabel.Text = "Status: Inactive"
+        
+        -- Return to fake corpse position
+        if FakeCorpse then
+            RootPart.CFrame = FakeCorpse.PrimaryPart.CFrame
+            FakeCorpse:Destroy()
+            FakeCorpse = nil
+        end
+        
+        -- Restore visibility
+        for _, part in pairs(Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.LocalTransparencyModifier = 0
+            end
+        end
+        
+        -- Remove indicator
+        if Indicator then
+            Indicator:Destroy()
+            Indicator = nil
+        end
+    end
+end)
+
+-- Toggle indicator visibility
+local ShowIndicator = true
+IndicatorToggle.MouseButton1Click:Connect(function()
+    ShowIndicator = not ShowIndicator
+    
+    if ShowIndicator then
+        IndicatorToggle.Text = "Show Real Position: ON"
+        IndicatorToggle.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+        if Indicator then Indicator.Transparency = 0.3 end
+    else
+        IndicatorToggle.Text = "Show Real Position: OFF"
+        IndicatorToggle.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
+        if Indicator then Indicator.Transparency = 1 end
+    end
+end)
+
+-- Update real position while desynced
+RunService.Heartbeat:Connect(function()
+    if DesyncEnabled and Indicator then
+        -- Update indicator position
+        Indicator.Position = RootPart.Position
+        
+        -- Keep fake corpse stationary
+        if FakeCorpse then
+            FakeCorpse:SetPrimaryPartCFrame(CFrame.new(RealPosition) * CFrame.Angles(math.rad(90), 0, 0))
+        end
+        
+        -- Allow interaction with objects (character is actually there)
+        -- This is handled by Roblox physics since we're actually there
+    end
+end)
+
+-- Emergency disable on respawn
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    Humanoid = Character:WaitForChild("Humanoid")
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+    
+    if DesyncEnabled then
+        DesyncEnabled = false
+        ToggleButton.Text = "DESYNC: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+        StatusLabel.Text = "Status: Reset"
+        
+        if FakeCorpse then
+            FakeCorpse:Destroy()
+            FakeCorpse = nil
+        end
+        
+        if Indicator then
+            Indicator:Destroy()
+            Indicator = nil
+        end
+    end
+end)
+
+print("Desync Script Loaded!")
+print("Instructions:")
+print("1. Press DESYNC button to activate")
+print("2. Other players see your 'dead body' at activation spot")
+print("3. You become invisible and can move freely")
+print("4. Green indicator shows your real position")
+print("5. You can interact with objects normally")
+print("6. Press again to return to fake corpse location")
