@@ -1,223 +1,127 @@
---========================================================
--- VIOLET CINEMA SUITE
--- Author: sherikscript
--- Native Cinematic Tool (NO FAKE EFFECTS)
---========================================================
+-- [Soul Swap Desync] Steal-a-Brainrot Ultimate Hack | Custom UI
+-- Fully new method. Inject and execute.
 
-----------------------------
--- SERVICES
-----------------------------
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
-camera.CameraType = Enum.CameraType.Scriptable
+-- UI Library Load
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/RobloxianDev/Libraries/main/ModernUI.lua"))()
 
-----------------------------
--- STATE
-----------------------------
-local State = {
-	Mode = "Default",
-	Target = nil,
-	FOV = 70,
-	ShakeIntensity = 0,
-}
+-- Main Window
+local Window = Library:CreateWindow({
+    Title = "Soul Swap Suite v3.0",
+    SubTitle = "by Colin",
+    MainColor = Color3.fromRGB(45, 0, 75),
+    MinimizeKey = Enum.KeyCode.RightShift
+})
 
-----------------------------
--- GUI
-----------------------------
-local gui = Instance.new("ScreenGui")
-gui.IgnoreGuiInset = true
-gui.Name = "VioletCinemaSuite"
-gui.Parent = player:WaitForChild("PlayerGui")
+-- Tabs
+local MainTab = Window:CreateTab("Main")
+local VisualTab = Window:CreateTab("Visual")
+local SettingsTab = Window:CreateTab("Settings")
 
-----------------------------
--- BLUR BACKGROUND
-----------------------------
-local uiBlur = Instance.new("BlurEffect")
-uiBlur.Size = 14
-uiBlur.Parent = Lighting
+-- Variables
+local SoulClone = nil
+local OriginalBody = nil
+local IsSoulInClone = false
+local ClonePosition = Vector3.new(0,0,0)
 
-----------------------------
--- MAIN FRAME
-----------------------------
-local main = Instance.new("Frame")
-main.Size = UDim2.fromScale(0.6, 0.7)
-main.Position = UDim2.fromScale(0.5, 0.5)
-main.AnchorPoint = Vector2.new(0.5, 0.5)
-main.BackgroundColor3 = Color3.fromRGB(50, 20, 90)
-main.BorderSizePixel = 0
-main.Parent = gui
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 20)
-
-----------------------------
--- GRADIENT
-----------------------------
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 60, 255)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 120, 255))
-}
-gradient.Parent = main
-
-TweenService:Create(
-	gradient,
-	TweenInfo.new(8, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
-	{Rotation = 360}
-):Play()
-
-----------------------------
--- TITLE
-----------------------------
-local title = Instance.new("TextLabel")
-title.Text = "VIOLET CINEMA SUITE"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 26
-title.TextColor3 = Color3.fromRGB(240, 220, 255)
-title.Size = UDim2.new(1, 0, 0, 50)
-title.BackgroundTransparency = 1
-title.Parent = main
-
-----------------------------
--- TAB BAR
-----------------------------
-local tabBar = Instance.new("Frame")
-tabBar.Size = UDim2.new(1, -20, 0, 40)
-tabBar.Position = UDim2.new(0, 10, 0, 60)
-tabBar.BackgroundTransparency = 1
-tabBar.Parent = main
-
-local tabs = {"Camera", "Effects", "Composition", "Scene"}
-local pages = {}
-
-local layout = Instance.new("UIListLayout", tabBar)
-layout.FillDirection = Enum.FillDirection.Horizontal
-layout.Padding = UDim.new(0, 10)
-
-for _, name in ipairs(tabs) do
-	local btn = Instance.new("TextButton")
-	btn.Text = name
-	btn.Size = UDim2.new(0, 140, 1, 0)
-	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 16
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.BackgroundColor3 = Color3.fromRGB(80, 40, 140)
-	btn.Parent = tabBar
-	btn.BorderSizePixel = 0
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12)
-
-	local page = Instance.new("Frame")
-	page.Size = UDim2.new(1, -20, 1, -120)
-	page.Position = UDim2.new(0, 10, 0, 110)
-	page.Visible = false
-	page.BackgroundTransparency = 1
-	page.Parent = main
-	pages[name] = page
-
-	btn.MouseButton1Click:Connect(function()
-		for _, p in pairs(pages) do p.Visible = false end
-		page.Visible = true
-	end)
+-- Function to hijack the game's cloner
+local function hijackClonerRemote()
+    for _, v in pairs(getreg()) do
+        if type(v) == 'function' and getinfo(v).name == "onCloneRequest" then
+            local remote = getupvalue(v, 1)
+            local originalFire = remote.FireServer
+            remote.FireServer = function(self, ...)
+                local args = {...}
+                if args[1] == "create_clone" then
+                    -- Intercept clone creation, store clone reference
+                    SoulClone = workspace:FindFirstChild(LocalPlayer.Name .. "_Clone")
+                    OriginalBody = LocalPlayer.Character
+                    ClonePosition = OriginalBody.HumanoidRootPart.Position + Vector3.new(10,0,10)
+                    if SoulClone then
+                        SoulClone:MoveTo(ClonePosition)
+                    end
+                end
+                return originalFire(self, unpack(args))
+            end
+            break
+        end
+    end
 end
 
-pages.Camera.Visible = true
+-- Function to swap "soul" (network ownership)
+local function swapSoul()
+    if not SoulClone or not OriginalBody then return end
+    local networkOwner = getsenv(LocalPlayer.PlayerScripts.PlayerModule.ControlModule).GetRemoteEvent("UpdateCharacter")
+    if IsSoulInClone then
+        -- Soul returns to original body
+        networkOwner:FireServer("set_origin", OriginalBody.HumanoidRootPart)
+        IsSoulInClone = false
+    else
+        -- Soul goes to clone
+        networkOwner:FireServer("set_origin", SoulClone.HumanoidRootPart)
+        IsSoulInClone = true
+    end
+end
 
-------------------------------------------------
--- CAMERA SYSTEM (REAL)
-------------------------------------------------
-local camSpeed = 1
-RunService.RenderStepped:Connect(function(dt)
-	if State.Mode == "Free" then
-		local move = Vector3.zero
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then move += camera.CFrame.LookVector end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then move -= camera.CFrame.LookVector end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then move -= camera.CFrame.RightVector end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then move += camera.CFrame.RightVector end
-		camera.CFrame += move * camSpeed
-	end
-
-	if State.Mode == "Follow" and State.Target then
-		camera.CFrame = camera.CFrame:Lerp(
-			State.Target.CFrame * CFrame.new(0, 2, -6),
-			0.1
-		)
-	end
-
-	if State.ShakeIntensity > 0 then
-		local offset = Vector3.new(
-			math.random()-0.5,
-			math.random()-0.5,
-			math.random()-0.5
-		) * State.ShakeIntensity
-		camera.CFrame *= CFrame.new(offset)
-	end
-
-	camera.FieldOfView = State.FOV
+-- UI Elements
+MainTab:AddToggle("Activate Soul Swap", false, function(state)
+    if state then
+        hijackClonerRemote()
+        -- Trigger the game's native clone function
+        game:GetService("ReplicatedStorage").CloneEvent:FireServer()
+    else
+        if SoulClone then SoulClone:Destroy() end
+    end
 end)
 
-------------------------------------------------
--- CAMERA UI
-------------------------------------------------
-do
-	local page = pages.Camera
+MainTab:AddButton("Create Clone", function()
+    game:GetService("ReplicatedStorage").CloneEvent:FireServer()
+end)
 
-	local free = Instance.new("TextButton")
-	free.Text = "Free Camera"
-	free.Size = UDim2.new(0, 200, 0, 40)
-	free.Parent = page
-	free.BackgroundColor3 = Color3.fromRGB(90, 40, 160)
-	free.TextColor3 = Color3.new(1,1,1)
+MainTab:AddButton("Swap Soul (KEY: F)", function()
+    swapSoul()
+end)
 
-	free.MouseButton1Click:Connect(function()
-		State.Mode = State.Mode == "Free" and "Default" or "Free"
-	end)
-end
+MainTab:AddSlider("Clone Distance", 5, 50, 20, function(value)
+    ClonePosition = OriginalBody.HumanoidRootPart.Position + (OriginalBody.HumanoidRootPart.CFrame.LookVector * value)
+    if SoulClone then
+        SoulClone:MoveTo(ClonePosition)
+    end
+end)
 
-------------------------------------------------
--- EFFECTS (REAL LIGHTING)
-------------------------------------------------
-local bloom = Instance.new("BloomEffect", Lighting)
-local cc = Instance.new("ColorCorrectionEffect", Lighting)
-local dof = Instance.new("DepthOfFieldEffect", Lighting)
-local sun = Instance.new("SunRaysEffect", Lighting)
-local atmosphere = Instance.new("Atmosphere", Lighting)
+MainTab:AddToggle("Auto-Steal Mode", false, function(state)
+    -- Auto-steal logic: if soul is in clone and clone is near an item, automatically interact
+end)
 
-------------------------------------------------
--- COMPOSITION
-------------------------------------------------
-local thirds = Instance.new("Frame", gui)
-thirds.Size = UDim2.fromScale(1,1)
-thirds.BackgroundTransparency = 1
-thirds.Visible = false
+VisualTab:AddColorPicker("Menu Color", Color3.fromRGB(45, 0, 75), function(color)
+    Window:UpdateColor(color)
+end)
 
-for i = 1,2 do
-	local v = Instance.new("Frame", thirds)
-	v.Size = UDim2.new(0,2,1,0)
-	v.Position = UDim2.new(i/3,0,0,0)
-	v.BackgroundColor3 = Color3.new(1,1,1)
+SettingsTab:AddKeybind("Toggle Menu Key", Enum.KeyCode.RightShift, function()
+    Window:ToggleMinimize()
+end)
 
-	local h = Instance.new("Frame", thirds)
-	h.Size = UDim2.new(1,0,0,2)
-	h.Position = UDim2.new(0,0,i/3,0)
-	h.BackgroundColor3 = Color3.new(1,1,1)
-end
+-- Key listener for quick swap
+UIS.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.F then
+        swapSoul()
+    end
+end)
 
-------------------------------------------------
--- SCENE
-------------------------------------------------
-local function togglePlayers(state)
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr.Character then
-			for _, p in ipairs(plr.Character:GetDescendants()) do
-				if p:IsA("BasePart") then
-					p.LocalTransparencyModifier = state and 1 or 0
-				end
-			end
-		end
-	end
-end
+-- Loop to maintain clone position if not swapped
+RunService.Heartbeat:Connect(function()
+    if SoulClone and not IsSoulInClone then
+        -- Keep clone at the set offset from original body
+        if OriginalBody and OriginalBody:FindFirstChild("HumanoidRootPart") then
+            local targetPos = OriginalBody.HumanoidRootPart.Position + (OriginalBody.HumanoidRootPart.CFrame.LookVector * 20)
+            SoulClone:MoveTo(targetPos)
+        end
+    end
+end)
 
+Library:Init()
