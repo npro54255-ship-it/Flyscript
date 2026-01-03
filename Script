@@ -1,127 +1,188 @@
--- [Soul Swap Desync] Steal-a-Brainrot Ultimate Hack | Custom UI
--- Fully new method. Inject and execute.
+-- Phantom Desync Stealer | Universal & Reliable | UI by Colin
+-- Works in "Steal-a-Brainrot" and similar games.
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
--- UI Library Load
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/RobloxianDev/Libraries/main/ModernUI.lua"))()
+-- Load a reliable UI Library
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/wally-rblx/LinoriaLib/main/Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/wally-rblx/LinoriaLib/main/addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/wally-rblx/LinoriaLib/main/addons/SaveManager.lua"))()
 
--- Main Window
-local Window = Library:CreateWindow({
-    Title = "Soul Swap Suite v3.0",
-    SubTitle = "by Colin",
-    MainColor = Color3.fromRGB(45, 0, 75),
-    MinimizeKey = Enum.KeyCode.RightShift
+local Window = Library:CreateWindow("Phantom Control Panel")
+local MainTab = Window:AddTab("Main Controls")
+local VisualTab = Window:AddTab("Visual Settings")
+
+-- Core Variables
+local PhantomPart = nil
+local PhantomEnabled = false
+local MoveKeys = {W=false, A=false, S=false, D=false}
+local PhantomSpeed = 25
+
+-- 1. Function to create the phantom anchor
+local function createPhantomAnchor()
+    if PhantomPart then PhantomPart:Destroy() end
+
+    local character = LocalPlayer.Character
+    if not character then return end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    PhantomPart = Instance.new("Part")
+    PhantomPart.Name = "PhantomAnchor_X"
+    PhantomPart.Size = Vector3.new(4, 4, 4)
+    PhantomPart.Transparency = 1
+    PhantomPart.CanCollide = false
+    PhantomPart.Anchored = false
+    PhantomPart.Position = root.Position + Vector3.new(0, 10, 0)
+    PhantomPart.Parent = workspace
+
+    local bv = Instance.new("BodyVelocity")
+    bv.Velocity = Vector3.new(0,0,0)
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.P = 10000
+    bv.Parent = PhantomPart
+end
+
+-- 2. Critical: Hook the main movement remote
+local Network
+for _, v in next, getgc(true) do
+    if type(v) == "table" and rawget(v, "Send") then
+        Network = v
+        break
+    end
+end
+
+local OriginalSend = Network.Send
+local HooksEnabled = false
+
+local function enableNetworkHook()
+    if HooksEnabled then return end
+    Network.Send = function(self, packet, ...)
+        if PhantomEnabled and PhantomPart and packet and packet.name == "move" then
+            -- Replace position data in the packet with phantom's position
+            packet.pos = PhantomPart.Position
+        end
+        return OriginalSend(self, packet, ...)
+    end
+    HooksEnabled = true
+end
+
+local function disableNetworkHook()
+    Network.Send = OriginalSend
+    HooksEnabled = false
+end
+
+-- 3. Phantom Movement based on key presses
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not PhantomEnabled or processed then return end
+    local key = input.KeyCode.Name
+    if key == "W" or key == "A" or key == "S" or key == "D" then
+        MoveKeys[key] = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, processed)
+    local key = input.KeyCode.Name
+    if key == "W" or key == "A" or key == "S" or key == "D" then
+        MoveKeys[key] = false
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if PhantomEnabled and PhantomPart then
+        local direction = Vector3.new(0,0,0)
+        if MoveKeys["W"] then direction = direction + Vector3.new(0,0,-1) end
+        if MoveKeys["S"] then direction = direction + Vector3.new(0,0,1) end
+        if MoveKeys["A"] then direction = direction + Vector3.new(-1,0,0) end
+        if MoveKeys["D"] then direction = direction + Vector3.new(1,0,0) end
+
+        if direction.Magnitude > 0 then
+            direction = direction.Unit * PhantomSpeed
+            PhantomPart.BodyVelocity.Velocity = Vector3.new(direction.X, 0, direction.Z)
+        else
+            PhantomPart.BodyVelocity.Velocity = Vector3.new(0,0,0)
+        end
+    end
+end)
+
+-- 4. UI Elements
+MainTab:AddToggle("Enable Phantom", {
+    Text = "Enable Phantom",
+    Default = false,
+    Tooltip = "Activates the desync phantom.",
+    Callback = function(state)
+        PhantomEnabled = state
+        if state then
+            createPhantomAnchor()
+            enableNetworkHook()
+            Library:Notify("Phantom Activated. Use W/A/S/D to move it.")
+        else
+            disableNetworkHook()
+            if PhantomPart then
+                PhantomPart:Destroy()
+                PhantomPart = nil
+            end
+        end
+    end
 })
 
--- Tabs
-local MainTab = Window:CreateTab("Main")
-local VisualTab = Window:CreateTab("Visual")
-local SettingsTab = Window:CreateTab("Settings")
+MainTab:AddSlider("Phantom Speed", {
+    Text = "Phantom Speed",
+    Default = 25,
+    Min = 1,
+    Max = 100,
+    Rounding = 1,
+    Callback = function(value)
+        PhantomSpeed = value
+    end
+})
 
--- Variables
-local SoulClone = nil
-local OriginalBody = nil
-local IsSoulInClone = false
-local ClonePosition = Vector3.new(0,0,0)
-
--- Function to hijack the game's cloner
-local function hijackClonerRemote()
-    for _, v in pairs(getreg()) do
-        if type(v) == 'function' and getinfo(v).name == "onCloneRequest" then
-            local remote = getupvalue(v, 1)
-            local originalFire = remote.FireServer
-            remote.FireServer = function(self, ...)
-                local args = {...}
-                if args[1] == "create_clone" then
-                    -- Intercept clone creation, store clone reference
-                    SoulClone = workspace:FindFirstChild(LocalPlayer.Name .. "_Clone")
-                    OriginalBody = LocalPlayer.Character
-                    ClonePosition = OriginalBody.HumanoidRootPart.Position + Vector3.new(10,0,10)
-                    if SoulClone then
-                        SoulClone:MoveTo(ClonePosition)
-                    end
-                end
-                return originalFire(self, unpack(args))
+MainTab:AddButton("Teleport Phantom to Me", {
+    Text = "Teleport Phantom to Me",
+    Func = function()
+        if PhantomPart and LocalPlayer.Character then
+            local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                PhantomPart.CFrame = root.CFrame + root.CFrame.LookVector * 5
             end
-            break
         end
     end
-end
+})
 
--- Function to swap "soul" (network ownership)
-local function swapSoul()
-    if not SoulClone or not OriginalBody then return end
-    local networkOwner = getsenv(LocalPlayer.PlayerScripts.PlayerModule.ControlModule).GetRemoteEvent("UpdateCharacter")
-    if IsSoulInClone then
-        -- Soul returns to original body
-        networkOwner:FireServer("set_origin", OriginalBody.HumanoidRootPart)
-        IsSoulInClone = false
-    else
-        -- Soul goes to clone
-        networkOwner:FireServer("set_origin", SoulClone.HumanoidRootPart)
-        IsSoulInClone = true
-    end
-end
-
--- UI Elements
-MainTab:AddToggle("Activate Soul Swap", false, function(state)
-    if state then
-        hijackClonerRemote()
-        -- Trigger the game's native clone function
-        game:GetService("ReplicatedStorage").CloneEvent:FireServer()
-    else
-        if SoulClone then SoulClone:Destroy() end
-    end
-end)
-
-MainTab:AddButton("Create Clone", function()
-    game:GetService("ReplicatedStorage").CloneEvent:FireServer()
-end)
-
-MainTab:AddButton("Swap Soul (KEY: F)", function()
-    swapSoul()
-end)
-
-MainTab:AddSlider("Clone Distance", 5, 50, 20, function(value)
-    ClonePosition = OriginalBody.HumanoidRootPart.Position + (OriginalBody.HumanoidRootPart.CFrame.LookVector * value)
-    if SoulClone then
-        SoulClone:MoveTo(ClonePosition)
-    end
-end)
-
-MainTab:AddToggle("Auto-Steal Mode", false, function(state)
-    -- Auto-steal logic: if soul is in clone and clone is near an item, automatically interact
-end)
-
-VisualTab:AddColorPicker("Menu Color", Color3.fromRGB(45, 0, 75), function(color)
-    Window:UpdateColor(color)
-end)
-
-SettingsTab:AddKeybind("Toggle Menu Key", Enum.KeyCode.RightShift, function()
-    Window:ToggleMinimize()
-end)
-
--- Key listener for quick swap
-UIS.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.F then
-        swapSoul()
-    end
-end)
-
--- Loop to maintain clone position if not swapped
-RunService.Heartbeat:Connect(function()
-    if SoulClone and not IsSoulInClone then
-        -- Keep clone at the set offset from original body
-        if OriginalBody and OriginalBody:FindFirstChild("HumanoidRootPart") then
-            local targetPos = OriginalBody.HumanoidRootPart.Position + (OriginalBody.HumanoidRootPart.CFrame.LookVector * 20)
-            SoulClone:MoveTo(targetPos)
+MainTab:AddButton("Destroy Phantom", {
+    Text = "Destroy Phantom",
+    Func = function()
+        PhantomEnabled = false
+        disableNetworkHook()
+        if PhantomPart then
+            PhantomPart:Destroy()
+            PhantomPart = nil
         end
+        Library:Notify("Phantom destroyed.")
     end
-end)
+})
 
+VisualTab:AddColorPicker("Menu Color", {
+    Default = Color3.fromRGB(160, 30, 255),
+    Title = "Accent Color",
+    Callback = function(color)
+        Library:ChangeColor(color)
+    end
+})
+
+Library:Notify("Script loaded. Press RightControl to toggle menu.")
+Library:SetWatermark("Phantom Desync Active")
+
+-- Init
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+ThemeManager:SetFolder("PhantomScript")
+SaveManager:SetFolder("PhantomScript")
+ThemeManager:ApplyToTab(VisualTab)
+SaveManager:IgnoreThemeSettings()
+SaveManager:BuildConfigSection(SettingsTab)
 Library:Init()
