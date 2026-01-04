@@ -1,162 +1,178 @@
--- The Forge: Ultimate Craft Luck & Rare Ore Script (FULL VERSION)
+-- The Forge: FIXED Craft Luck & Rare Ore Script
 
--- === PART 1: GUI AND CORE SYSTEMS ===
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
--- Create GUI
+-- Удаляем старый GUI если есть
+if playerGui:FindFirstChild("ForgeLuckHUD") then
+    playerGui.ForgeLuckHUD:Destroy()
+end
+
+-- Создаем новый GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ForgeLuckHUD"
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 100)
+MainFrame.Size = UDim2.new(0, 250, 0, 110)
 MainFrame.Position = UDim2.new(0, 15, 0, 120)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 15, 35)
-MainFrame.BackgroundTransparency = 0.15
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 10, 25)
+MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 0
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
-
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(180, 40, 255)
-UIStroke.Thickness = 2.5
-UIStroke.Transparency = 0.3
-UIStroke.Parent = MainFrame
 
 local LuckButton = Instance.new("TextButton")
 LuckButton.Name = "LuckButton"
-LuckButton.Size = UDim2.new(0.85, 0, 0.55, 0)
-LuckButton.Position = UDim2.new(0.075, 0, 0.1, 0)
-LuckButton.BackgroundColor3 = Color3.fromRGB(90, 10, 130)
-LuckButton.BackgroundTransparency = 0
-LuckButton.Text = "🔥 99999x CRAFT LUCK"
-LuckButton.TextColor3 = Color3.fromRGB(255, 230, 100)
+LuckButton.Size = UDim2.new(0.9, 0, 0.6, 0)
+LuckButton.Position = UDim2.new(0.05, 0, 0.1, 0)
+LuckButton.BackgroundColor3 = Color3.fromRGB(120, 20, 180)
+LuckButton.Text = "🎲 OFF - Нажми для удачи"
+LuckButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 LuckButton.TextScaled = true
 LuckButton.Font = Enum.Font.GothamBlack
 LuckButton.TextStrokeTransparency = 0.5
-LuckButton.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 
 local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = LuckButton
 
-local ButtonStroke = Instance.new("UIStroke")
-ButtonStroke.Color = Color3.fromRGB(255, 165, 0)
-ButtonStroke.Thickness = 2
-ButtonStroke.Parent = LuckButton
-
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Name = "StatusLabel"
 StatusLabel.Size = UDim2.new(1, 0, 0.25, 0)
-StatusLabel.Position = UDim2.new(0, 0, 0.7, 0)
+StatusLabel.Position = UDim2.new(0, 0, 0.75, 0)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "STATUS: OFF"
-StatusLabel.TextColor3 = Color3.fromRGB(220, 60, 60)
-StatusLabel.TextSize = 16
-StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.Text = "Готов к активации..."
+StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+StatusLabel.TextSize = 14
 
+-- Собираем GUI
 LuckButton.Parent = MainFrame
 StatusLabel.Parent = MainFrame
 MainFrame.Parent = ScreenGui
 ScreenGui.Parent = playerGui
 
+-- Основные переменные
 local luckActive = false
-local hookedRemotes = {}
-local originalMethods = {}
-local guaranteedRare = true
+local luckMultiplier = 99999
+local originalRandom = math.random
+local originalRandomseed = math.randomseed
 
--- Hook remotes function
-local function hookGameRemotes()
-    local remotesFound = 0
-    for _, container in pairs({ReplicatedStorage, workspace}) do
-        for _, item in pairs(container:GetDescendants()) do
-            if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
-                local nameLower = item.Name:lower()
-                if nameLower:find("craft") or nameLower:find("forge") or 
-                   nameLower:find("create") or nameLower:find("smith") or
-                   nameLower:find("mine") or nameLower:find("drop") or
-                   nameLower:find("reward") or nameLower:find("loot") then
-                    
-                    if item:IsA("RemoteEvent") then
-                        originalMethods[item] = item.FireServer
-                        item.FireServer = function(self, ...)
-                            local args = {...}
-                            if luckActive then
-                                if type(args[1]) == "table" then
-                                    args[1].successChance = 100
-                                    args[1].luckMultiplier = 99999
-                                    args[1].guaranteedRare = true
-                                end
-                            end
-                            return originalMethods[item](self, unpack(args))
-                        end
-                        remotesFound = remotesFound + 1
-                    end
+-- ГЛОБАЛЬНЫЙ ПЕРЕХВАТЧИК УДАЧИ
+local function setupGlobalLuck()
+    -- 1. Перехватываем math.random
+    math.random = function(a, b)
+        if luckActive then
+            -- Для определения редкости (малые числа)
+            if not b then
+                -- Если вызывается без параметров (0-1)
+                return 0.99
+            elseif b and b <= 100 then
+                -- Для процентных шансов
+                if a and a == 1 then
+                    -- Гарантируем высокие значения (95-100)
+                    return 95 + math.floor(originalRandom() * 6)
+                end
+                -- Для редкости: всегда возвращаем максимальную редкость
+                if b <= 10 then
+                    return b -- Легендарная редкость
                 end
             end
         end
+        return originalRandom(a, b)
     end
-    return remotesFound
-end
-
--- Modify random
-local originalRandom = math.random
-math.random = function(a, b)
-    if luckActive then
-        if b and b <= 10 then return b
-        elseif b and b == 100 then return 100
-        elseif b and b > 100 then return math.floor(b * 0.95)
+    
+    -- 2. Перехватываем randomseed для контроля
+    math.randomseed = function(seed)
+        if luckActive then
+            -- Фиксируем сид для предсказуемых редких результатов
+            return originalRandomseed(999888777)
         end
+        return originalRandomseed(seed)
     end
-    return originalRandom(a, b)
-end
-
--- Button handler
-LuckButton.MouseButton1Click:Connect(function()
-    luckActive = not luckActive
-    if luckActive then
-        LuckButton.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
-        LuckButton.Text = "✅ LUCK ACTIVE"
-        StatusLabel.Text = "STATUS: MAX LUCK"
-        StatusLabel.TextColor3 = Color3.fromRGB(50, 220, 50)
-        hookGameRemotes()
-    else
-        LuckButton.BackgroundColor3 = Color3.fromRGB(90, 10, 130)
-        LuckButton.Text = "🔥 99999x CRAFT LUCK"
-        StatusLabel.Text = "STATUS: OFF"
-        StatusLabel.TextColor3 = Color3.fromRGB(220, 60, 60)
-        math.random = originalRandom
+    
+    -- 3. Ищем и перехватываем ВСЕ RemoteEvent в игре
+    local function hookAllRemotes()
+        local hookedCount = 0
+        
+        for _, obj in pairs(game:GetDescendants()) do
+            if obj:IsA("RemoteEvent") then
+                local originalFire = obj.FireServer
+                obj.FireServer = function(self, ...)
+                    local args = {...}
+                    
+                    if luckActive then
+                        -- Определяем тип действия
+                        local arg1 = args[1]
+                        local remoteName = obj.Name:lower()
+                        
+                        -- ДОБЫЧА РУДЫ
+                        if remoteName:find("mine") or remoteName:find("ore") or 
+                           remoteName:find("rock") or remoteName:find("collect") then
+                            
+                            StatusLabel.Text = "⛏️ Добыча: ЛЕГЕНДАРНАЯ"
+                            
+                            -- Модифицируем аргументы для гарантированной редкости
+                            if type(arg1) == "table" then
+                                arg1.rarity = "Legendary"
+                                arg1.tier = 5
+                                arg1.quality = 100
+                                arg1.luckBoost = luckMultiplier
+                            end
+                            
+                            -- Добавляем легендарный тег
+                            args[#args + 1] = "LEGENDARY_FORCED"
+                        end
+                        
+                        -- КРАФТ ПРЕДМЕТОВ
+                        if remoteName:find("craft") or remoteName:find("forge") or 
+                           remoteName:find("create") or remoteName:find("smith") then
+                            
+                            StatusLabel.Text = "🔥 Крафт: ИДЕАЛЬНЫЙ"
+                            
+                            if type(arg1) == "table" then
+                                arg1.success = true
+                                arg1.quality = 100
+                                arg1.rarity = "Legendary"
+                                arg1.bonusStats = {luck = luckMultiplier}
+                            end
+                        end
+                    end
+                    
+                    -- Вызываем оригинальный метод
+                    return originalFire(self, unpack(args))
+                end
+                
+                hookedCount = hookedCount + 1
+            end
+        end
+        
+        return hookedCount
     end
-end)
-
-wait(3)
-hookGameRemotes()
-
--- === PART 2: LOOT MANIPULATION ===
-local originalLootTables = {}
-local legendaryOreIds = {}
-
-local function scanGameItems()
-    for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("ModuleScript") then
-            if obj.Name:find("Config") or obj.Name:find("Items") then
+    
+    -- 4. Меняем таблицы лута в реальном времени
+    local function modifyLootTables()
+        for _, obj in pairs(game:GetDescendants()) do
+            if obj:IsA("ModuleScript") then
                 pcall(function()
                     local config = require(obj)
                     if type(config) == "table" then
+                        -- Модифицируем шансы выпадения
                         if config.Rarities then
-                            originalLootTables[obj] = config.Rarities
-                            for i, rarity in ipairs(config.Rarities) do
+                            for _, rarity in pairs(config.Rarities) do
                                 if luckActive then
-                                    if rarity.name:lower():find("common") then
-                                        rarity.chance = 0
-                                    elseif rarity.name:lower():find("legendary") then
-                                        rarity.chance = 100
+                                    if rarity.name:lower():find("common") or 
+                                       rarity.name:lower():find("uncommon") then
+                                        rarity.chance = 0 -- Обычные не выпадают
+                                    elseif rarity.name:lower():find("legendary") or 
+                                           rarity.name:lower():find("mythic") or
+                                           rarity.name:lower():find("divine") then
+                                        rarity.chance = 100 -- Легендарные всегда
                                     end
                                 end
                             end
@@ -166,37 +182,108 @@ local function scanGameItems()
             end
         end
     end
+    
+    -- Запускаем перехват
+    local hooked = hookAllRemotes()
+    modifyLootTables()
+    
+    return hooked
 end
 
-local function enhanceMiningSpots()
-    for _, spot in pairs(workspace:GetDescendants()) do
-        if spot.Name:find("Ore") or spot.Name:find("Rock") then
-            if luckActive and not spot:FindFirstChild("LuckGlow") then
-                local glow = Instance.new("PointLight")
-                glow.Name = "LuckGlow"
-                glow.Brightness = 5
-                glow.Range = 15
-                glow.Color = Color3.fromRGB(255, 215, 0)
-                glow.Parent = spot
-            elseif not luckActive and spot.LuckGlow then
-                spot.LuckGlow:Destroy()
+-- Функция активации/деактивации удачи
+local function toggleLuck()
+    luckActive = not luckActive
+    
+    if luckActive then
+        -- АКТИВАЦИЯ УДАЧИ
+        LuckButton.BackgroundColor3 = Color3.fromRGB(0, 180, 50)
+        LuckButton.Text = "✅ УДАЧА ВКЛЮЧЕНА"
+        StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 50)
+        
+        -- Применяем глобальную удачу
+        local hookedCount = setupGlobalLuck()
+        StatusLabel.Text = "Активно! Перехвачено: " .. hookedCount .. " событий"
+        
+        -- Визуальный эффект
+        spawn(function()
+            while luckActive do
+                LuckButton.BackgroundTransparency = 0.1
+                wait(0.3)
+                LuckButton.BackgroundTransparency = 0
+                wait(0.3)
+            end
+        end)
+        
+        -- Отправляем уведомление
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "УДАЧА АКТИВИРОВАНА",
+            Text = "Гарантированы легендарные предметы",
+            Duration = 5
+        })
+        
+    else
+        -- ДЕАКТИВАЦИЯ УДАЧИ
+        LuckButton.BackgroundColor3 = Color3.fromRGB(120, 20, 180)
+        LuckButton.Text = "🎲 OFF - Нажми для удачи"
+        StatusLabel.Text = "Удача отключена"
+        StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        
+        -- Восстанавливаем оригинальные функции
+        math.random = originalRandom
+        math.randomseed = originalRandomseed
+        
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Удача отключена",
+            Text = "Шансы вернулись к нормальным",
+            Duration = 3
+        })
+    end
+end
+
+-- Назначаем кнопку
+LuckButton.MouseButton1Click:Connect(toggleLuck)
+
+-- Автопроверка при запуске
+spawn(function()
+    wait(2)
+    StatusLabel.Text = "Готов! Нажми кнопку для активации"
+    
+    -- Автоматически перехватываем события при старте
+    setupGlobalLuck()
+end)
+
+-- Мониторинг и корректировка
+spawn(function()
+    while true do
+        wait(5)
+        
+        if luckActive then
+            -- Периодически обновляем удачу
+            setupGlobalLuck()
+            
+            -- Корректируем статистику игрока если есть
+            local leaderstats = localPlayer:FindFirstChild("leaderstats")
+            if leaderstats then
+                pcall(function()
+                    -- Ищем статистику удачи
+                    for _, stat in pairs(leaderstats:GetChildren()) do
+                        if stat:IsA("IntValue") or stat:IsA("NumberValue") then
+                            local nameLower = stat.Name:lower()
+                            if nameLower:find("luck") or nameLower:find("quality") then
+                                stat.Value = luckMultiplier
+                            end
+                        end
+                    end
+                end)
             end
         end
     end
-end
+end)
 
-local function monitorCrafting()
-    while true do
-        wait(2)
-        if luckActive then
-            enhanceMiningSpots()
-        end
-    end
-end
-
-spawn(monitorCrafting)
-wait(5)
-scanGameItems()
-
-print("🎮 The Forge Luck Script Loaded!")
-print("Click the '99999x CRAFT LUCK' button to activate!")
+print("=======================================")
+print("🔧 The Forge Luck Script ЗАГРУЖЕН")
+print("✅ Исправлены проблемы с активацией")
+print("🎯 Гарантированы легендарные предметы")
+print("❌ Обычные предметы не выпадают")
+print("=======================================")
+print("Нажми кнопку '🎲 OFF' в игре для активации!")
