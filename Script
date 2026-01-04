@@ -1,343 +1,308 @@
---=[ МОБИЛЬНЫЙ СКРИПТ ДЛЯ THE FORGE ]=--
---=[ Свободная камера + удалённое взаимодействие ]=--
+--=[ THE FORGE: СВОБОДНАЯ КАМЕРА + УДАЛЁННОЕ ВЗАИМОДЕЙСТВИЕ ]=--
+-- Камера летает свободно, персонаж стоит на месте
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Camera = workspace.CurrentCamera
 
--- Состояние системы
+-- Состояние
 local FreeCameraMode = false
 local Agent = nil
-local CameraOrigin = nil
 
--- 1. СОЗДАНИЕ ИНТЕРФЕЙСА (уже работало)
+-- Параметры свободной камеры
+local CameraSpeed = 0.5
+local LookSensitivity = 0.3
+local CameraYaw = 0
+local CameraPitch = 0
+local CameraPosition = Vector3.new(0, 0, 0)
+
+-- 1. ИНТЕРФЕЙС (упрощённый, только кнопка)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ForgeMobileHelper"
+ScreenGui.Name = "ForgeFreeCam"
 ScreenGui.Parent = PlayerGui
 ScreenGui.ResetOnSpawn = false
 
--- Главная кнопка меню
-local MenuButton = Instance.new("TextButton")
-MenuButton.Name = "MenuToggle"
-MenuButton.Size = UDim2.new(0, 60, 0, 60)
-MenuButton.Position = UDim2.new(0, 20, 0, 20)
-MenuButton.BackgroundColor3 = Color3.fromRGB(45, 85, 150)
-MenuButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-MenuButton.Text = "☰"
-MenuButton.Font = Enum.Font.GothamBold
-MenuButton.TextSize = 28
-MenuButton.BorderSizePixel = 0
-MenuButton.ZIndex = 10
+-- Кнопка переключения режима
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Size = UDim2.new(0, 120, 0, 50)
+ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Text = "ВКЛ СВОБ.КАМЕРУ"
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 16
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.ZIndex = 10
 
-local UICorner1 = Instance.new("UICorner")
-UICorner1.CornerRadius = UDim.new(0.2, 0)
-UICorner1.Parent = MenuButton
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0.2, 0)
+UICorner.Parent = ToggleBtn
 
--- Панель управления
-local ControlPanel = Instance.new("Frame")
-ControlPanel.Name = "ControlPanel"
-ControlPanel.Size = UDim2.new(0, 220, 0, 180)
-ControlPanel.Position = UDim2.new(0, 90, 0, 20)
-ControlPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-ControlPanel.BackgroundTransparency = 0.1
-ControlPanel.Visible = false
+ToggleBtn.Parent = ScreenGui
 
-local UICorner2 = Instance.new("UICorner")
-UICorner2.CornerRadius = UDim.new(0.1, 0)
-UICorner2.Parent = ControlPanel
-
--- Кнопка переключения камеры
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "ToggleFreeCam"
-ToggleButton.Size = UDim2.new(0.9, 0, 0, 50)
-ToggleButton.Position = UDim2.new(0.05, 0, 0.05, 0)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(80, 160, 80)
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.Font = Enum.Font.Gotham
-ToggleButton.TextSize = 20
-ToggleButton.Text = "▶ Вкл. Своб. Камеру"
-ToggleButton.Parent = ControlPanel
-
-local UICorner3 = Instance.new("UICorner")
-UICorner3.CornerRadius = UDim.new(0.15, 0)
-UICorner3.Parent = ToggleButton
-
--- Индикатор состояния
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Name = "Status"
-StatusLabel.Size = UDim2.new(0.9, 0, 0, 30)
-StatusLabel.Position = UDim2.new(0.05, 0, 0.4, 0)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Режим: ВЫКЛ"
-StatusLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 16
-StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-StatusLabel.Parent = ControlPanel
-
--- Кнопка закрытия
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "ClosePanel"
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(1, -35, 0, 5)
-CloseButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.Text = "X"
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 18
-CloseButton.Parent = ControlPanel
-
-local UICorner4 = Instance.new("UICorner")
-UICorner4.CornerRadius = UDim.new(0.5, 0)
-UICorner4.Parent = CloseButton
-
-MenuButton.Parent = ScreenGui
-ControlPanel.Parent = ScreenGui
-
--- 2. ЯДРО СВОБОДНОЙ КАМЕРЫ
-local Camera = workspace.CurrentCamera
-local TouchStartPos = nil
-local CameraYaw = 0
-local CameraPitch = 0
-local CameraDistance = 10
-
--- Функция управления камерой в свободном режиме
-function UpdateFreeCamera()
-    if not FreeCameraMode or not CameraOrigin then return end
+-- 2. ЯДРО СВОБОДНОЙ КАМЕРЫ (СПЕКТАТОР)
+function StartFreeCamera()
+    local character = LocalPlayer.Character
+    if not character then return end
     
-    -- Вычисляем новую позицию камеры (орбита вокруг агента)
-    local angleX = math.rad(CameraYaw)
-    local angleY = math.rad(CameraPitch)
+    -- Замораживаем персонажа
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+    end
     
-    local offset = Vector3.new(
-        CameraDistance * math.cos(angleX) * math.cos(angleY),
-        CameraDistance * math.sin(angleY),
-        CameraDistance * math.sin(angleX) * math.cos(angleY)
-    )
+    -- Создаём агента для взаимодействий
+    Agent = Instance.new("Part")
+    Agent.Name = "FreeCamAgent"
+    Agent.Size = Vector3.new(3, 5, 3)
+    Agent.Transparency = 1
+    Agent.CanCollide = false
+    Agent.Anchored = true
+    Agent.Parent = workspace
+    Agent.CFrame = character:GetPivot()
     
-    Camera.CFrame = CFrame.new(CameraOrigin.Position + offset, CameraOrigin.Position)
+    -- Сохраняем стартовую позицию камеры
+    CameraPosition = Camera.CFrame.Position
+    CameraYaw = 0
+    CameraPitch = 0
+    
+    -- Переводим камеру в ручной режим
+    Camera.CameraType = Enum.CameraType.Scriptable
+    
+    print("Свободная камера активирована. Персонаж заморожен.")
+    print("Управление: касание + движение = вращение камеры")
 end
 
--- Обработка жестов для управления камерой
+function StopFreeCamera()
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = 16
+            humanoid.JumpPower = 50
+        end
+    end
+    
+    -- Возвращаем камеру к персонажу
+    Camera.CameraType = Enum.CameraType.Custom
+    
+    -- Удаляем агента
+    if Agent then
+        Agent:Destroy()
+        Agent = nil
+    end
+    
+    print("Свободная камера деактивирована.")
+end
+
+-- 3. УПРАВЛЕНИЕ КАМЕРОЙ (как в спектаторе)
+local TouchStartPos = nil
+local TouchStartCameraYaw = 0
+local TouchStartCameraPitch = 0
+
 UserInputService.TouchStarted:Connect(function(touch, gameProcessed)
     if not FreeCameraMode or gameProcessed then return end
     
     TouchStartPos = touch.Position
-    local startYaw = CameraYaw
-    local startPitch = CameraPitch
-    
-    -- Отслеживаем движение пальца
-    local touchConnection
-    touchConnection = UserInputService.TouchMoved:Connect(function(currentTouch)
-        if not FreeCameraMode or not TouchStartPos then return end
-        
-        local delta = currentTouch.Position - TouchStartPos
-        CameraYaw = startYaw - delta.X * 0.5  -- Чувствительность
-        CameraPitch = startPitch + delta.Y * 0.3
-        CameraPitch = math.clamp(CameraPitch, -80, 80)  -- Ограничение по вертикали
-        
-        UpdateFreeCamera()
-    end)
-    
-    -- Завершение касания
-    UserInputService.TouchEnded:Connect(function(endTouch)
-        if touchConnection then
-            touchConnection:Disconnect()
-            TouchStartPos = nil
-        end
-    end)
+    TouchStartCameraYaw = CameraYaw
+    TouchStartCameraPitch = CameraPitch
 end)
 
--- 3. УПРАВЛЕНИЕ РЕЖИМОМ
-function ToggleFreeCamera()
-    FreeCameraMode = not FreeCameraMode
+UserInputService.TouchMoved:Connect(function(touch, gameProcessed)
+    if not FreeCameraMode or not TouchStartPos or gameProcessed then return end
     
-    if FreeCameraMode then
-        -- АКТИВАЦИЯ РЕЖИМА
-        local character = LocalPlayer.Character
-        if character then
-            -- Замораживаем персонажа
-            local humanoid = character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = 0
-                humanoid.JumpPower = 0
-            end
-            
-            -- Создаём агента для взаимодействий
-            Agent = Instance.new("Part")
-            Agent.Name = "InteractionAgent"
-            Agent.Size = Vector3.new(3, 5, 3)
-            Agent.Transparency = 1
-            Agent.CanCollide = false
-            Agent.Anchored = true
-            Agent.Parent = workspace
-            Agent.CFrame = character:GetPivot()
-            
-            CameraOrigin = Agent
-            
-            -- Сохраняем начальные углы камеры
-            local lookVector = Camera.CFrame.LookVector
-            CameraYaw = math.atan2(lookVector.Z, lookVector.X)
-            CameraPitch = math.asin(lookVector.Y)
-            
-            -- Меняем интерфейс
-            ToggleButton.Text = "⏸ Выкл. Своб. Камеру"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-            StatusLabel.Text = "Режим: АКТИВЕН"
-            StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-            
-            print("Свободная камера активирована. Двигайте пальцем по экрану для вращения.")
-        end
-    else
-        -- ДЕАКТИВАЦИЯ РЕЖИМА
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = 16
-                humanoid.JumpPower = 50
-            end
-        end
+    local delta = touch.Position - TouchStartPos
+    CameraYaw = TouchStartCameraYaw - delta.X * LookSensitivity
+    CameraPitch = TouchStartCameraPitch + delta.Y * LookSensitivity
+    CameraPitch = math.clamp(CameraPitch, -89, 89)
+end)
+
+UserInputService.TouchEnded:Connect(function(touch, gameProcessed)
+    TouchStartPos = nil
+end)
+
+-- Движение камеры вперёд/назад/вбок
+local MoveForward = false
+local MoveBackward = false
+local MoveLeft = false
+local MoveRight = false
+local MoveUp = false
+local MoveDown = false
+
+-- Временные кнопки для движения (можно заменить на виртуальный джойстик)
+local function CreateMoveButtons()
+    local moveFrame = Instance.new("Frame")
+    moveFrame.Name = "MoveControls"
+    moveFrame.Size = UDim2.new(0, 200, 0, 200)
+    moveFrame.Position = UDim2.new(1, -220, 0, 20)
+    moveFrame.BackgroundTransparency = 0.8
+    moveFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    moveFrame.Parent = ScreenGui
+    
+    -- Кнопки движения (простой вариант)
+    local directions = {
+        {"W", "Вперёд", UDim2.new(0.5, -25, 0, 10), function(v) MoveForward = v end},
+        {"S", "Назад", UDim2.new(0.5, -25, 0.7, 10), function(v) MoveBackward = v end},
+        {"A", "Влево", UDim2.new(0, 10, 0.35, 0), function(v) MoveLeft = v end},
+        {"D", "Вправо", UDim2.new(1, -50, 0.35, 0), function(v) MoveRight = v end},
+    }
+    
+    for _, dir in pairs(directions) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 40, 0, 40)
+        btn.Position = dir[3]
+        btn.Text = dir[1]
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 18
+        btn.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+        btn.Parent = moveFrame
         
-        -- Возвращаем камеру к персонажу
-        Camera.CameraType = Enum.CameraType.Custom
-        
-        -- Удаляем агента
-        if Agent then
-            Agent:Destroy()
-            Agent = nil
-        end
-        
-        CameraOrigin = nil
-        
-        -- Меняем интерфейс
-        ToggleButton.Text = "▶ Вкл. Своб. Камеру"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(80, 160, 80)
-        StatusLabel.Text = "Режим: ВЫКЛ"
-        StatusLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-        
-        print("Свободная камера деактивирована.")
+        btn.MouseButton1Down:Connect(function() dir[4](true) end)
+        btn.MouseButton1Up:Connect(function() dir[4](false) end)
+        btn.MouseLeave:Connect(function() dir[4](false) end)
     end
+    
+    print("Созданы кнопки движения W/A/S/D в правом верхнем углу")
 end
 
--- 4. СИСТЕМА ВЗАИМОДЕЙСТВИЯ
+-- 4. ОБНОВЛЕНИЕ КАМЕРЫ
+RunService.RenderStepped:Connect(function(deltaTime)
+    if not FreeCameraMode then return end
+    
+    -- Вычисляем векторы направления
+    local forward = Vector3.new(
+        math.sin(math.rad(CameraYaw)) * math.cos(math.rad(CameraPitch)),
+        math.sin(math.rad(CameraPitch)),
+        math.cos(math.rad(CameraYaw)) * math.cos(math.rad(CameraPitch))
+    )
+    
+    local right = Vector3.new(
+        math.sin(math.rad(CameraYaw + 90)),
+        0,
+        math.cos(math.rad(CameraYaw + 90))
+    )
+    
+    local up = Vector3.new(0, 1, 0)
+    
+    -- Движение
+    local moveVector = Vector3.new(0, 0, 0)
+    if MoveForward then moveVector = moveVector + forward end
+    if MoveBackward then moveVector = moveVector - forward end
+    if MoveRight then moveVector = moveVector + right end
+    if MoveLeft then moveVector = moveVector - right end
+    if MoveUp then moveVector = moveVector + up end
+    if MoveDown then moveVector = moveVector - up end
+    
+    -- Нормализуем и применяем скорость
+    if moveVector.Magnitude > 0 then
+        moveVector = moveVector.Unit * CameraSpeed * 60 * deltaTime
+        CameraPosition = CameraPosition + moveVector
+    end
+    
+    -- Обновляем позицию камеры
+    Camera.CFrame = CFrame.new(CameraPosition, CameraPosition + forward)
+end)
+
+-- 5. ВЗАИМОДЕЙСТВИЕ (через агента)
 function RemoteInteract(target)
     if not Agent or not FreeCameraMode then 
-        print("Ошибка: Агент не создан или режим не активен")
+        print("Ошибка: Режим не активен")
         return 
     end
     
-    -- Определяем тип объекта
     local targetName = target.Name:lower()
-    local parentName = target.Parent.Name:lower()
     
-    print("Обнаружен объект:", targetName, "в", parentName)
-    
-    -- Варианты объектов для добычи
-    local oreKeywords = {"ore", "руд", "stone", "камень", "mine", "копать"}
-    -- Варианты врагов
-    local enemyKeywords = {"mob", "enemy", "monster", "враг", "монстр", "boss"}
-    
-    -- Проверка на руду
-    for _, keyword in pairs(oreKeywords) do
-        if targetName:find(keyword) or parentName:find(keyword) then
-            -- Способ 1: ClickDetector (стандартный)
-            local clickDetector = target:FindFirstChild("ClickDetector") or target.Parent:FindFirstChild("ClickDetector")
-            if clickDetector then
-                fireclickdetector(clickDetector)
-                print("Добыча через ClickDetector")
-                return true
-            end
-            
-            -- Способ 2: Tool/RemoteEvent (для продвинутых игр)
-            local tool = LocalPlayer.Backpack:FindFirstChildOfClass("Tool") or character:FindFirstChildOfClass("Tool")
-            if tool then
-                tool:Activate()
-                print("Добыча через инструмент")
-                return true
-            end
-            
-            print("Не найден способ добычи для этого объекта")
-            return false
+    -- Для руды
+    if targetName:find("ore") or targetName:find("руд") or target.Parent.Name:find("ore") then
+        local clickDetector = target:FindFirstChild("ClickDetector") 
+                        or target.Parent:FindFirstChild("ClickDetector")
+        if clickDetector then
+            -- Перемещаем агента к цели
+            Agent.CFrame = CFrame.new(target.Position)
+            wait(0.05)
+            fireclickdetector(clickDetector)
+            print("Добыча: " .. targetName)
+            return true
         end
     end
     
-    -- Проверка на врагов
-    for _, keyword in pairs(enemyKeywords) do
-        if targetName:find(keyword) or parentName:find(keyword) then
-            local humanoid = target:FindFirstChild("Humanoid") or target.Parent:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid:TakeDamage(15)
-                print("Атака по врагу: -15 HP")
-                return true
-            end
+    -- Для врагов
+    if targetName:find("mob") or targetName:find("enemy") or target:FindFirstChild("Humanoid") then
+        local humanoid = target:FindFirstChild("Humanoid") or target.Parent:FindFirstChild("Humanoid")
+        if humanoid then
+            Agent.CFrame = CFrame.new(target.Position)
+            humanoid:TakeDamage(20)
+            print("Атака: " .. targetName)
+            return true
         end
     end
     
-    -- Если объект не опознан, пытаемся стандартное взаимодействие
+    -- Любой кликабельный объект
     local clickDetector = target:FindFirstChild("ClickDetector")
     if clickDetector then
+        Agent.CFrame = CFrame.new(target.Position)
+        wait(0.05)
         fireclickdetector(clickDetector)
-        print("Стандартное взаимодействие")
+        print("Взаимодействие: " .. targetName)
         return true
     end
     
-    print("Не удалось взаимодействовать с объектом")
     return false
 end
 
--- 5. ОБРАБОТКА КАСАНИЙ ДЛЯ ВЗАИМОДЕЙСТВИЯ
+-- 6. КЛИКИ ПО ОБЪЕКТАМ
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not FreeCameraMode or gameProcessed then return end
     
     if input.UserInputType == Enum.UserInputType.Touch then
-        -- Небольшая задержка, чтобы не путать с жестами камеры
-        task.wait(0.1)
+        -- Ждём, чтобы отличить от жеста камеры
+        task.wait(0.2)
+        if TouchStartPos then return end -- Если был жест камеры, пропускаем
         
-        -- Создаём луч от камеры через точку касания
-        local viewportMouse = Camera:ViewportPointToRay(input.Position.X, input.Position.Y)
-        local ray = Ray.new(viewportMouse.Origin, viewportMouse.Direction * 100)
+        -- Луч от камеры
+        local ray = Camera:ViewportPointToRay(input.Position.X, input.Position.Y)
+        local hitPart = workspace:FindPartOnRayWithIgnoreList(
+            Ray.new(ray.Origin, ray.Direction * 200),
+            {Camera, Agent}
+        )
         
-        -- Ищем объект, игнорируя агента и камеру
-        local ignoreList = {Agent, Camera, workspace.CurrentCamera}
-        local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
-        
-        if hit then
-            print("Касание объекта:", hit.Name)
-            RemoteInteract(hit)
+        if hitPart then
+            RemoteInteract(hitPart)
         end
     end
 end)
 
--- 6. ОБРАБОТЧИКИ ИНТЕРФЕЙСА
-MenuButton.MouseButton1Click:Connect(function()
-    ControlPanel.Visible = not ControlPanel.Visible
-    print("Панель управления: " .. (ControlPanel.Visible and "открыта" or "закрыта"))
-end)
-
-CloseButton.MouseButton1Click:Connect(function()
-    ControlPanel.Visible = false
-    print("Панель управления закрыта")
-end)
-
-ToggleButton.MouseButton1Click:Connect(ToggleFreeCamera)
-
--- 7. ОСНОВНОЙ ЦИКЛ ОБНОВЛЕНИЯ
-RunService.RenderStepped:Connect(function()
+-- 7. ПЕРЕКЛЮЧЕНИЕ РЕЖИМА
+ToggleBtn.MouseButton1Click:Connect(function()
+    FreeCameraMode = not FreeCameraMode
+    
     if FreeCameraMode then
-        UpdateFreeCamera()
+        StartFreeCamera()
+        ToggleBtn.Text = "ВЫКЛ СВОБ.КАМЕРУ"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+        CreateMoveButtons()
+    else
+        StopFreeCamera()
+        ToggleBtn.Text = "ВКЛ СВОБ.КАМЕРУ"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+        
+        -- Удаляем кнопки движения
+        local moveControls = ScreenGui:FindFirstChild("MoveControls")
+        if moveControls then moveControls:Destroy() end
     end
 end)
 
--- Инструкция
-print("========================================")
-print("Мобильный скрипт для The Forge загружен!")
+print("=========================================")
+print("СКРИПТ ЗАГРУЖЕН: Свободная камера для The Forge")
 print("Инструкция:")
-print("1. Нажмите кнопку '☰' для открытия панели")
-print("2. Нажмите 'Вкл. Своб. Камеру' для активации")
-print("3. В режиме камеры: двигайте пальцем по экрану для вращения")
-print("4. Нажимайте на руду/монстров для взаимодействия")
-print("========================================")
+print("1. Нажмите кнопку 'ВКЛ СВОБ.КАМЕРУ'")
+print("2. Персонаж замрёт на месте")
+print("3. Касайтесь и двигайте пальцем для вращения камеры")
+print("4. Используйте кнопки W/A/S/D для движения камеры")
+print("5. Нажимайте на объекты для взаимодействия")
+print("=========================================")
