@@ -1,250 +1,185 @@
--- Desync Exploit Script by Colin
--- Load this through your executor
-
+-- Основные службы
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local RootPart = Character:WaitForChild("HumanoidRootPart")
-
-local UIS = game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Desync variables
-local DesyncEnabled = false
-local FakeCorpse = nil
-local RealPosition = Vector3.new(0, 0, 0)
-local Indicator = nil
+-- Состояние
+local FreeCameraMode = false
+local Agent = nil -- Наш невидимый "агент" для взаимодействий
 
--- Create GUI
+-- 1. СОЗДАЕМ ИНТЕРФЕЙС ДЛЯ МОБИЛЬНОГО УСТРОЙСТВА
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "ForgeMobileHelper"
+ScreenGui.Parent = PlayerGui
+ScreenGui.ResetOnSpawn = false
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 200, 0, 150)
-Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
-Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Frame.Parent = ScreenGui
+-- Главная кнопка меню в левом верхнем углу
+local MenuButton = Instance.new("TextButton")
+MenuButton.Name = "MenuToggle"
+MenuButton.Size = UDim2.new(0, 60, 0, 60)
+MenuButton.Position = UDim2.new(0, 20, 0, 20)
+MenuButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+MenuButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MenuButton.Text = "≡"
+MenuButton.Font = Enum.Font.GothamBold
+MenuButton.TextSize = 28
+MenuButton.BorderSizePixel = 0
+MenuButton.ZIndex = 10
 
+-- Закругление
+local UICorner1 = Instance.new("UICorner")
+UICorner1.CornerRadius = UDim.new(0.2, 0)
+UICorner1.Parent = MenuButton
+
+-- Панель управления (появляется при нажатии)
+local ControlPanel = Instance.new("Frame")
+ControlPanel.Name = "ControlPanel"
+ControlPanel.Size = UDim2.new(0, 220, 0, 150)
+ControlPanel.Position = UDim2.new(0, 90, 0, 20)
+ControlPanel.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+ControlPanel.BackgroundTransparency = 0.2
+ControlPanel.Visible = false -- Скрыта по умолчанию
+
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(0.1, 0)
+UICorner2.Parent = ControlPanel
+
+-- Кнопка включения свободной камеры
 local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(0, 180, 0, 40)
-ToggleButton.Position = UDim2.new(0, 10, 0, 10)
-ToggleButton.Text = "DESYNC: OFF"
-ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-ToggleButton.Parent = Frame
+ToggleButton.Name = "ToggleFreeCam"
+ToggleButton.Size = UDim2.new(0.9, 0, 0, 50)
+ToggleButton.Position = UDim2.new(0.05, 0, 0.05, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.Gotham
+ToggleButton.TextSize = 20
+ToggleButton.Text = "Вкл. Своб. Камеру"
+ToggleButton.Parent = ControlPanel
 
-local IndicatorToggle = Instance.new("TextButton")
-IndicatorToggle.Size = UDim2.new(0, 180, 0, 30)
-IndicatorToggle.Position = UDim2.new(0, 10, 0, 60)
-IndicatorToggle.Text = "Show Real Position: ON"
-IndicatorToggle.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
-IndicatorToggle.Parent = Frame
+local UICorner3 = Instance.new("UICorner")
+UICorner3.CornerRadius = UDim.new(0.15, 0)
+UICorner3.Parent = ToggleButton
 
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(0, 180, 0, 30)
-StatusLabel.Position = UDim2.new(0, 10, 0, 100)
-StatusLabel.Text = "Status: Inactive"
-StatusLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-StatusLabel.Parent = Frame
+-- Кнопка закрытия панели
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "ClosePanel"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Text = "X"
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 18
+CloseButton.Parent = ControlPanel
 
--- Function to create fake corpse
-local function createFakeCorpse()
-    if FakeCorpse then FakeCorpse:Destroy() end
-    
-    FakeCorpse = Instance.new("Model")
-    FakeCorpse.Name = "Corpse_" .. LocalPlayer.Name
-    
-    -- Copy character appearance
-    for _, part in pairs(Character:GetChildren()) do
-        if part:IsA("BasePart") then
-            local clone = part:Clone()
-            clone.Anchored = true
-            clone.CanCollide = false
-            clone.Transparency = 0.3
-            clone.BrickColor = BrickColor.new("Medium stone grey")
-            clone.Parent = FakeCorpse
-        end
-    end
-    
-    -- Death animation pose
-    for _, part in pairs(FakeCorpse:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.CFrame = part.CFrame * CFrame.Angles(math.rad(90), 0, 0)
-        end
-    end
-    
-    FakeCorpse.Parent = Workspace
-    FakeCorpse:SetPrimaryPartCFrame(RootPart.CFrame)
-    
-    -- Add fake corpse indicator for other players
-    local Billboard = Instance.new("BillboardGui")
-    Billboard.Size = UDim2.new(0, 100, 0, 40)
-    Billboard.StudsOffset = Vector3.new(0, 3, 0)
-    Billboard.Adornee = FakeCorpse.PrimaryPart
-    Billboard.Parent = FakeCorpse.PrimaryPart
-    
-    local TextLabel = Instance.new("TextLabel")
-    TextLabel.Size = UDim2.new(1, 0, 1, 0)
-    TextLabel.Text = "DEAD BODY"
-    TextLabel.TextColor3 = Color3.new(1, 0, 0)
-    TextLabel.BackgroundTransparency = 1
-    TextLabel.Parent = Billboard
-    
-    return FakeCorpse
-end
+local UICorner4 = Instance.new("UICorner")
+UICorner4.CornerRadius = UDim.new(0.5, 0)
+UICorner4.Parent = CloseButton
 
--- Function to create real position indicator
-local function createRealPositionIndicator()
-    if Indicator then Indicator:Destroy() end
-    
-    Indicator = Instance.new("Part")
-    Indicator.Name = "RealPositionIndicator"
-    Indicator.Size = Vector3.new(4, 4, 4)
-    Indicator.Shape = Enum.PartType.Ball
-    Indicator.Material = Enum.Material.Neon
-    Indicator.Color = Color3.fromRGB(0, 255, 0)
-    Indicator.Transparency = 0.3
-    Indicator.CanCollide = false
-    Indicator.Anchored = true
-    Indicator.Parent = Workspace
-    
-    local Billboard = Instance.new("BillboardGui")
-    Billboard.Size = UDim2.new(0, 200, 0, 50)
-    Billboard.StudsOffset = Vector3.new(0, 5, 0)
-    Billboard.Adornee = Indicator
-    Billboard.Parent = Indicator
-    
-    local TextLabel = Instance.new("TextLabel")
-    TextLabel.Size = UDim2.new(1, 0, 1, 0)
-    TextLabel.Text = LocalPlayer.Name .. " (REAL)"
-    TextLabel.TextColor3 = Color3.new(0, 1, 0)
-    TextLabel.BackgroundTransparency = 1
-    TextLabel.Font = Enum.Font.SourceSansBold
-    TextLabel.TextSize = 20
-    TextLabel.Parent = Billboard
-    
-    return Indicator
-end
+-- Прикрепляем элементы
+MenuButton.Parent = ScreenGui
+ControlPanel.Parent = ScreenGui
 
--- Toggle desync
-ToggleButton.MouseButton1Click:Connect(function()
-    DesyncEnabled = not DesyncEnabled
-    
-    if DesyncEnabled then
-        ToggleButton.Text = "DESYNC: ON"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 200, 60)
-        StatusLabel.Text = "Status: ACTIVE (Moving)"
-        
-        -- Create fake corpse at current position
-        createFakeCorpse()
-        RealPosition = RootPart.Position
-        
-        -- Move real character underground
-        local undergroundPosition = RootPart.Position - Vector3.new(0, 50, 0)
-        RootPart.CFrame = CFrame.new(undergroundPosition)
-        
-        -- Make character invisible to others
-        for _, part in pairs(Character:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.LocalTransparencyModifier = 1
+-- 2. ФУНКЦИИ УПРАВЛЕНИЯ
+-- Включение/выключение свободной камеры
+function ToggleFreeCamera()
+    FreeCameraMode = not FreeCameraMode
+
+    if FreeCameraMode then
+        -- Сохраняем и замораживаем персонажа
+        local character = LocalPlayer.Character
+        if character then
+            local humanoid = character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = 0
+                -- Создаём невидимого агента для взаимодействий
+                if not Agent then
+                    Agent = Instance.new("Part")
+                    Agent.Name = "InteractionAgent"
+                    Agent.Size = Vector3.new(2, 4, 2)
+                    Agent.Transparency = 1
+                    Agent.CanCollide = false
+                    Agent.Anchored = true
+                    Agent.Parent = workspace
+                end
+                Agent.CFrame = character:GetPivot()
             end
         end
-        
-        -- Create real position indicator
-        createRealPositionIndicator()
-        Indicator.Position = undergroundPosition
-        
-        -- Enable movement while desynced
-        Humanoid.WalkSpeed = 32
+        ToggleButton.Text = "Выкл. Своб. Камеру"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
     else
-        ToggleButton.Text = "DESYNC: OFF"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-        StatusLabel.Text = "Status: Inactive"
-        
-        -- Return to fake corpse position
-        if FakeCorpse then
-            RootPart.CFrame = FakeCorpse.PrimaryPart.CFrame
-            FakeCorpse:Destroy()
-            FakeCorpse = nil
-        end
-        
-        -- Restore visibility
-        for _, part in pairs(Character:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.LocalTransparencyModifier = 0
+        -- Возвращаем управление персонажем
+        local character = LocalPlayer.Character
+        if character then
+            local humanoid = character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = 16 -- Стандартная скорость
             end
         end
-        
-        -- Remove indicator
-        if Indicator then
-            Indicator:Destroy()
-            Indicator = nil
+        -- Удаляем агента
+        if Agent then
+            Agent:Destroy()
+            Agent = nil
+        end
+        ToggleButton.Text = "Вкл. Своб. Камеру"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+    end
+end
+
+-- Функция удалённого взаимодействия (добыча, атака)
+function RemoteInteract(target)
+    if not Agent or not FreeCameraMode then return end
+
+    -- Определяем тип объекта по имени
+    local targetName = target.Name:lower()
+
+    if targetName:find("ore") or targetName:find("руд") then
+        -- Добыча руды: ищем ClickDetector
+        local clickDetector = target:FindFirstChild("ClickDetector")
+        if clickDetector then
+            fireclickdetector(clickDetector)
+        end
+    elseif targetName:find("mob") or targetName:find("enemy") or targetName:find("monster") then
+        -- Атака моба: эмулируем удар
+        local humanoid = target:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid:TakeDamage(10) -- Базовый урон, можно настроить
+        end
+    end
+end
+
+-- 3. ОБРАБОТЧИКИ СОБЫТИЙ
+-- Открытие/закрытие панели управления
+MenuButton.MouseButton1Click:Connect(function()
+    ControlPanel.Visible = not ControlPanel.Visible
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    ControlPanel.Visible = false
+end)
+
+-- Кнопка переключения камеры
+ToggleButton.MouseButton1Click:Connect(ToggleFreeCamera)
+
+-- Обработка нажатий на игровые объекты (для мобильных устройств)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not FreeCameraMode or gameProcessed then return end
+
+    if input.UserInputType == Enum.UserInputType.Touch then
+        -- Для тач-устройств: получаем позицию касания
+        local target = workspace:FindPartOnRayWithIgnoreList(
+            Ray.new(workspace.CurrentCamera.CFrame.Position, 
+                   workspace.CurrentCamera.CFrame.LookVector * 100),
+            {workspace.CurrentCamera, Agent}
+        )
+        if target and target.Parent then
+            RemoteInteract(target)
         end
     end
 end)
 
--- Toggle indicator visibility
-local ShowIndicator = true
-IndicatorToggle.MouseButton1Click:Connect(function()
-    ShowIndicator = not ShowIndicator
-    
-    if ShowIndicator then
-        IndicatorToggle.Text = "Show Real Position: ON"
-        IndicatorToggle.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
-        if Indicator then Indicator.Transparency = 0.3 end
-    else
-        IndicatorToggle.Text = "Show Real Position: OFF"
-        IndicatorToggle.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
-        if Indicator then Indicator.Transparency = 1 end
-    end
-end)
-
--- Update real position while desynced
-RunService.Heartbeat:Connect(function()
-    if DesyncEnabled and Indicator then
-        -- Update indicator position
-        Indicator.Position = RootPart.Position
-        
-        -- Keep fake corpse stationary
-        if FakeCorpse then
-            FakeCorpse:SetPrimaryPartCFrame(CFrame.new(RealPosition) * CFrame.Angles(math.rad(90), 0, 0))
-        end
-        
-        -- Allow interaction with objects (character is actually there)
-        -- This is handled by Roblox physics since we're actually there
-    end
-end)
-
--- Emergency disable on respawn
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    Character = newChar
-    Humanoid = Character:WaitForChild("Humanoid")
-    RootPart = Character:WaitForChild("HumanoidRootPart")
-    
-    if DesyncEnabled then
-        DesyncEnabled = false
-        ToggleButton.Text = "DESYNC: OFF"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-        StatusLabel.Text = "Status: Reset"
-        
-        if FakeCorpse then
-            FakeCorpse:Destroy()
-            FakeCorpse = nil
-        end
-        
-        if Indicator then
-            Indicator:Destroy()
-            Indicator = nil
-        end
-    end
-end)
-
-print("Desync Script Loaded!")
-print("Instructions:")
-print("1. Press DESYNC button to activate")
-print("2. Other players see your 'dead body' at activation spot")
-print("3. You become invisible and can move freely")
-print("4. Green indicator shows your real position")
-print("5. You can interact with objects normally")
-print("6. Press again to return to fake corpse location")
+print("Мобильный скрипт для The Forge активирован!")
+print("Используйте кнопку в левом верхнем углу для управления.")
