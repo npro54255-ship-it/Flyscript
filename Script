@@ -1,98 +1,132 @@
--- Chop Your Tree - No Cooldown & Fast Click Toggle FIX
+-- Ultimate Luck x1000000 Injector
 -- by Colin
 
 local Player = game:GetService("Players").LocalPlayer
-local Mouse = Player:GetMouse()
-
--- Force-create GUI
 local CoreGui = game:GetService("CoreGui")
-if not CoreGui:FindFirstChild("FastChopGUI_FIX") then
+
+-- Force GUI
+if not CoreGui:FindFirstChild("LuckOverlord") then
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "FastChopGUI_FIX"
+    ScreenGui.Name = "LuckOverlord"
     ScreenGui.Parent = CoreGui
     ScreenGui.ResetOnSpawn = false
 
     local Frame = Instance.new("Frame")
-    Frame.Name = "MainFrame"
     Frame.Parent = ScreenGui
-    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
     Frame.BorderSizePixel = 0
-    Frame.Position = UDim2.new(0, 10, 0, 10)
-    Frame.Size = UDim2.new(0, 150, 0, 80)
+    Frame.Position = UDim2.new(0, 10, 0, 100)
+    Frame.Size = UDim2.new(0, 180, 0, 65)
 
     local TextButton = Instance.new("TextButton")
     TextButton.Parent = Frame
-    TextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    TextButton.BackgroundColor3 = Color3.fromRGB(80, 80, 160)
     TextButton.BorderSizePixel = 0
-    TextButton.Position = UDim2.new(0.05, 0, 0.2, 0)
-    TextButton.Size = UDim2.new(0.9, 0, 0.4, 0)
+    TextButton.Position = UDim2.new(0.05, 0, 0.15, 0)
+    TextButton.Size = UDim2.new(0.9, 0, 0.5, 0)
     TextButton.Font = Enum.Font.SourceSansBold
-    TextButton.Text = "FAST CLICK"
+    TextButton.Text = "LUCK x1000000"
     TextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     TextButton.TextScaled = true
 
     local Status = Instance.new("TextLabel")
     Status.Parent = Frame
     Status.BackgroundTransparency = 1
-    Status.Position = UDim2.new(0.05, 0, 0.65, 0)
-    Status.Size = UDim2.new(0.9, 0, 0.3, 0)
+    Status.Position = UDim2.new(0.05, 0, 0.7, 0)
+    Status.Size = UDim2.new(0.9, 0, 0.25, 0)
     Status.Font = Enum.Font.SourceSans
-    Status.Text = "Status: Inactive"
+    Status.Text = "OFF"
     Status.TextColor3 = Color3.fromRGB(255, 100, 100)
     Status.TextScaled = true
 
-    -- Logic
+    -- Hijack Engine
     local Active = false
-    local Hooks = {}
+    local OriginalRandom
+    local OriginalRandomNumber
 
-    local function HookAll()
-        for _, obj in pairs(game:GetDescendants()) do
-            if obj:IsA("RemoteEvent") and not Hooks[obj] then
-                Hooks[obj] = true
-                local old = obj.FireServer
-                obj.FireServer = function(self, ...)
-                    if Active then
-                        for i = 1, 10 do task.spawn(old, self, ...) end -- Spam fire
-                        return old(self, ...)
+    local function OverrideRandom()
+        if Active then
+            -- Always return the most favorable result
+            -- For random(): 0.0 to 1.0, we return 0.999999 (near 1)
+            return 0.999999
+        end
+        return OriginalRandom()
+    end
+
+    local function OverrideRandomNumber(min, max)
+        if Active then
+            -- Always return the maximum possible value
+            if max then
+                return max
+            else
+                return min or 1
+            end
+        end
+        return OriginalRandomNumber(min, max)
+    end
+
+    local function HookRandom()
+        -- Hook global Random object
+        local Random = Random.new()
+        OriginalRandomNumber = Random.NextNumber
+        Random.NextNumber = function(self, min, max)
+            return OverrideRandomNumber(min, max)
+        end
+        
+        -- Hook math.random
+        OriginalRandom = math.random
+        math.random = function(...)
+            local args = {...}
+            if #args == 0 then
+                return OverrideRandom()
+            elseif #args == 1 then
+                return args[1] -- Return max directly
+            else
+                return args[2] -- Return max directly
+            end
+        end
+        
+        -- Hook any remote that might contain "luck", "chance", "crit", "random"
+        for _, v in pairs(game:GetDescendants()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                local old = v.FireServer or v.InvokeServer
+                if v.FireServer then
+                    v.FireServer = function(self, ...)
+                        local args = {...}
+                        -- Modify arguments if they contain chance values
+                        local modifiedArgs = {}
+                        for _, arg in ipairs(args) do
+                            if type(arg) == "number" and arg < 1 and arg > 0 then
+                                table.insert(modifiedArgs, 0.999) -- Boost chance
+                            else
+                                table.insert(modifiedArgs, arg)
+                            end
+                        end
+                        return old(self, unpack(modifiedArgs))
                     end
-                    return old(self, ...)
                 end
             end
         end
     end
 
-    -- Hook everything immediately and on new descendants
-    HookAll()
-    game.DescendantAdded:Connect(function(obj)
-        if obj:IsA("RemoteEvent") and not Hooks[obj] then
-            task.wait(0.1)
-            Hooks[obj] = true
-            local old = obj.FireServer
-            obj.FireServer = function(self, ...)
-                if Active then
-                    for i = 1, 10 do task.spawn(old, self, ...) end
-                    return old(self, ...)
-                end
-                return old(self, ...)
-            end
-        end
-    end)
-
     -- Toggle
     TextButton.MouseButton1Click:Connect(function()
         Active = not Active
         if Active then
-            TextButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-            Status.Text = "Status: ACTIVED"
-            Status.TextColor3 = Color3.fromRGB(100, 255, 100)
-            print("Fast Click ACTIVED - Hooking all remotes.")
+            TextButton.BackgroundColor3 = Color3.fromRGB(160, 255, 160)
+            Status.Text = "ACTIVATED"
+            Status.TextColor3 = Color3.fromRGB(50, 255, 50)
+            HookRandom()
+            print("Luck x1000000 ACTIVATED - All randomness skewed to maximum.")
         else
-            TextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            Status.Text = "Status: Inactive"
+            TextButton.BackgroundColor3 = Color3.fromRGB(80, 80, 160)
+            Status.Text = "OFF"
             Status.TextColor3 = Color3.fromRGB(255, 100, 100)
-            print("Fast Click Inactive.")
+            -- Restore originals
+            math.random = OriginalRandom
+            print("Luck deactivated.")
         end
     end)
 
-    print("Fast Chop GUI loaded to CoreGui. Button should work.")
+    print("Luck Overlord GUI loaded. Activate for extreme favor.")
 end
