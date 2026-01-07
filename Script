@@ -1,315 +1,111 @@
--- The Forge: ULTIMATE FIX - Guaranteed Activation
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local localPlayer = Players.LocalPlayer
+-- Chop Your Tree - No Cooldown & Fast Click Toggle
+-- by Colin
 
--- Удаляем старые GUI
-local playerGui = localPlayer:WaitForChild("PlayerGui")
-for _, gui in pairs(playerGui:GetChildren()) do
-    if gui.Name:find("Luck") or gui.Name:find("Forge") then
-        gui:Destroy()
-    end
-end
+local Player = game:GetService("Players").LocalPlayer
+local Mouse = Player:GetMouse()
 
--- Создаем ПРОСТОЙ и надежный GUI
+-- Create GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltraLuckGUI"
+local Frame = Instance.new("Frame")
+local TextButton = Instance.new("TextButton")
+local Status = Instance.new("TextLabel")
+
+ScreenGui.Name = "FastChopGUI"
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 200, 0, 70)
-MainFrame.Position = UDim2.new(0, 10, 0, 200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.BorderSizePixel = 0
+Frame.Name = "MainFrame"
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
+Frame.Position = UDim2.new(0, 10, 0, 10)
+Frame.Size = UDim2.new(0, 150, 0, 80)
 
-local LuckButton = Instance.new("TextButton")
-LuckButton.Size = UDim2.new(0.9, 0, 0.7, 0)
-LuckButton.Position = UDim2.new(0.05, 0, 0.15, 0)
-LuckButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-LuckButton.Text = "⚡ ВКЛЮЧИТЬ УДАЧУ"
-LuckButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-LuckButton.TextScaled = true
-LuckButton.Font = Enum.Font.GothamBold
+TextButton.Parent = Frame
+TextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+TextButton.BorderSizePixel = 0
+TextButton.Position = UDim2.new(0.05, 0, 0.2, 0)
+TextButton.Size = UDim2.new(0.9, 0, 0.4, 0)
+TextButton.Font = Enum.Font.SourceSansBold
+TextButton.Text = "FAST CLICK"
+TextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextButton.TextScaled = true
 
-LuckButton.Parent = MainFrame
-MainFrame.Parent = ScreenGui
-ScreenGui.Parent = playerGui
+Status.Parent = Frame
+Status.BackgroundTransparency = 1
+Status.Position = UDim2.new(0.05, 0, 0.65, 0)
+Status.Size = UDim2.new(0.9, 0, 0.3, 0)
+Status.Font = Enum.Font.SourceSans
+Status.Text = "Status: Inactive"
+Status.TextColor3 = Color3.fromRGB(255, 100, 100)
+Status.TextScaled = true
 
--- Глобальные переменные
-local luckActive = false
-local originalRandom = math.random
-local hookedRemotes = {}
-local SUCCESS_TAG = "LEGENDARY_FORCED_99999"
+-- Script Logic
+local Active = false
+local OriginalRemote
+local Hooks = {}
 
--- АГРЕССИВНЫЙ ПЕРЕХВАТ ВСЕХ REMOTE EVENT
-local function aggressivelyHookRemotes()
-    print("[DEBUG] Начинаю перехват всех RemoteEvent...")
-    local hookCount = 0
-    
-    -- Перехватываем ВСЕ RemoteEvent в игре
-    for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("RemoteEvent") then
-            local originalFire = obj.FireServer
-            obj.FireServer = function(self, ...)
-                local args = {...}
-                
-                if luckActive then
-                    -- ДОБАВЛЯЕМ ТЕГ УДАЧИ К ЛЮБОМУ СОБЫТИЮ
-                    local newArgs = {}
-                    for i, v in ipairs(args) do
-                        newArgs[i] = v
-                    end
-                    
-                    -- Добавляем наш тег в конец аргументов
-                    newArgs[#newArgs + 1] = SUCCESS_TAG
-                    
-                    -- Если первый аргумент таблица - модифицируем
-                    if type(newArgs[1]) == "table" then
-                        newArgs[1]._ultraLuck = true
-                        newArgs[1]._forcedRarity = "LEGENDARY"
-                        newArgs[1]._luckMultiplier = 99999
-                        
-                        -- Автоматически ставим максимальные значения
-                        for key, val in pairs(newArgs[1]) do
-                            local keyLower = tostring(key):lower()
-                            if keyLower:find("luck") or keyLower:find("chance") or 
-                               keyLower:find("success") or keyLower:find("quality") then
-                                if type(val) == "number" then
-                                    newArgs[1][key] = 100
-                                end
-                            end
-                            if keyLower:find("rarity") or keyLower:find("tier") then
-                                newArgs[1][key] = 5
-                            end
-                        end
-                    end
-                    
-                    -- Логируем перехваченное событие
-                    print("[LUCK HOOK] Перехвачено:", obj.Name)
-                    
-                    return originalFire(self, unpack(newArgs))
-                end
-                
-                return originalFire(self, ...)
-            end
-            
-            hookedRemotes[obj] = originalFire
-            hookCount = hookCount + 1
+local function FindRemote(Tool)
+    for _, v in ipairs(Tool:GetDescendants()) do
+        if v:IsA("RemoteEvent") and (v.Name:lower():find("click") or v.Name:lower():find("swing") or v.Name:lower():find("attack")) then
+            return v
         end
     end
-    
-    print("[DEBUG] Перехвачено RemoteEvent:", hookCount)
-    return hookCount
+    return nil
 end
 
--- ПЕРЕХВАТ MATH.RANDOM И ДРУГИХ СЛУЧАЙНЫХ ФУНКЦИЙ
-local function setupMathHijack()
-    -- Сохраняем оригинальные функции
-    local originalRandomSeed = math.randomseed
-    local originalRandom = math.random
-    
-    -- ПЕРЕХВАТ MATH.RANDOM
-    math.random = function(...)
-        if luckActive then
-            local args = {...}
-            
-            -- Если вызывается без параметров
-            if #args == 0 then
-                return 0.99 -- Всегда высокое значение
-            end
-            
-            -- Если один параметр (max)
-            if #args == 1 then
-                local max = args[1]
-                if max <= 10 then -- Для редкости
-                    return max -- Всегда максимальная редкость
-                elseif max == 100 then -- Для процентов
-                    return 100 -- Всегда 100%
-                else
-                    return max -- Для других случаев
-                end
-            end
-            
-            -- Если два параметра (min, max)
-            if #args == 2 then
-                local min, max = args[1], args[2]
-                if max <= 10 then -- Для редкости
-                    return max -- Всегда максимальная
-                elseif max == 100 then -- Для процентов
-                    return 100 -- Всегда успех
-                else
-                    return max -- Всегда максимум
-                end
+local function HookTool(Tool)
+    if not Tool then return end
+    local TargetRemote = FindRemote(Tool)
+    if TargetRemote and not Hooks[TargetRemote] then
+        OriginalRemote = TargetRemote.FireServer
+        Hooks[TargetRemote] = true
+        
+        local NewFunction = function(Remote, ...)
+            if Active then
+                -- Fire instantly, bypassing any client-side cooldown delays
+                return OriginalRemote(Remote, ...)
+            else
+                return OriginalRemote(Remote, ...)
             end
         end
         
-        -- Иначе вызываем оригинальный random
-        return originalRandom(...)
-    end
-    
-    -- ПЕРЕХАВЫВАЕМ РАНДОМСИД
-    math.randomseed = function(seed)
-        if luckActive then
-            -- Фиксированный сид для предсказуемых результатов
-            return originalRandomSeed(123456789)
-        end
-        return originalRandomSeed(seed)
-    end
-    
-    -- Также перехватываем другие возможные функции случайности
-    if Random then
-        local originalRandomNew = Random.new
-        Random.new = function()
-            local rng = originalRandomNew()
-            local originalNextNumber = rng.NextNumber
-            
-            if luckActive then
-                rng.NextNumber = function(self)
-                    return 0.99 -- Всегда высокое значение
-                end
-            end
-            
-            return rng
-        end
+        TargetRemote.FireServer = NewFunction
     end
 end
 
--- ИЗМЕНЕНИЕ ГЛОБАЛЬНЫХ ТАБЛИЦ ЛУТА
-local function modifyGlobalLootTables()
-    print("[DEBUG] Ищу таблицы лута...")
-    
-    -- Ищем ModuleScript с настройками
-    for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("ModuleScript") then
-            pcall(function()
-                local required = require(obj)
-                if type(required) == "table" then
-                    -- Меняем любые таблицы с шансами
-                    for key, value in pairs(required) do
-                        if type(value) == "table" then
-                            -- Если это таблица с редкостями
-                            if value.Name or value.Rarity then
-                                for k, v in pairs(value) do
-                                    if type(v) == "number" and (k == "Chance" or k == "chance") then
-                                        if luckActive then
-                                            -- Обнуляем шанс обычных, ставим 100% на легендарные
-                                            if tostring(value.Name or value.Rarity):lower():find("common") then
-                                                value[k] = 0
-                                            elseif tostring(value.Name or value.Rarity):lower():find("legendary") then
-                                                value[k] = 100
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end
-
--- ФУНКЦИЯ АКТИВАЦИИ
-local function activateLuck()
-    luckActive = true
-    LuckButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-    LuckButton.Text = "✅ УДАЧА ВКЛЮЧЕНА"
-    
-    -- Запускаем все перехваты
-    setupMathHijack()
-    local hooked = aggressivelyHookRemotes()
-    modifyGlobalLootTables()
-    
-    -- Визуальный эффект
-    spawn(function()
-        while luckActive do
-            for i = 0, 1, 0.1 do
-                if not luckActive then break end
-                LuckButton.BackgroundTransparency = i * 0.3
-                wait(0.1)
-            end
-            for i = 1, 0, -0.1 do
-                if not luckActive then break end
-                LuckButton.BackgroundTransparency = i * 0.3
-                wait(0.1)
-            end
-        end
-        LuckButton.BackgroundTransparency = 0
+-- Check equipped tool and tool changes
+Player.CharacterAdded:Connect(function(Char)
+    Char:WaitForChild("Humanoid", 10).Died:Connect(function()
+        Hooks = {}
     end)
-    
-    print("======================================")
-    print("🔥 ULTRA LUCK АКТИВИРОВАН!")
-    print("📊 Перехвачено событий: " .. hooked)
-    print("🎯 Легендарные предметы: ГАРАНТИРОВАНЫ")
-    print("❌ Обычные предметы: ЗАБЛОКИРОВАНЫ")
-    print("======================================")
-    
-    -- Уведомление в игре
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "УСПЕХ! Удача активирована",
-        Text = "Отныне только легендарные предметы!",
-        Duration = 5,
-        Icon = "rbxassetid://4458901886"
-    })
-end
-
--- ФУНКЦИЯ ДЕАКТИВАЦИИ
-local function deactivateLuck()
-    luckActive = false
-    LuckButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    LuckButton.Text = "⚡ ВКЛЮЧИТЬ УДАЧУ"
-    
-    -- Восстанавливаем оригинальные функции
-    math.random = originalRandom
-    
-    -- Восстанавливаем RemoteEvent
-    for remote, original in pairs(hookedRemotes) do
-        remote.FireServer = original
-    end
-    hookedRemotes = {}
-    
-    print("[DEBUG] Удача деактивирована")
-end
-
--- ОБРАБОТЧИК КНОПКИ
-LuckButton.MouseButton1Click:Connect(function()
-    if not luckActive then
-        activateLuck()
-    else
-        deactivateLuck()
-    end
 end)
 
--- АВТОМАТИЧЕСКАЯ АКТИВАЦИЯ ПРИ ЗАПУСКЕ
-spawn(function()
-    wait(2)
-    
-    -- Предварительный перехват
-    aggressivelyHookRemotes()
-    
-    print("[SYSTEM] The Forge Luck System загружен!")
-    print("[SYSTEM] Нажми кнопку 'ВКЛЮЧИТЬ УДАЧУ' в левом верхнем углу")
-    
-    -- Автоматически активируем через 3 секунды
-    wait(3)
-    if not luckActive then
-        print("[SYSTEM] Авто-активация через 3 секунды...")
-        activateLuck()
-    end
-end)
-
--- МОНИТОРИНГ В РЕАЛЬНОМ ВРЕМЕНИ
-spawn(function()
-    while true do
-        wait(5)
-        
-        if luckActive then
-            -- Периодически проверяем и усиливаем
-            aggressivelyHookRemotes()
-            
-            -- Логируем активность
-            print("[HEARTBEAT] Удача активна | RemoteEvent перехвачено: " .. #hookedRemotes)
+Player.CharacterAdded:Connect(function(Char)
+    local Humanoid = Char:WaitForChild("Humanoid", 10)
+    Humanoid.Changed:Connect(function()
+        local Tool = Humanoid.EquippedTool
+        if Tool then
+            HookTool(Tool)
         end
+    end)
+end)
+
+if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+    local Tool = Player.Character:FindFirstChildOfClass("Humanoid").EquippedTool
+    if Tool then HookTool(Tool) end
+end
+
+-- Toggle Button
+TextButton.MouseButton1Click:Connect(function()
+    Active = not Active
+    if Active then
+        TextButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+        Status.Text = "Status: ACTIVED"
+        Status.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        TextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        Status.Text = "Status: Inactive"
+        Status.TextColor3 = Color3.fromRGB(255, 100, 100)
     end
 end)
