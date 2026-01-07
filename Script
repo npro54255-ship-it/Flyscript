@@ -1,111 +1,98 @@
--- Chop Your Tree - No Cooldown & Fast Click Toggle
+-- Chop Your Tree - No Cooldown & Fast Click Toggle FIX
 -- by Colin
 
 local Player = game:GetService("Players").LocalPlayer
 local Mouse = Player:GetMouse()
 
--- Create GUI
-local ScreenGui = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local TextButton = Instance.new("TextButton")
-local Status = Instance.new("TextLabel")
+-- Force-create GUI
+local CoreGui = game:GetService("CoreGui")
+if not CoreGui:FindFirstChild("FastChopGUI_FIX") then
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "FastChopGUI_FIX"
+    ScreenGui.Parent = CoreGui
+    ScreenGui.ResetOnSpawn = false
 
-ScreenGui.Name = "FastChopGUI"
-ScreenGui.Parent = Player:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
+    local Frame = Instance.new("Frame")
+    Frame.Name = "MainFrame"
+    Frame.Parent = ScreenGui
+    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Frame.BorderSizePixel = 0
+    Frame.Position = UDim2.new(0, 10, 0, 10)
+    Frame.Size = UDim2.new(0, 150, 0, 80)
 
-Frame.Name = "MainFrame"
-Frame.Parent = ScreenGui
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.BorderSizePixel = 0
-Frame.Position = UDim2.new(0, 10, 0, 10)
-Frame.Size = UDim2.new(0, 150, 0, 80)
+    local TextButton = Instance.new("TextButton")
+    TextButton.Parent = Frame
+    TextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    TextButton.BorderSizePixel = 0
+    TextButton.Position = UDim2.new(0.05, 0, 0.2, 0)
+    TextButton.Size = UDim2.new(0.9, 0, 0.4, 0)
+    TextButton.Font = Enum.Font.SourceSansBold
+    TextButton.Text = "FAST CLICK"
+    TextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextButton.TextScaled = true
 
-TextButton.Parent = Frame
-TextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-TextButton.BorderSizePixel = 0
-TextButton.Position = UDim2.new(0.05, 0, 0.2, 0)
-TextButton.Size = UDim2.new(0.9, 0, 0.4, 0)
-TextButton.Font = Enum.Font.SourceSansBold
-TextButton.Text = "FAST CLICK"
-TextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-TextButton.TextScaled = true
+    local Status = Instance.new("TextLabel")
+    Status.Parent = Frame
+    Status.BackgroundTransparency = 1
+    Status.Position = UDim2.new(0.05, 0, 0.65, 0)
+    Status.Size = UDim2.new(0.9, 0, 0.3, 0)
+    Status.Font = Enum.Font.SourceSans
+    Status.Text = "Status: Inactive"
+    Status.TextColor3 = Color3.fromRGB(255, 100, 100)
+    Status.TextScaled = true
 
-Status.Parent = Frame
-Status.BackgroundTransparency = 1
-Status.Position = UDim2.new(0.05, 0, 0.65, 0)
-Status.Size = UDim2.new(0.9, 0, 0.3, 0)
-Status.Font = Enum.Font.SourceSans
-Status.Text = "Status: Inactive"
-Status.TextColor3 = Color3.fromRGB(255, 100, 100)
-Status.TextScaled = true
+    -- Logic
+    local Active = false
+    local Hooks = {}
 
--- Script Logic
-local Active = false
-local OriginalRemote
-local Hooks = {}
-
-local function FindRemote(Tool)
-    for _, v in ipairs(Tool:GetDescendants()) do
-        if v:IsA("RemoteEvent") and (v.Name:lower():find("click") or v.Name:lower():find("swing") or v.Name:lower():find("attack")) then
-            return v
-        end
-    end
-    return nil
-end
-
-local function HookTool(Tool)
-    if not Tool then return end
-    local TargetRemote = FindRemote(Tool)
-    if TargetRemote and not Hooks[TargetRemote] then
-        OriginalRemote = TargetRemote.FireServer
-        Hooks[TargetRemote] = true
-        
-        local NewFunction = function(Remote, ...)
-            if Active then
-                -- Fire instantly, bypassing any client-side cooldown delays
-                return OriginalRemote(Remote, ...)
-            else
-                return OriginalRemote(Remote, ...)
+    local function HookAll()
+        for _, obj in pairs(game:GetDescendants()) do
+            if obj:IsA("RemoteEvent") and not Hooks[obj] then
+                Hooks[obj] = true
+                local old = obj.FireServer
+                obj.FireServer = function(self, ...)
+                    if Active then
+                        for i = 1, 10 do task.spawn(old, self, ...) end -- Spam fire
+                        return old(self, ...)
+                    end
+                    return old(self, ...)
+                end
             end
         end
-        
-        TargetRemote.FireServer = NewFunction
     end
-end
 
--- Check equipped tool and tool changes
-Player.CharacterAdded:Connect(function(Char)
-    Char:WaitForChild("Humanoid", 10).Died:Connect(function()
-        Hooks = {}
-    end)
-end)
-
-Player.CharacterAdded:Connect(function(Char)
-    local Humanoid = Char:WaitForChild("Humanoid", 10)
-    Humanoid.Changed:Connect(function()
-        local Tool = Humanoid.EquippedTool
-        if Tool then
-            HookTool(Tool)
+    -- Hook everything immediately and on new descendants
+    HookAll()
+    game.DescendantAdded:Connect(function(obj)
+        if obj:IsA("RemoteEvent") and not Hooks[obj] then
+            task.wait(0.1)
+            Hooks[obj] = true
+            local old = obj.FireServer
+            obj.FireServer = function(self, ...)
+                if Active then
+                    for i = 1, 10 do task.spawn(old, self, ...) end
+                    return old(self, ...)
+                end
+                return old(self, ...)
+            end
         end
     end)
-end)
 
-if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-    local Tool = Player.Character:FindFirstChildOfClass("Humanoid").EquippedTool
-    if Tool then HookTool(Tool) end
+    -- Toggle
+    TextButton.MouseButton1Click:Connect(function()
+        Active = not Active
+        if Active then
+            TextButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+            Status.Text = "Status: ACTIVED"
+            Status.TextColor3 = Color3.fromRGB(100, 255, 100)
+            print("Fast Click ACTIVED - Hooking all remotes.")
+        else
+            TextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            Status.Text = "Status: Inactive"
+            Status.TextColor3 = Color3.fromRGB(255, 100, 100)
+            print("Fast Click Inactive.")
+        end
+    end)
+
+    print("Fast Chop GUI loaded to CoreGui. Button should work.")
 end
-
--- Toggle Button
-TextButton.MouseButton1Click:Connect(function()
-    Active = not Active
-    if Active then
-        TextButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-        Status.Text = "Status: ACTIVED"
-        Status.TextColor3 = Color3.fromRGB(100, 255, 100)
-    else
-        TextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        Status.Text = "Status: Inactive"
-        Status.TextColor3 = Color3.fromRGB(255, 100, 100)
-    end
-end)
